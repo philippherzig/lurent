@@ -1,6 +1,30 @@
 import SwiftUI
 import AppKit
+import CoreImage
 import UniformTypeIdentifiers
+
+// MARK: - Color <-> CIColor
+
+extension Color {
+    /// sRGB CIColor for feeding into Core Image kernels.
+    var asCIColor: CIColor {
+        let ns = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1)
+        return CIColor(red: ns.redComponent, green: ns.greenComponent, blue: ns.blueComponent, alpha: 1)
+    }
+
+    /// Builds a saturation-boosted SwiftUI Color from an averaged CIColor.
+    static func vivid(from ci: CIColor) -> Color {
+        let base = NSColor(srgbRed: min(1, max(0, ci.red)),
+                           green: min(1, max(0, ci.green)),
+                           blue: min(1, max(0, ci.blue)), alpha: 1)
+        guard let rgb = base.usingColorSpace(.sRGB) else { return Color(nsColor: base) }
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        rgb.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        s = min(1, s * 1.35 + 0.06)
+        b = min(1, max(0.28, b))
+        return Color(nsColor: NSColor(hue: h, saturation: s, brightness: b, alpha: 1))
+    }
+}
 
 // MARK: - Resolution presets
 
@@ -41,6 +65,12 @@ enum Appearance: String, CaseIterable, Identifiable {
     var other: Appearance { self == .light ? .dark : .light }
 }
 
+enum WallpaperStyle: String, CaseIterable, Identifiable {
+    case blur, flow
+    var id: String { rawValue }
+    var label: String { self == .blur ? "Blur" : "Flow" }
+}
+
 // MARK: - A single wallpaper "look"
 
 struct Look {
@@ -50,15 +80,36 @@ struct Look {
     var attribution: String?
     var attributionURL: String?
 
+    var style: WallpaperStyle = .blur
+
+    // Blur style
     var blur: Double = 55
     var brightness: Double = 0
     var saturation: Double = 1.15
     var contrast: Double = 1.0
-    var dither: Double = 1.2
+    var dither: Double = 0.1
+
+    // Flow style
+    var flowColor0: Color = Color(red: 0.98, green: 0.55, blue: 0.10)
+    var flowColor1: Color = Color(red: 1.00, green: 0.13, blue: 0.55)
+    var flowColor2: Color = Color(red: 0.55, green: 0.12, blue: 0.92)
+    var flowBands: Int = 3
+    var flowAmplitude: Double = 0.11
+    var flowFrequency: Double = 1.0
+    var flowSharpness: Double = 0.8
+    var flowEdgeSoftness: Double = 0.7
+    var flowPhase: Double = 1.0
 
     var settings: BlurProcessor.Settings {
         .init(blur: blur, brightness: brightness, saturation: saturation,
               contrast: contrast, dither: dither)
+    }
+
+    var flowSettings: FlowProcessor.Settings {
+        .init(colors: [flowColor0.asCIColor, flowColor1.asCIColor, flowColor2.asCIColor],
+              bands: flowBands, amplitude: flowAmplitude, frequency: flowFrequency,
+              sharpness: flowSharpness, edgeSoftness: flowEdgeSoftness,
+              phase: flowPhase, dither: dither)
     }
 }
 
@@ -154,8 +205,14 @@ final class AppModel: ObservableObject {
     func resetCurrentLook() {
         mutateCurrentLook {
             let d = Look()
-            $0.blur = d.blur; $0.brightness = d.brightness
-            $0.saturation = d.saturation; $0.contrast = d.contrast
+            if $0.style == .flow {
+                $0.flowBands = d.flowBands; $0.flowAmplitude = d.flowAmplitude
+                $0.flowFrequency = d.flowFrequency; $0.flowSharpness = d.flowSharpness
+                $0.flowEdgeSoftness = d.flowEdgeSoftness; $0.flowPhase = d.flowPhase
+            } else {
+                $0.blur = d.blur; $0.brightness = d.brightness
+                $0.saturation = d.saturation; $0.contrast = d.contrast
+            }
             $0.dither = d.dither
         }
     }
@@ -252,12 +309,40 @@ final class AppModel: ObservableObject {
 
     private func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
+        let palette = Self.extractPalette(from: cg)
         let apply: (inout Look) -> Void = {
             $0.source = cg; $0.photoID = photoID; $0.baseName = baseName
             $0.attribution = attribution; $0.attributionURL = attributionURL
+            $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
         }
         if appearance == .light { apply(&lightLook) } else { apply(&darkLook) }
         renderPreview()
+    }
+
+    /// Re-derive the Flow palette from the current look's photo.
+    func reloadPaletteFromPhoto() {
+        guard let src = currentLook.source else { return }
+        let palette = Self.extractPalette(from: src)
+        mutateCurrentLook {
+            $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
+        }
+    }
+
+    /// Three dominant colours (bottom → top thirds), saturation-boosted so the
+    /// Flow gradient stays vivid.
+    private static func extractPalette(from cg: CGImage) -> [Color] {
+        let ci = CIImage(cgImage: cg)
+        let e = ci.extent
+        let third = e.height / 3
+        let rects = [
+            CGRect(x: e.minX, y: e.minY, width: e.width, height: third),
+            CGRect(x: e.minX, y: e.minY + third, width: e.width, height: third),
+            CGRect(x: e.minX, y: e.minY + 2 * third, width: e.width, height: third),
+        ]
+        return rects.map { rect in
+            let avg = FlowProcessor.averageColor(of: ci, in: rect)
+            return Color.vivid(from: avg)
+        }
     }
 
     // MARK: Rendering
@@ -272,10 +357,19 @@ final class AppModel: ObservableObject {
     }
 
     func renderPreview() {
-        guard let src = currentLook.source else { preview = nil; return }
         let size = previewTargetSize()
-        if let cg = BlurProcessor.render(source: src, targetSize: size, settings: currentLook.settings) {
-            preview = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        guard let cg = renderCG(currentLook, size: size, deep: false) else { preview = nil; return }
+        preview = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    }
+
+    /// Renders a look with its selected style; nil if a blur look has no source.
+    private func renderCG(_ look: Look, size: CGSize, deep: Bool) -> CGImage? {
+        switch look.style {
+        case .blur:
+            guard let src = look.source else { return nil }
+            return BlurProcessor.render(source: src, targetSize: size, settings: look.settings, deepColor: deep)
+        case .flow:
+            return FlowProcessor.render(size: size, settings: look.flowSettings, deepColor: deep)
         }
     }
 
@@ -289,12 +383,11 @@ final class AppModel: ObservableObject {
     }
 
     private func renderFull(_ look: Look) throws -> CGImage {
-        guard let src = look.source else { throw ExportError.noSource }
+        if look.style == .blur, look.source == nil { throw ExportError.noSource }
         let s = pixelSize
-        guard let cg = BlurProcessor.render(
-            source: src, targetSize: CGSize(width: s.width, height: s.height),
-            settings: look.settings, deepColor: true
-        ) else { throw ExportError.renderFailed }
+        guard let cg = renderCG(look, size: CGSize(width: s.width, height: s.height), deep: true) else {
+            throw ExportError.renderFailed
+        }
         return cg
     }
 
@@ -309,9 +402,11 @@ final class AppModel: ObservableObject {
 
     // MARK: File names
 
+    func lookHasContent(_ l: Look) -> Bool { l.style == .flow || l.source != nil }
+
     var canExport: Bool {
-        mode == .single ? lightLook.source != nil
-                        : (lightLook.source != nil && darkLook.source != nil)
+        mode == .single ? lookHasContent(lightLook)
+                        : (lookHasContent(lightLook) && lookHasContent(darkLook))
     }
 
     func exportFileName(ext: String) -> String {

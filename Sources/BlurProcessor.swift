@@ -15,9 +15,9 @@ enum BlurProcessor {
         var saturation: Double = 1.15
         /// Core Image contrast (0…2), 1 = neutral.
         var contrast: Double = 1.0
-        /// Dither intensity applied at output resolution to break up the colour
-        /// banding that smooth blurred gradients show on wide-gamut displays.
-        var dither: Double = 1.2
+        /// Dither intensity applied at output resolution. 16-bit output already
+        /// removes banding; this adds a subtle grain on top (kept low by default).
+        var dither: Double = 0.1
     }
 
     static let context: CIContext = {

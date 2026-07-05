@@ -34,8 +34,23 @@ Bilddatei.
 ## Bedienung
 
 - Links: Foto suchen & anklicken, oder eigenes Bild öffnen.
-- Rechts: Auflösung wählen (Standard **Pro Display XDR — 6016 × 3384**) und die
-  Regler **Blur / Helligkeit / Sättigung / Kontrast** anpassen.
+- Rechts: **Stil** wählen (Blur / Flow), Auflösung (Standard
+  **Pro Display XDR — 6016 × 3384**) und die zugehörigen Regler anpassen.
+
+### Stile: Blur & Flow
+
+- **Blur** — weiches Gradient-Wallpaper aus dem Foto. Regler:
+  Blur / Helligkeit / Sättigung / Kontrast.
+- **Flow** — fließende Farbbänder mit einer harten Kante entlang einer
+  Sinuslinie, die nur zu den Rändern weich zerläuft (Icon-Composer-Look). Die
+  2–3 Farben werden aus dem Foto extrahiert (per Color-Picker überschreibbar,
+  „Aus Foto" lädt neu). Regler: Amplitude / Frequenz / Kantenschärfe /
+  Rand-Weichheit / Variante. Funktioniert auch ohne Foto (Default-Palette).
+
+Beide Stile teilen den 16-Bit/Dither-Ausgabepfad und lassen sich statisch oder
+dynamisch (Hell/Dunkel) exportieren. Der Regler **Körnung** fügt optionales
+Filmkorn hinzu (Standard dezent — Banding wird bereits durch die 16-Bit-Ausgabe
+vermieden).
 
 ### Statisch vs. Hell + Dunkel
 

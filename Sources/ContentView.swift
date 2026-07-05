@@ -239,9 +239,13 @@ private struct ControlsBar: View {
                 }
             }
 
-            // Resolution + sliders
+            // Style + resolution + sliders
             HStack(alignment: .top, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Picker("Stil", selection: model.bind(\.style)) {
+                        ForEach(WallpaperStyle.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
                     Picker("Auflösung", selection: $model.preset) {
                         ForEach(ResolutionPreset.all) { Text($0.name).tag($0) }
                     }
@@ -257,14 +261,18 @@ private struct ControlsBar: View {
                 }
                 .frame(maxWidth: 280, alignment: .leading)
 
-                VStack(spacing: 4) {
-                    labeledSlider("Blur", model.bind(\.blur), 0...100)
-                    labeledSlider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
-                    labeledSlider("Sättigung", model.bind(\.saturation), 0...2)
-                    labeledSlider("Kontrast", model.bind(\.contrast), 0.8...1.3)
-                    labeledSlider("Körnung", model.bind(\.dither), 0...3)
+                if model.currentLook.style == .blur {
+                    VStack(spacing: 4) {
+                        labeledSlider("Blur", model.bind(\.blur), 0...100)
+                        labeledSlider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
+                        labeledSlider("Sättigung", model.bind(\.saturation), 0...2)
+                        labeledSlider("Kontrast", model.bind(\.contrast), 0.8...1.3)
+                        labeledSlider("Körnung", model.bind(\.dither), 0...1)
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    flowControls
                 }
-                .frame(maxWidth: .infinity)
             }
 
             // Actions
@@ -289,9 +297,45 @@ private struct ControlsBar: View {
 
     private func labeledSlider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
         HStack(spacing: 10) {
-            Text(title).font(.callout).frame(width: 78, alignment: .leading)
+            Text(title).font(.callout).frame(width: 96, alignment: .leading)
             Slider(value: value, in: range)
         }
+    }
+
+    private var flowControls: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Picker("", selection: model.bind(\.flowBands)) {
+                    Text("2 Farben").tag(2)
+                    Text("3 Farben").tag(3)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 180)
+
+                ColorPicker("", selection: model.bind(\.flowColor0), supportsOpacity: false).labelsHidden()
+                ColorPicker("", selection: model.bind(\.flowColor1), supportsOpacity: false).labelsHidden()
+                if model.currentLook.flowBands >= 3 {
+                    ColorPicker("", selection: model.bind(\.flowColor2), supportsOpacity: false).labelsHidden()
+                }
+                Spacer()
+                Button { model.reloadPaletteFromPhoto() } label: {
+                    Label("Aus Foto", systemImage: "eyedropper")
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .disabled(model.currentLook.source == nil)
+            }
+            VStack(spacing: 4) {
+                labeledSlider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
+                labeledSlider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
+                labeledSlider("Kantenschärfe", model.bind(\.flowSharpness), 0...1)
+                labeledSlider("Rand-Weichheit", model.bind(\.flowEdgeSoftness), 0...1)
+                labeledSlider("Variante", model.bind(\.flowPhase), 0...6.283)
+                labeledSlider("Körnung", model.bind(\.dither), 0...1)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
