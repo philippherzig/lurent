@@ -1,0 +1,15 @@
+# Secrets
+.env
+Secrets.generated.swift
+
+# Build output
+build/
+*.app
+
+# macOS
+.DS_Store
+
+# Editor / tooling
+*.swiftpm
+.build/
+xcuserdata/
