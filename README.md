@@ -46,6 +46,11 @@ Bilddatei.
   2–3 Farben werden aus dem Foto extrahiert (per Color-Picker überschreibbar,
   „Aus Foto" lädt neu). Regler: Amplitude / Frequenz / Kantenschärfe /
   Rand-Weichheit / Variante. Funktioniert auch ohne Foto (Default-Palette).
+- **Spiegel** — faltet den unteren Teil des geblurrten Fotos entlang einer
+  geschwungenen Linie in sich selbst (keine Motiv-Dopplung), mit optional
+  100 % harter Kante, die zu den Rändern ausblendet — ergibt Berg-/Horizont-
+  Silhouetten. Regler: Blur / Spiegel-Linie / Amplitude / Frequenz /
+  Kantenschärfe / Tiefe / Seiten-Fade.
 
 Beide Stile teilen den 16-Bit/Dither-Ausgabepfad und lassen sich statisch oder
 dynamisch (Hell/Dunkel) exportieren. Der Regler **Körnung** fügt optionales

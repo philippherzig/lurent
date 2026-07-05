@@ -66,9 +66,15 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, flow
+    case blur, flow, mirror
     var id: String { rawValue }
-    var label: String { self == .blur ? "Blur" : "Flow" }
+    var label: String {
+        switch self {
+        case .blur: return "Blur"
+        case .flow: return "Flow"
+        case .mirror: return "Spiegel"
+        }
+    }
 }
 
 // MARK: - A single wallpaper "look"
@@ -100,6 +106,15 @@ struct Look {
     var flowEdgeSoftness: Double = 0.7
     var flowPhase: Double = 1.0
 
+    // Mirror style (builds on the blur controls)
+    var mirrorLine: Double = 0.52
+    var mirrorAmplitude: Double = 0.05
+    var mirrorFrequency: Double = 1.0
+    var mirrorPhase: Double = 1.0
+    var mirrorHardness: Double = 1.0
+    var mirrorDepth: Double = 0.35
+    var mirrorSideFade: Double = 0.5
+
     var settings: BlurProcessor.Settings {
         .init(blur: blur, brightness: brightness, saturation: saturation,
               contrast: contrast, dither: dither)
@@ -110,6 +125,12 @@ struct Look {
               bands: flowBands, amplitude: flowAmplitude, frequency: flowFrequency,
               sharpness: flowSharpness, edgeSoftness: flowEdgeSoftness,
               phase: flowPhase, dither: dither)
+    }
+
+    var mirrorSettings: MirrorProcessor.Settings {
+        .init(line: mirrorLine, amplitude: mirrorAmplitude, frequency: mirrorFrequency,
+              phase: mirrorPhase, hardness: mirrorHardness, depth: mirrorDepth,
+              sideFade: mirrorSideFade)
     }
 }
 
@@ -205,11 +226,19 @@ final class AppModel: ObservableObject {
     func resetCurrentLook() {
         mutateCurrentLook {
             let d = Look()
-            if $0.style == .flow {
+            switch $0.style {
+            case .flow:
                 $0.flowBands = d.flowBands; $0.flowAmplitude = d.flowAmplitude
                 $0.flowFrequency = d.flowFrequency; $0.flowSharpness = d.flowSharpness
                 $0.flowEdgeSoftness = d.flowEdgeSoftness; $0.flowPhase = d.flowPhase
-            } else {
+            case .mirror:
+                $0.blur = d.blur; $0.brightness = d.brightness
+                $0.saturation = d.saturation; $0.contrast = d.contrast
+                $0.mirrorLine = d.mirrorLine; $0.mirrorAmplitude = d.mirrorAmplitude
+                $0.mirrorFrequency = d.mirrorFrequency; $0.mirrorPhase = d.mirrorPhase
+                $0.mirrorHardness = d.mirrorHardness; $0.mirrorDepth = d.mirrorDepth
+                $0.mirrorSideFade = d.mirrorSideFade
+            case .blur:
                 $0.blur = d.blur; $0.brightness = d.brightness
                 $0.saturation = d.saturation; $0.contrast = d.contrast
             }
@@ -362,7 +391,7 @@ final class AppModel: ObservableObject {
         preview = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
     }
 
-    /// Renders a look with its selected style; nil if a blur look has no source.
+    /// Renders a look with its selected style; nil if a photo-based style has no source.
     private func renderCG(_ look: Look, size: CGSize, deep: Bool) -> CGImage? {
         switch look.style {
         case .blur:
@@ -370,6 +399,12 @@ final class AppModel: ObservableObject {
             return BlurProcessor.render(source: src, targetSize: size, settings: look.settings, deepColor: deep)
         case .flow:
             return FlowProcessor.render(size: size, settings: look.flowSettings, deepColor: deep)
+        case .mirror:
+            guard let src = look.source,
+                  let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)
+            else { return nil }
+            let folded = MirrorProcessor.apply(to: base, size: size, settings: look.mirrorSettings)
+            return BlurProcessor.finalize(folded, size: size, dither: look.dither, deepColor: deep)
         }
     }
 
@@ -383,7 +418,7 @@ final class AppModel: ObservableObject {
     }
 
     private func renderFull(_ look: Look) throws -> CGImage {
-        if look.style == .blur, look.source == nil { throw ExportError.noSource }
+        if look.style != .flow, look.source == nil { throw ExportError.noSource }
         let s = pixelSize
         guard let cg = renderCG(look, size: CGSize(width: s.width, height: s.height), deep: true) else {
             throw ExportError.renderFailed

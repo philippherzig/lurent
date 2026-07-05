@@ -261,7 +261,8 @@ private struct ControlsBar: View {
                 }
                 .frame(maxWidth: 280, alignment: .leading)
 
-                if model.currentLook.style == .blur {
+                switch model.currentLook.style {
+                case .blur:
                     VStack(spacing: 4) {
                         labeledSlider("Blur", model.bind(\.blur), 0...100)
                         labeledSlider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
@@ -270,8 +271,10 @@ private struct ControlsBar: View {
                         labeledSlider("Körnung", model.bind(\.dither), 0...1)
                     }
                     .frame(maxWidth: .infinity)
-                } else {
+                case .flow:
                     flowControls
+                case .mirror:
+                    mirrorControls
                 }
             }
 
@@ -297,9 +300,23 @@ private struct ControlsBar: View {
 
     private func labeledSlider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
         HStack(spacing: 10) {
-            Text(title).font(.callout).frame(width: 96, alignment: .leading)
+            Text(title).font(.callout).frame(width: 104, alignment: .leading)
             Slider(value: value, in: range)
         }
+    }
+
+    private var mirrorControls: some View {
+        VStack(spacing: 4) {
+            labeledSlider("Blur", model.bind(\.blur), 0...100)
+            labeledSlider("Spiegel-Linie", model.bind(\.mirrorLine), 0.15...0.85)
+            labeledSlider("Amplitude", model.bind(\.mirrorAmplitude), 0...0.15)
+            labeledSlider("Frequenz", model.bind(\.mirrorFrequency), 0.3...3)
+            labeledSlider("Kantenschärfe", model.bind(\.mirrorHardness), 0...1)
+            labeledSlider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
+            labeledSlider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
+            labeledSlider("Körnung", model.bind(\.dither), 0...1)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var flowControls: some View {

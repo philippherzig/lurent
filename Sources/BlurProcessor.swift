@@ -31,6 +31,14 @@ enum BlurProcessor {
     ///   the final gradient has no 8-bit quantisation banding.
     static func render(source: CGImage, targetSize: CGSize, settings: Settings,
                        deepColor: Bool = false) -> CGImage? {
+        guard let image = processedImage(source: source, targetSize: targetSize, settings: settings)
+        else { return nil }
+        return finalize(image, size: targetSize, dither: settings.dither, deepColor: deepColor)
+    }
+
+    /// The blurred, colour-graded, aspect-filled image at `targetSize`, origin
+    /// (0,0), before dithering/output — reusable as input for other styles.
+    static func processedImage(source: CGImage, targetSize: CGSize, settings: Settings) -> CIImage? {
         guard targetSize.width >= 1, targetSize.height >= 1 else { return nil }
 
         var image = CIImage(cgImage: source)
@@ -69,20 +77,22 @@ enum BlurProcessor {
             width: targetSize.width,
             height: targetSize.height
         )
-        image = image
+        return image
             .cropped(to: cropRect)
             .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x,
                                                y: -cropRect.origin.y))
+    }
 
-        // Dither at output resolution to defeat banding on smooth gradients.
-        if settings.dither > 0 {
-            let dither = CIFilter.dither()
-            dither.inputImage = image
-            dither.intensity = Float(settings.dither)
-            image = dither.outputImage ?? image
+    /// Applies dithering and renders to a CGImage of exactly `size` pixels.
+    static func finalize(_ input: CIImage, size: CGSize, dither: Double, deepColor: Bool) -> CGImage? {
+        var image = input
+        if dither > 0 {
+            let d = CIFilter.dither()
+            d.inputImage = image
+            d.intensity = Float(dither)
+            image = d.outputImage ?? image
         }
-
-        let outRect = CGRect(origin: .zero, size: targetSize)
+        let outRect = CGRect(origin: .zero, size: size)
         if deepColor {
             return context.createCGImage(image, from: outRect,
                                          format: .RGBA16, colorSpace: outputColorSpace)
