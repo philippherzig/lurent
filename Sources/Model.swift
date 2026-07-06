@@ -12,6 +12,27 @@ enum ImageSource: Hashable {
     case album(id: String, title: String)
 }
 
+/// Top-level source choice for the consolidated inspector picker. The Photos
+/// case fans out into a per-album sub-picker (see `selectedAlbumID`).
+enum SourceKind: String, CaseIterable, Identifiable {
+    case unsplash, files, photos
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .unsplash: return "Unsplash"
+        case .files:    return "Dateien"
+        case .photos:   return "Fotos"
+        }
+    }
+    var systemImage: String {
+        switch self {
+        case .unsplash: return "magnifyingglass"
+        case .files:    return "folder"
+        case .photos:   return "photo.on.rectangle"
+        }
+    }
+}
+
 // MARK: - Color <-> CIColor
 
 extension Color {
@@ -243,6 +264,51 @@ final class AppModel: ObservableObject {
             get: { self.currentLook[keyPath: keyPath] },
             set: { newValue in self.mutateCurrentLook { $0[keyPath: keyPath] = newValue } }
         )
+    }
+
+    // MARK: Source kind (consolidated inspector picker)
+
+    /// The top-level source, derived from / written back to `selectedSource`.
+    /// Choosing `.photos` lands on the first available album (or a placeholder
+    /// until the library is authorized and albums load).
+    var sourceKind: SourceKind {
+        get {
+            switch selectedSource {
+            case .files:            return .files
+            case .album:            return .photos
+            case .unsplash, .none:  return .unsplash
+            }
+        }
+        set {
+            switch newValue {
+            case .unsplash: selectedSource = .unsplash
+            case .files:    selectedSource = .files
+            case .photos:
+                if case .album = selectedSource { return }   // already on an album
+                if let first = photoAlbums.first {
+                    selectedSource = .album(id: first.id, title: first.title)
+                } else {
+                    selectedSource = .album(id: "", title: "")
+                }
+            }
+        }
+    }
+
+    /// Currently selected album id ("" when none), for the album sub-picker.
+    var selectedAlbumID: String {
+        get { if case let .album(id, _) = selectedSource { return id }; return "" }
+        set {
+            guard let album = photoAlbums.first(where: { $0.id == newValue }) else { return }
+            selectedSource = .album(id: album.id, title: album.title)
+        }
+    }
+
+    var sourceKindBinding: Binding<SourceKind> {
+        Binding(get: { self.sourceKind }, set: { self.sourceKind = $0 })
+    }
+
+    var albumBinding: Binding<String> {
+        Binding(get: { self.selectedAlbumID }, set: { self.selectedAlbumID = $0 })
     }
 
     func resetCurrentLook() {
