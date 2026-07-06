@@ -2,6 +2,15 @@ import SwiftUI
 import AppKit
 import CoreImage
 import UniformTypeIdentifiers
+import Photos
+
+// MARK: - Image source (sidebar selection)
+
+enum ImageSource: Hashable {
+    case unsplash
+    case files
+    case album(id: String, title: String)
+}
 
 // MARK: - Color <-> CIColor
 
@@ -50,13 +59,7 @@ struct ResolutionPreset: Identifiable, Hashable {
     static var proDisplayXDR: ResolutionPreset { all[0] }
 }
 
-// MARK: - Mode & appearance
-
-enum WallpaperMode: String, CaseIterable, Identifiable {
-    case single, dynamic
-    var id: String { rawValue }
-    var label: String { self == .single ? "Statisch" : "Hell + Dunkel" }
-}
+// MARK: - Appearance
 
 enum Appearance: String, CaseIterable, Identifiable {
     case light, dark
@@ -165,15 +168,21 @@ final class AppModel: ObservableObject {
     @Published var isSearching = false
     @Published var isLoadingSource = false
     @Published var errorMessage: String?
-    @Published var statusMessage: String?
-
-    // Mode
-    @Published var mode: WallpaperMode = .single {
-        didSet {
-            if mode == .dynamic { seedDarkIfNeeded() }
-            renderPreview()
-        }
+    @Published var statusMessage: String? {
+        didSet { scheduleStatusDismiss() }
     }
+
+    // Source picking (three-column layout)
+    @Published var selectedSource: ImageSource? = .unsplash
+
+    // Local files ("Dateien" source)
+    @Published private(set) var recentFiles: [URL] = []
+
+    // Photos library ("Fotos" source)
+    @Published var photoAlbums: [PhotoAlbum] = []
+    @Published var photosAuthStatus: PHAuthorizationStatus = .notDetermined
+    @Published var albumAssets: [PHAsset] = []
+
     @Published var editing: Appearance = .light { didSet { renderPreview() } }
 
     // Looks
@@ -189,9 +198,22 @@ final class AppModel: ObservableObject {
     @Published private(set) var preview: NSImage?
 
     private var renderTask: Task<Void, Never>?
+    private var statusDismissTask: Task<Void, Never>?
 
     init() {
         accessKey = UserDefaults.standard.string(forKey: Self.keyDefaultsKey) ?? ""
+        recentFiles = Self.loadRecentFiles()
+        refreshPhotosAuthStatus()
+    }
+
+    private func scheduleStatusDismiss() {
+        statusDismissTask?.cancel()
+        guard statusMessage != nil else { return }
+        statusDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if Task.isCancelled { return }
+            statusMessage = nil
+        }
     }
 
     // MARK: Key
@@ -204,7 +226,7 @@ final class AppModel: ObservableObject {
 
     // MARK: Current look editing
 
-    var effectiveAppearance: Appearance { mode == .single ? .light : editing }
+    var effectiveAppearance: Appearance { editing }
 
     var currentLook: Look {
         effectiveAppearance == .light ? lightLook : darkLook
@@ -246,20 +268,27 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func seedDarkIfNeeded() {
-        guard darkLook.source == nil, lightLook.source != nil else { return }
-        var d = lightLook
-        d.brightness = -0.15; d.saturation = 1.05; d.contrast = 1.05
-        darkLook = d
+    /// After a source lands in one appearance, auto-seed the other look if it
+    /// has no source yet, so the app is exportable after a single image pick.
+    private func seedOtherIfNeeded(from seeded: Appearance) {
+        if seeded == .light {
+            guard darkLook.source == nil, lightLook.source != nil else { return }
+            var d = lightLook
+            d.brightness = -0.15; d.saturation = 1.05; d.contrast = 1.05
+            darkLook = d
+        } else {
+            guard lightLook.source == nil, darkLook.source != nil else { return }
+            var l = darkLook
+            l.brightness = 0; l.saturation = 1.15; l.contrast = 1.0
+            lightLook = l
+        }
     }
 
-    func copyCurrentSourceToOther() {
+    /// Copies the entire current look (source, style, all parameters) to the
+    /// other appearance — the way to make a "static" wallpaper.
+    func copyCurrentLookToOther() {
         let src = currentLook
-        let apply: (inout Look) -> Void = {
-            $0.source = src.source; $0.photoID = src.photoID; $0.baseName = src.baseName
-            $0.attribution = src.attribution; $0.attributionURL = src.attributionURL
-        }
-        if effectiveAppearance == .light { apply(&darkLook) } else { apply(&lightLook) }
+        if effectiveAppearance == .light { darkLook = src } else { lightLook = src }
         renderPreview()
     }
 
@@ -330,13 +359,37 @@ final class AppModel: ObservableObject {
             errorMessage = "Bild konnte nicht geladen werden: \(url.lastPathComponent)"
             return
         }
-        applySource(cg, photoID: nil,
+        applySource(cg, photoID: url.path,
                     baseName: url.deletingPathExtension().lastPathComponent,
                     attribution: url.lastPathComponent, attributionURL: nil,
                     to: effectiveAppearance)
+        recordRecent(url)
     }
 
-    private func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
+    // MARK: Recent local files ("Dateien" source)
+
+    private static let recentFilesKey = "recentLocalFiles"
+    private static let maxRecentFiles = 24
+
+    private static func loadRecentFiles() -> [URL] {
+        let paths = UserDefaults.standard.stringArray(forKey: recentFilesKey) ?? []
+        return paths.map { URL(fileURLWithPath: $0) }
+            .filter { FileManager.default.isReadableFile(atPath: $0.path) }
+    }
+
+    private func saveRecentFiles() {
+        UserDefaults.standard.set(recentFiles.map(\.path), forKey: Self.recentFilesKey)
+    }
+
+    private func recordRecent(_ url: URL) {
+        var updated = recentFiles.filter { $0.path != url.path }
+        updated.insert(url, at: 0)
+        if updated.count > Self.maxRecentFiles { updated.removeLast(updated.count - Self.maxRecentFiles) }
+        recentFiles = updated
+        saveRecentFiles()
+    }
+
+    func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
         let palette = Self.extractPalette(from: cg)
         let apply: (inout Look) -> Void = {
@@ -345,6 +398,7 @@ final class AppModel: ObservableObject {
             $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
         }
         if appearance == .light { apply(&lightLook) } else { apply(&darkLook) }
+        seedOtherIfNeeded(from: appearance)
         renderPreview()
     }
 
@@ -426,50 +480,32 @@ final class AppModel: ObservableObject {
         return cg
     }
 
-    private func pngData(_ cg: CGImage) throws -> Data {
-        let rep = NSBitmapImageRep(cgImage: cg)
-        rep.size = NSSize(width: cg.width, height: cg.height)
-        guard let d = rep.representation(using: .png, properties: [:]) else {
-            throw ExportError.encodeFailed
-        }
-        return d
-    }
-
     // MARK: File names
 
     func lookHasContent(_ l: Look) -> Bool { l.style == .flow || l.source != nil }
 
     var canExport: Bool {
-        mode == .single ? lookHasContent(lightLook)
-                        : (lookHasContent(lightLook) && lookHasContent(darkLook))
+        lookHasContent(lightLook) && lookHasContent(darkLook)
     }
 
     func exportFileName(ext: String) -> String {
         let s = pixelSize
-        if mode == .dynamic {
-            let base = lightLook.baseName ?? "blur-wallpaper"
-            return "\(base)-dynamic-\(s.width)x\(s.height).\(ext)"
-        }
         let base = lightLook.baseName ?? "blur-wallpaper"
-        return "\(base)-\(s.width)x\(s.height).\(ext)"
+        return "\(base)-dynamic-\(s.width)x\(s.height).\(ext)"
     }
 
-    private func writeOutput(to url: URL) throws {
-        if mode == .dynamic {
-            let l = try renderFull(lightLook)
-            let d = try renderFull(darkLook)
-            try DynamicWallpaper.writeHEIC(light: l, dark: d, to: url)
-        } else {
-            try pngData(try renderFull(lightLook)).write(to: url)
-        }
+    func writeOutput(to url: URL) throws {
+        let l = try renderFull(lightLook)
+        let d = try renderFull(darkLook)
+        try DynamicWallpaper.writeHEIC(light: l, dark: d, to: url)
     }
 
     // MARK: Export (save panel)
 
     func exportWithPanel() {
         let panel = NSSavePanel()
-        let ext = mode == .dynamic ? "heic" : "png"
-        panel.allowedContentTypes = [mode == .dynamic ? .heic : .png]
+        let ext = "heic"
+        panel.allowedContentTypes = [.heic]
         panel.nameFieldStringValue = exportFileName(ext: ext)
         panel.canCreateDirectories = true
         panel.begin { response in
@@ -494,15 +530,12 @@ final class AppModel: ObservableObject {
             if let existing = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
                 for f in existing { try? FileManager.default.removeItem(at: f) }
             }
-            let ext = mode == .dynamic ? "heic" : "png"
-            let url = dir.appendingPathComponent("current-\(UUID().uuidString.prefix(8)).\(ext)")
+            let url = dir.appendingPathComponent("current-\(UUID().uuidString.prefix(8)).heic")
             try writeOutput(to: url)
             for screen in NSScreen.screens {
                 try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
             }
-            statusMessage = mode == .dynamic
-                ? "Als dynamisches Wallpaper gesetzt."
-                : "Als Schreibtischhintergrund gesetzt."
+            statusMessage = "Als dynamisches Wallpaper gesetzt."
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -513,9 +546,8 @@ final class AppModel: ObservableObject {
     func makeDragProvider() -> NSItemProvider {
         do {
             // Render synchronously now so the file exists before the drop resolves.
-            let ext = mode == .dynamic ? "heic" : "png"
             let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent(exportFileName(ext: ext))
+                .appendingPathComponent(exportFileName(ext: "heic"))
             try writeOutput(to: url)
             let provider = NSItemProvider(contentsOf: url) ?? NSItemProvider()
             provider.suggestedName = url.lastPathComponent

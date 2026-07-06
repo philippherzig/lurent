@@ -19,7 +19,15 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>14.0</string>
+	<string>26.0</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Blur Wallpaper Maker kann Bilder aus deiner Fotos-Mediathek als Vorlage laden und fertige Wallpaper in einem Album sichern.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Blur Wallpaper Maker sichert fertige Wallpaper in deiner Fotos-Mediathek.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.graphics-design</string>
 	<key>NSHighResolutionCapable</key>

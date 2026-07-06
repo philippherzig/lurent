@@ -8,9 +8,9 @@ struct BlurWallpaperMakerApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 940, minHeight: 620)
+                .frame(minWidth: 1200, minHeight: 680)
         }
-        .defaultSize(width: 1160, height: 760)
+        .defaultSize(width: 1440, height: 840)
         .commands {
             CommandGroup(replacing: .newItem) {}
         }

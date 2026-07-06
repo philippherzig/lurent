@@ -32,13 +32,36 @@ EOF
 echo "▸ Compiling ($ARCH)"
 swiftc -O -parse-as-library \
   -sdk "$SDK" \
-  -target "${ARCH}-apple-macos14.0" \
+  -target "${ARCH}-apple-macos26.0" \
   -o "$BIN" \
   "$ROOT"/Sources/*.swift \
   "$GEN"
 
 echo "▸ Assembling bundle"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
+
+echo "▸ Compiling app icon"
+ACTOOL="$(xcrun -f actool 2>/dev/null || true)"
+if [ -z "$ACTOOL" ] && [ -x "/Applications/Xcode.app/Contents/Developer/usr/bin/actool" ]; then
+  ACTOOL="/Applications/Xcode.app/Contents/Developer/usr/bin/actool"
+  export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+fi
+if [ -n "$ACTOOL" ] && [ -d "$ROOT/AppIcon.icon" ]; then
+  ICON_OUT="$(mktemp -d)"
+  if "$ACTOOL" "$ROOT/AppIcon.icon" --compile "$ICON_OUT" \
+      --platform macosx --minimum-deployment-target 26.0 \
+      --app-icon AppIcon \
+      --output-partial-info-plist "$ICON_OUT/partial-info.plist" >/tmp/actool.log 2>&1; then
+    [ -f "$ICON_OUT/Assets.car" ] && cp "$ICON_OUT/Assets.car" "$APP/Contents/Resources/"
+    [ -f "$ICON_OUT/AppIcon.icns" ] && cp "$ICON_OUT/AppIcon.icns" "$APP/Contents/Resources/"
+    echo "  (icon compiled from AppIcon.icon)"
+  else
+    echo "  WARNING: actool failed to compile AppIcon.icon — continuing without app icon (see /tmp/actool.log)"
+  fi
+  rm -rf "$ICON_OUT"
+else
+  echo "  WARNING: actool not found or AppIcon.icon missing — continuing without app icon"
+fi
 
 echo "▸ Ad-hoc code signing"
 codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
