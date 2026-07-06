@@ -21,7 +21,9 @@ Gebaut für Apple Silicon / macOS 14+.
 deinem Schlüsselbund und signiert damit inkl. **Hardened Runtime**, den
 Entitlements aus `Lurent.entitlements` und einem sicheren Zeitstempel. Ohne
 Developer-ID-Zertifikat fällt es auf **Ad-hoc**-Signatur zurück (läuft lokal,
-wird aber nach dem Download von Gatekeeper abgelehnt).
+wird aber nach dem Download von Gatekeeper abgelehnt). Ist der Apple-Zeitstempel-
+Server nicht erreichbar (offline), signiert es ohne Zeitstempel weiter — das
+Ergebnis läuft lokal, muss für die Notarisierung aber online neu gebaut werden.
 
 ```bash
 ./build.sh                                   # auto-erkennt Developer ID
@@ -50,10 +52,12 @@ Eine notarisierte `.app` läuft **von überall** (Download-Ordner, Desktop, USB)
 ein Installer ist optional. Für ein Doppelklick-Setup, das die App nach
 `/Applications` legt, baut `package.sh` ein signiertes + notarisiertes `.pkg`
 (nutzt das „Developer ID Installer"-Zertifikat und dasselbe `lurent-notary`-
-Profil):
+Profil). Es notarisiert + stapelt dabei zuerst die App selbst (falls noch nicht
+geschehen), damit die installierte App auch offline von Gatekeeper akzeptiert
+wird:
 
 ```bash
-./build.sh && ./package.sh    # → build/Lurent.pkg
+./build.sh && ./package.sh    # → build/Lurent.pkg (notarisiert notfalls auch die App)
 ```
 
 ## Unsplash Access-Key

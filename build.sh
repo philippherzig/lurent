@@ -78,11 +78,18 @@ if [ "$SIGN_IDENTITY" = "auto" ]; then
     | awk -F'"' '/Developer ID Application/ {print $2; exit}')"
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
-  codesign --force --timestamp --options runtime \
-    --entitlements "$ENTITLEMENTS" \
-    --sign "$SIGN_IDENTITY" "$APP"
-  echo "  ✓ signed: $SIGN_IDENTITY"
-  echo "    hardened runtime + entitlements + timestamp → run ./notarize.sh to distribute"
+  sign_args=(--force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY")
+  # A secure timestamp needs Apple's timestamp server. Try it, but don't fail the
+  # whole build when offline (or when the server is flaky) — fall back to a valid
+  # local signature without a timestamp. Only a timestamped build can be notarized.
+  if codesign "${sign_args[@]}" --timestamp "$APP" 2>/dev/null; then
+    echo "  ✓ signed: $SIGN_IDENTITY"
+    echo "    hardened runtime + entitlements + timestamp → run ./notarize.sh to distribute"
+  else
+    echo "  ⚠ timestamp server unreachable — signing without a secure timestamp"
+    codesign "${sign_args[@]}" --timestamp=none "$APP"
+    echo "  ✓ signed: $SIGN_IDENTITY (no timestamp — re-run online before ./notarize.sh)"
+  fi
 else
   codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
   echo "  ad-hoc signed — local use only (set SIGN_IDENTITY to a Developer ID to distribute)"

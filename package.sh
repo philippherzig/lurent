@@ -34,12 +34,29 @@ fi
   exit 1
 }
 
+# Notarize + staple the app *before* packaging it, so the installed copy carries
+# its own ticket (stapling the .pkg does not staple its payload — an unstapled
+# app can be blocked by Gatekeeper on an offline first launch). notarize.sh is a
+# no-op-ish re-run only when the app isn't stapled yet; skip it if it already is.
+if xcrun stapler validate "$APP" >/dev/null 2>&1; then
+  echo "▸ App already notarized & stapled"
+else
+  echo "▸ App not stapled yet — notarizing it first (via notarize.sh)"
+  bash "$ROOT/notarize.sh"
+fi
+
 echo "▸ Building signed installer → $PKG"
 productbuild --component "$APP" /Applications --sign "$INSTALL_IDENTITY" "$PKG"
 echo "  ✓ signed: $INSTALL_IDENTITY"
 
 echo "▸ Notarizing the installer (waits for the result)"
-xcrun notarytool submit "$PKG" --keychain-profile "$PROFILE" --wait
+if ! xcrun notarytool submit "$PKG" --keychain-profile "$PROFILE" --wait; then
+  echo "✗ Installer notarization failed (see the error above)." >&2
+  echo "  If it names a missing keychain profile \"$PROFILE\", create it once:" >&2
+  echo "    xcrun notarytool store-credentials \"$PROFILE\" \\" >&2
+  echo "      --apple-id \"you@example.com\" --team-id \"6UQUNT93NG\" --password \"xxxx-xxxx-xxxx-xxxx\"" >&2
+  exit 1
+fi
 
 echo "▸ Stapling ticket to the installer"
 xcrun stapler staple "$PKG"
