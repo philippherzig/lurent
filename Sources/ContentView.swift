@@ -24,7 +24,7 @@ struct ContentView: View {
                 .frame(width: 320)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(VisualEffectView(material: .sidebar, blending: .behindWindow).ignoresSafeArea())
+        .background(VisualEffectView().ignoresSafeArea())
         .background(WindowAccessor())
         .alert("Fehler", isPresented: errorBinding) {
             Button("OK") { model.errorMessage = nil }
@@ -189,6 +189,10 @@ private struct BaseImageSection: View {
                     }
                 }
             }
+            // Unsplash API guidelines require a persistent credit to the platform.
+            Link("Fotos von Unsplash", destination: URL(string: "https://unsplash.com")!)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
         case .files:
             Button {
@@ -476,6 +480,19 @@ private func openImagePanel(_ model: AppModel) {
     }
 }
 
+private extension View {
+    /// Shared square framing + rounded clip + selection ring for source thumbnails.
+    func thumbnailChrome(isSelected: Bool) -> some View {
+        self
+            .frame(width: thumbSize, height: thumbSize)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
+            )
+    }
+}
+
 private struct LocalFileThumbnail: View {
     let url: URL
     let isSelected: Bool
@@ -489,12 +506,7 @@ private struct LocalFileThumbnail: View {
                 Color.gray.opacity(0.2).overlay(ProgressView().controlSize(.small))
             }
         }
-        .frame(width: thumbSize, height: thumbSize)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .help(url.lastPathComponent)
         .task(id: url) {
             thumbnail = await Self.loadThumbnail(url: url)
@@ -531,12 +543,7 @@ private struct PhotoAssetThumbnail: View {
                 Color.gray.opacity(0.2)
             }
         }
-        .frame(width: thumbSize, height: thumbSize)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .onAppear { requestThumbnail() }
         .onDisappear { cancelRequest() }
     }
@@ -546,7 +553,7 @@ private struct PhotoAssetThumbnail: View {
         options.deliveryMode = .opportunistic
         options.isNetworkAccessAllowed = true
         requestID = sharedPhotoImageManager.requestImage(
-            for: asset, targetSize: CGSize(width: 160, height: 160),
+            for: asset, targetSize: CGSize(width: 240, height: 240),
             contentMode: .aspectFill, options: options
         ) { img, _ in
             if let img { image = img }
@@ -574,57 +581,55 @@ private struct Thumbnail: View {
                 Rectangle().fill(Color(hex: photo.color) ?? .gray.opacity(0.2))
             }
         }
-        .frame(width: thumbSize, height: thumbSize)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .help(photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)")
     }
 }
 
 // MARK: - Window chrome (whole-window behind-window material)
 
-/// Full-bleed NSVisualEffectView so the desktop shows through, blurred —
-/// the same behind-window material the system uses for sidebars/inspectors.
+/// Full-bleed behind-window material (the same the system uses for sidebars)
+/// so the desktop shows through, blurred.
 private struct VisualEffectView: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .sidebar
-    var blending: NSVisualEffectView.BlendingMode = .behindWindow
-
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blending
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
         view.state = .active
         return view
     }
 
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = material
-        view.blendingMode = blending
-    }
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 /// Makes the hosting window non-opaque so the behind-window blur reveals the
-/// desktop instead of a solid backing colour.
+/// desktop instead of a solid backing colour. Configures once, as soon as a
+/// window is available — not on every SwiftUI render.
 private struct WindowAccessor: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async { Self.configure(view.window) }
+        DispatchQueue.main.async { context.coordinator.configureIfNeeded(view.window) }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { Self.configure(nsView.window) }
+        guard !context.coordinator.configured else { return }
+        DispatchQueue.main.async { context.coordinator.configureIfNeeded(nsView.window) }
     }
 
-    private static func configure(_ window: NSWindow?) {
-        guard let window else { return }
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+    final class Coordinator {
+        private(set) var configured = false
+
+        func configureIfNeeded(_ window: NSWindow?) {
+            guard !configured, let window else { return }
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            configured = true
+        }
     }
 }
 

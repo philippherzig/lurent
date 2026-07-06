@@ -24,13 +24,6 @@ enum SourceKind: String, CaseIterable, Identifiable {
         case .photos:   return "Fotos"
         }
     }
-    var systemImage: String {
-        switch self {
-        case .unsplash: return "magnifyingglass"
-        case .files:    return "folder"
-        case .photos:   return "photo.on.rectangle"
-        }
-    }
 }
 
 // MARK: - Color <-> CIColor
@@ -193,8 +186,14 @@ final class AppModel: ObservableObject {
         didSet { scheduleStatusDismiss() }
     }
 
-    // Source picking (three-column layout)
-    @Published var selectedSource: ImageSource? = .unsplash
+    // Source picking. `lastAlbumID` remembers the chosen album so switching the
+    // source away from Photos and back restores it instead of jumping to the first.
+    @Published var selectedSource: ImageSource? = .unsplash {
+        didSet {
+            if case let .album(id, _) = selectedSource, !id.isEmpty { lastAlbumID = id }
+        }
+    }
+    private var lastAlbumID: String?
 
     // Local files ("Dateien" source)
     @Published private(set) var recentFiles: [URL] = []
@@ -285,8 +284,9 @@ final class AppModel: ObservableObject {
             case .files:    selectedSource = .files
             case .photos:
                 if case .album = selectedSource { return }   // already on an album
-                if let first = photoAlbums.first {
-                    selectedSource = .album(id: first.id, title: first.title)
+                let remembered = lastAlbumID.flatMap { id in photoAlbums.first(where: { $0.id == id }) }
+                if let album = remembered ?? photoAlbums.first {
+                    selectedSource = .album(id: album.id, title: album.title)
                 } else {
                     selectedSource = .album(id: "", title: "")
                 }
@@ -308,7 +308,17 @@ final class AppModel: ObservableObject {
     }
 
     var albumBinding: Binding<String> {
-        Binding(get: { self.selectedAlbumID }, set: { self.selectedAlbumID = $0 })
+        Binding(
+            get: {
+                // Fall back to the first album while `selectedAlbumID` is still the
+                // empty placeholder (albums just loaded) so the Picker always has a
+                // matching tag — avoids SwiftUI's "selection does not match any tag".
+                let current = self.selectedAlbumID
+                if self.photoAlbums.contains(where: { $0.id == current }) { return current }
+                return self.photoAlbums.first?.id ?? current
+            },
+            set: { self.selectedAlbumID = $0 }
+        )
     }
 
     func resetCurrentLook() {
@@ -374,7 +384,9 @@ final class AppModel: ObservableObject {
 
     func runSearch() {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return }
+        // Clearing the field (e.g. the search field's native clear button) runs
+        // this with an empty query — drop stale results instead of leaving them.
+        guard !q.isEmpty else { results = []; errorMessage = nil; return }
         isSearching = true
         errorMessage = nil
         Task {
