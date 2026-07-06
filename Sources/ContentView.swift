@@ -111,7 +111,7 @@ private struct SourceSidebar: View {
         case .denied, .restricted:
             Text("Kein Fotos-Zugriff")
                 .foregroundStyle(.secondary)
-                .help("Systemeinstellungen → Datenschutz & Sicherheit → Fotos: Zugriff für Blur Wallpaper Maker erlauben.")
+                .help("Systemeinstellungen → Datenschutz & Sicherheit → Fotos: Zugriff für Lurent erlauben.")
         case .authorized, .limited:
             ForEach(model.photoAlbums) { album in
                 Label(album.title, systemImage: "rectangle.stack")

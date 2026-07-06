@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Hardened Runtime resource access: read/write the Photos library via
+	     PhotoKit (load templates, save finished wallpapers into an album).
+	     Not sandboxed — the app sets the system desktop and restarts the
+	     WallpaperAgent, which the App Sandbox would forbid. -->
+	<key>com.apple.security.personal-information.photos-library</key>
+	<true/>
+</dict>
+</plist>

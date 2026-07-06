@@ -1,11 +1,11 @@
 #!/bin/bash
-# Builds Blur Wallpaper Maker into a runnable .app bundle (no Xcode required).
+# Builds Lurent into a runnable .app bundle (no Xcode required).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="$ROOT/build/Blur Wallpaper Maker.app"
+APP="$ROOT/build/Lurent.app"
 BIN_DIR="$APP/Contents/MacOS"
-BIN="$BIN_DIR/BlurWallpaperMaker"
+BIN="$BIN_DIR/Lurent"
 
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
 ARCH="$(uname -m)"   # arm64 on Apple Silicon, x86_64 on Intel
@@ -63,8 +63,30 @@ else
   echo "  WARNING: actool not found or AppIcon.icon missing — continuing without app icon"
 fi
 
-echo "▸ Ad-hoc code signing"
-codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
+echo "▸ Code signing"
+ENTITLEMENTS="$ROOT/Lurent.entitlements"
+# SIGN_IDENTITY controls how the bundle is signed:
+#   unset / "auto" → auto-detect a "Developer ID Application" identity
+#   "Developer ID Application: …" or a cert SHA-1 → sign with that identity
+#   "-" → force ad-hoc (local use only)
+# A Developer ID signature adds the hardened runtime + entitlements + a secure
+# timestamp, so the result is ready for `./notarize.sh`. Ad-hoc runs locally but
+# is rejected by Gatekeeper once downloaded.
+SIGN_IDENTITY="${SIGN_IDENTITY-auto}"
+if [ "$SIGN_IDENTITY" = "auto" ]; then
+  SIGN_IDENTITY="$(security find-identity -v -p codesigning \
+    | awk -F'"' '/Developer ID Application/ {print $2; exit}')"
+fi
+if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
+  codesign --force --timestamp --options runtime \
+    --entitlements "$ENTITLEMENTS" \
+    --sign "$SIGN_IDENTITY" "$APP"
+  echo "  ✓ signed: $SIGN_IDENTITY"
+  echo "    hardened runtime + entitlements + timestamp → run ./notarize.sh to distribute"
+else
+  codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
+  echo "  ad-hoc signed — local use only (set SIGN_IDENTITY to a Developer ID to distribute)"
+fi
 
 echo "✓ Built: $APP"
 echo "  Run with:  open \"$APP\""
