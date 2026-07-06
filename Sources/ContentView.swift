@@ -4,50 +4,364 @@ import Photos
 import ImageIO
 import UniformTypeIdentifiers
 
+private let thumbSize: CGFloat = 52
+
+// MARK: - Root (two-pane: preview | scrollable inspector, on one blurred surface)
+
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
-    @State private var showInspector = true
 
     private var errorBinding: Binding<Bool> {
         Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
     }
 
     var body: some View {
-        NavigationSplitView {
-            SourceSidebar()
-                .navigationSplitViewColumnWidth(min: 180, ideal: 210)
-        } content: {
-            SourceContent()
-                .navigationSplitViewColumnWidth(min: 240, ideal: 300)
-        } detail: {
-            PreviewDetail()
-                .toolbar { detailToolbar }
-                .inspector(isPresented: $showInspector) {
-                    InspectorForm()
-                        .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
-                }
+        HStack(spacing: 0) {
+            PreviewPane()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
+            InspectorPane()
+                .frame(width: 320)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(VisualEffectView().ignoresSafeArea())
+        .background(WindowAccessor())
         .alert("Fehler", isPresented: errorBinding) {
             Button("OK") { model.errorMessage = nil }
         } message: {
             Text(model.errorMessage ?? "")
         }
     }
+}
 
-    @ToolbarContentBuilder
-    private var detailToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button {
-                showInspector.toggle()
-            } label: {
-                Label("Einstellungen ein-/ausblenden", systemImage: "slider.horizontal.3")
+// MARK: - Preview pane (left)
+
+private struct PreviewPane: View {
+    @EnvironmentObject var model: AppModel
+
+    private var aspect: CGFloat {
+        let s = model.pixelSize
+        return CGFloat(s.width) / CGFloat(max(1, s.height))
+    }
+
+    var body: some View {
+        ZStack {
+            if let preview = model.preview {
+                Image(nsImage: preview)
+                    .resizable()
+                    .aspectRatio(aspect, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(radius: 20, y: 10)
+                    .padding(40)
+                    .onDrag { model.makeDragProvider() }
+                    .help("Zum Exportieren in den Finder / auf den Schreibtisch ziehen")
+            } else {
+                ContentUnavailableView {
+                    Label("Kein Bild für „\(model.editing.label)“", systemImage: "photo.badge.plus")
+                } description: {
+                    Text("Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei.")
+                }
             }
-            .help("Einstellungen ein-/ausblenden")
+
+            if model.isLoadingSource { ProgressView().controlSize(.large) }
+
+            VStack {
+                AppearanceSwitcher()
+                    .padding(.top, 18)
+                Spacer()
+                if model.statusMessage != nil {
+                    StatusCapsule()
+                        .padding(.bottom, 22)
+                }
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.spring(duration: 0.3), value: model.statusMessage)
+    }
+}
 
-        ToolbarSpacer(.flexible, placement: .primaryAction)
+/// Floating Hell/Dunkel switch + "auf andere Ansicht übernehmen" button.
+private struct AppearanceSwitcher: View {
+    @EnvironmentObject var model: AppModel
 
-        ToolbarItem(placement: .primaryAction) {
+    var body: some View {
+        HStack(spacing: 12) {
+            Picker("", selection: $model.editing) {
+                ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 150)
+
+            Button {
+                model.copyCurrentLookToOther()
+            } label: {
+                Image(systemName: "square.on.square")
+            }
+            .buttonStyle(.plain)
+            .padding(8)
+            .glassEffect(.regular.interactive(), in: Circle())
+            .disabled(!model.lookHasContent(model.currentLook))
+            .help("Auf „\(model.editing.other.label)“ übernehmen")
+        }
+    }
+}
+
+private struct StatusCapsule: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        Label(model.statusMessage ?? "", systemImage: "checkmark.circle")
+            .font(.callout)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .glassEffect(.regular, in: Capsule())
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+}
+
+// MARK: - Inspector pane (right): grouped form + pinned action bar
+
+private struct InspectorPane: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Form {
+                BaseImageSection()
+                EffectSection()
+                OutputSection()
+            }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+
+            Divider()
+
+            ActionBar()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .dropDestination(for: URL.self) { urls, _ in
+            for url in urls where isImageFile(url) { model.openLocalImage(url: url) }
+            return true
+        }
+    }
+}
+
+// MARK: - Base image section (source picker + browser)
+
+private struct BaseImageSection: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        Section("Bild") {
+            Picker("Quelle", selection: model.sourceKindBinding) {
+                ForEach(SourceKind.allCases) { Text($0.label).tag($0) }
+            }
+
+            sourceBrowser
+        }
+        .task(id: model.selectedAlbumID) {
+            let id = model.selectedAlbumID
+            if !id.isEmpty { model.loadAlbumAssets(albumID: id) }
+        }
+        .onChange(of: model.photoAlbums) {
+            if model.sourceKind == .photos, model.selectedAlbumID.isEmpty,
+               let first = model.photoAlbums.first {
+                model.selectedAlbumID = first.id
+            }
+        }
+    }
+
+    @ViewBuilder private var sourceBrowser: some View {
+        switch model.sourceKind {
+        case .unsplash:
+            HStack(spacing: 8) {
+                NativeSearchField(text: $model.query, placeholder: "Unsplash durchsuchen") {
+                    model.runSearch()
+                }
+                .frame(height: 24)
+                if model.isSearching { ProgressView().controlSize(.small) }
+            }
+            if !model.results.isEmpty {
+                ThumbGrid {
+                    ForEach(model.results) { photo in
+                        Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
+                            .onTapGesture { model.select(photo) }
+                    }
+                }
+            }
+            // Unsplash API guidelines require a persistent credit to the platform.
+            Link("Fotos von Unsplash", destination: URL(string: "https://unsplash.com")!)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+        case .files:
+            Button {
+                openImagePanel(model)
+            } label: {
+                Label("Datei öffnen…", systemImage: "folder")
+            }
+            if !model.recentFiles.isEmpty {
+                ThumbGrid {
+                    ForEach(model.recentFiles, id: \.path) { url in
+                        LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
+                            .onTapGesture { model.openLocalImage(url: url) }
+                    }
+                }
+            }
+
+        case .photos:
+            switch model.photosAuthStatus {
+            case .notDetermined:
+                Button {
+                    model.requestPhotosAccess()
+                } label: {
+                    Label("Fotos-Mediathek verbinden…", systemImage: "photo.badge.plus")
+                }
+            case .denied, .restricted:
+                Text("Kein Fotos-Zugriff — in den Systemeinstellungen erlauben.")
+                    .font(.caption).foregroundStyle(.secondary)
+            case .authorized, .limited:
+                if !model.photoAlbums.isEmpty {
+                    Picker("Album", selection: model.albumBinding) {
+                        ForEach(model.photoAlbums) { album in
+                            Text(album.title).tag(album.id)
+                        }
+                    }
+                    if !model.albumAssets.isEmpty {
+                        ThumbGrid {
+                            ForEach(model.albumAssets, id: \.localIdentifier) { asset in
+                                PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
+                                    .onTapGesture { model.selectAlbumAsset(asset) }
+                            }
+                        }
+                    }
+                }
+            @unknown default:
+                EmptyView()
+            }
+        }
+    }
+}
+
+// MARK: - Effect section (style + parameters)
+
+private struct EffectSection: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        Section("Effekt") {
+            Picker("Stil", selection: model.bind(\.style)) {
+                ForEach(WallpaperStyle.allCases) { Text($0.label).tag($0) }
+            }
+
+            styleControls
+
+            HStack {
+                Button("Zurücksetzen") { model.resetCurrentLook() }
+                Spacer()
+                if let attribution = model.currentLook.attribution {
+                    if let link = model.currentLook.attributionURL, let url = URL(string: link) {
+                        Link(attribution, destination: url).font(.caption)
+                    } else {
+                        Text(attribution).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var styleControls: some View {
+        switch model.currentLook.style {
+        case .blur:
+            slider("Blur", model.bind(\.blur), 0...100)
+            slider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
+            slider("Sättigung", model.bind(\.saturation), 0...2)
+            slider("Kontrast", model.bind(\.contrast), 0.8...1.3)
+            slider("Körnung", model.bind(\.dither), 0...1)
+
+        case .mirror:
+            slider("Blur", model.bind(\.blur), 0...100)
+            slider("Spiegel-Linie", model.bind(\.mirrorLine), 0.15...0.85)
+            slider("Amplitude", model.bind(\.mirrorAmplitude), 0...0.15)
+            slider("Frequenz", model.bind(\.mirrorFrequency), 0.3...3)
+            slider("Kantenschärfe", model.bind(\.mirrorHardness), 0...1)
+            slider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
+            slider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
+            slider("Körnung", model.bind(\.dither), 0...1)
+
+        case .flow:
+            Picker("Farben", selection: model.bind(\.flowBands)) {
+                Text("2 Farben").tag(2)
+                Text("3 Farben").tag(3)
+            }
+            .pickerStyle(.segmented)
+
+            HStack {
+                ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
+                ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
+                if model.currentLook.flowBands >= 3 {
+                    ColorPicker("Farbe 3", selection: model.bind(\.flowColor2), supportsOpacity: false)
+                }
+            }
+            .labelsHidden()
+
+            Button {
+                model.reloadPaletteFromPhoto()
+            } label: {
+                Label("Aus Foto", systemImage: "eyedropper")
+            }
+            .disabled(model.currentLook.source == nil)
+
+            slider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
+            slider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
+            slider("Kantenschärfe", model.bind(\.flowSharpness), 0...1)
+            slider("Rand-Weichheit", model.bind(\.flowEdgeSoftness), 0...1)
+            slider("Variante", model.bind(\.flowPhase), 0...6.283)
+            slider("Körnung", model.bind(\.dither), 0...1)
+        }
+    }
+
+    private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        LabeledContent(title) {
+            Slider(value: value, in: range)
+        }
+    }
+}
+
+// MARK: - Output section (resolution)
+
+private struct OutputSection: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        Section("Ausgabe") {
+            Picker("Auflösung", selection: $model.preset) {
+                ForEach(ResolutionPreset.all) { Text($0.name).tag($0) }
+            }
+
+            if model.preset.isCustom {
+                HStack {
+                    TextField("Breite", value: $model.customWidth, format: .number)
+                    Text("×").foregroundStyle(.secondary)
+                    TextField("Höhe", value: $model.customHeight, format: .number)
+                    Text("px").foregroundStyle(.secondary)
+                }
+                .textFieldStyle(.roundedBorder)
+            }
+
+            Text(model.pixelSizeLabel)
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Action bar (pinned bottom): export menu + set-as-desktop
+
+private struct ActionBar: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        HStack(spacing: 10) {
             Menu {
                 Button {
                     model.saveToPhotosLibrary()
@@ -61,225 +375,121 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("s", modifiers: .command)
             } label: {
-                Label("Exportieren", systemImage: "square.and.arrow.up")
+                Image(systemName: "square.and.arrow.up")
             }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .buttonStyle(.glass)
+            .controlSize(.large)
+            .fixedSize()
+            .help("Exportieren")
             .disabled(!model.canExport)
-        }
 
-        ToolbarSpacer(.fixed, placement: .primaryAction)
-
-        ToolbarItem(placement: .primaryAction) {
             Button {
                 model.setAsDesktop()
             } label: {
                 Label("Als Schreibtisch setzen", systemImage: "macwindow.on.rectangle")
-                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
+            .controlSize(.large)
             .disabled(!model.canExport)
         }
+        .padding(14)
     }
 }
 
-// MARK: - Sidebar (source picking)
+// MARK: - Shared browser pieces
 
-private struct SourceSidebar: View {
-    @EnvironmentObject var model: AppModel
+/// A single horizontally-scrolling row of small square thumbnails
+/// (for palette / source picking) — keeps the inspector vertically compact.
+private struct ThumbGrid<Content: View>: View {
+    @ViewBuilder var content: () -> Content
 
     var body: some View {
-        List(selection: $model.selectedSource) {
-            Section("Quellen") {
-                Label("Unsplash", systemImage: "magnifyingglass").tag(ImageSource.unsplash)
-                Label("Dateien", systemImage: "folder").tag(ImageSource.files)
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 8) {
+                content()
             }
-            Section("Fotos") {
-                photosSection
-            }
+            .padding(.vertical, 3)
         }
-        .listStyle(.sidebar)
-    }
-
-    @ViewBuilder
-    private var photosSection: some View {
-        switch model.photosAuthStatus {
-        case .notDetermined:
-            Button {
-                model.requestPhotosAccess()
-            } label: {
-                Label("Fotos-Mediathek verbinden…", systemImage: "photo.badge.plus")
-            }
-        case .denied, .restricted:
-            Text("Kein Fotos-Zugriff")
-                .foregroundStyle(.secondary)
-                .help("Systemeinstellungen → Datenschutz & Sicherheit → Fotos: Zugriff für Lurent erlauben.")
-        case .authorized, .limited:
-            ForEach(model.photoAlbums) { album in
-                Label(album.title, systemImage: "rectangle.stack")
-                    .tag(ImageSource.album(id: album.id, title: album.title))
-            }
-        @unknown default:
-            EmptyView()
-        }
+        .frame(height: thumbSize + 8)
     }
 }
 
-// MARK: - Content column (image browser per source)
+/// Native macOS search field (NSSearchField) — reliable focus/typing, built-in
+/// magnifier and clear button. Fires `onSubmit` on Return; keeps `text` in sync live.
+private struct NativeSearchField: NSViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var onSubmit: () -> Void
 
-private struct SourceContent: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        switch model.selectedSource {
-        case .files:
-            FilesBrowser()
-        case .album(let id, let title):
-            AlbumBrowser(albumID: id, albumTitle: title)
-        case .unsplash, .none:
-            UnsplashBrowser()
-        }
-    }
-}
-
-/// Slim caption shown in every browser, reminding which appearance a pick lands in.
-private struct SourceCaption: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        Text("Bild wird für „\(model.editing.label)“ übernommen")
-            .font(.caption).foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12).padding(.top, 10)
-    }
-}
-
-private let browserColumns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
-
-private struct UnsplashBrowser: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        VStack(spacing: 0) {
-            SourceCaption()
-
-            ScrollView {
-                LazyVGrid(columns: browserColumns, spacing: 8) {
-                    ForEach(model.results) { photo in
-                        Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
-                            .onTapGesture { model.select(photo) }
-                    }
-                }
-                .padding(12)
-            }
-
-            Divider()
-
-            HStack {
-                Spacer()
-                Link("Fotos: Unsplash", destination: URL(string: "https://unsplash.com")!)
-                    .font(.caption)
-            }
-            .padding(12)
-        }
-        .searchable(text: $model.query, prompt: "Unsplash durchsuchen")
-        .onSubmit(of: .search) { model.runSearch() }
-        .overlay(alignment: .top) {
-            if model.isSearching {
-                ProgressView().controlSize(.small).padding(.top, 6)
-            }
-        }
-        .background(.background)
-    }
-}
-
-private struct FilesBrowser: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        VStack(spacing: 0) {
-            SourceCaption()
-
-            if model.recentFiles.isEmpty {
-                ContentUnavailableView {
-                    Label("Noch keine Dateien", systemImage: "folder")
-                } description: {
-                    Text("Öffne eine Bilddatei oder ziehe sie hierher.")
-                } actions: {
-                    Button("Datei öffnen…") { openImagePanel() }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: browserColumns, spacing: 8) {
-                        ForEach(model.recentFiles, id: \.path) { url in
-                            LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
-                                .onTapGesture { model.openLocalImage(url: url) }
-                        }
-                    }
-                    .padding(12)
-                }
-            }
-
-            Divider()
-
-            HStack {
-                Spacer()
-                Button("Datei öffnen…") { openImagePanel() }
-            }
-            .padding(12)
-        }
-        .dropDestination(for: URL.self) { urls, _ in
-            for url in urls where isImageFile(url) { model.openLocalImage(url: url) }
-        }
-        .background(.background)
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = NSSearchField()
+        field.placeholderString = placeholder
+        field.delegate = context.coordinator
+        field.target = context.coordinator
+        field.action = #selector(Coordinator.submit(_:))
+        field.sendsWholeSearchString = true          // fire only on Return / clear
+        field.sendsSearchStringImmediately = false
+        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return field
     }
 
-    private func isImageFile(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType?.conforms(to: .image) ?? false
+    func updateNSView(_ field: NSSearchField, context: Context) {
+        context.coordinator.text = $text
+        context.coordinator.onSubmit = onSubmit
+        if field.stringValue != text { field.stringValue = text }
     }
 
-    private func openImagePanel() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.image]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        if panel.runModal() == .OK, let url = panel.url {
-            model.openLocalImage(url: url)
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text, onSubmit: onSubmit) }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var text: Binding<String>
+        var onSubmit: () -> Void
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            self.text = text
+            self.onSubmit = onSubmit
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSSearchField else { return }
+            text.wrappedValue = field.stringValue
+        }
+
+        @objc func submit(_ sender: NSSearchField) {
+            text.wrappedValue = sender.stringValue
+            onSubmit()
         }
     }
 }
 
-private struct AlbumBrowser: View {
-    @EnvironmentObject var model: AppModel
-    let albumID: String
-    let albumTitle: String
+private func isImageFile(_ url: URL) -> Bool {
+    (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType?.conforms(to: .image) ?? false
+}
 
-    var body: some View {
-        VStack(spacing: 0) {
-            SourceCaption()
+@MainActor
+private func openImagePanel(_ model: AppModel) {
+    let panel = NSOpenPanel()
+    panel.allowedContentTypes = [.image]
+    panel.allowsMultipleSelection = false
+    panel.canChooseDirectories = false
+    if panel.runModal() == .OK, let url = panel.url {
+        model.openLocalImage(url: url)
+    }
+}
 
-            ScrollView {
-                LazyVGrid(columns: browserColumns, spacing: 8) {
-                    ForEach(model.albumAssets, id: \.localIdentifier) { asset in
-                        PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
-                            .onTapGesture { model.selectAlbumAsset(asset) }
-                    }
-                }
-                .padding(12)
-            }
-
-            if model.albumAssets.isEmpty {
-                ContentUnavailableView {
-                    Label("Keine Fotos", systemImage: "photo.on.rectangle")
-                } description: {
-                    Text("Dieses Album enthält keine Bilder.")
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .background(.background)
-        .task(id: albumID) {
-            model.loadAlbumAssets(albumID: albumID)
-        }
+private extension View {
+    /// Shared square framing + rounded clip + selection ring for source thumbnails.
+    func thumbnailChrome(isSelected: Bool) -> some View {
+        self
+            .frame(width: thumbSize, height: thumbSize)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2.5)
+            )
     }
 }
 
@@ -296,13 +506,7 @@ private struct LocalFileThumbnail: View {
                 Color.gray.opacity(0.2).overlay(ProgressView().controlSize(.small))
             }
         }
-        .frame(height: 96)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .help(url.lastPathComponent)
         .task(id: url) {
             thumbnail = await Self.loadThumbnail(url: url)
@@ -313,7 +517,7 @@ private struct LocalFileThumbnail: View {
         await Task.detached(priority: .utility) {
             let options: [CFString: Any] = [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 320,
+                kCGImageSourceThumbnailMaxPixelSize: 240,
                 kCGImageSourceCreateThumbnailWithTransform: true,
             ]
             guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
@@ -339,13 +543,7 @@ private struct PhotoAssetThumbnail: View {
                 Color.gray.opacity(0.2)
             }
         }
-        .frame(height: 96)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .onAppear { requestThumbnail() }
         .onDisappear { cancelRequest() }
     }
@@ -355,7 +553,7 @@ private struct PhotoAssetThumbnail: View {
         options.deliveryMode = .opportunistic
         options.isNetworkAccessAllowed = true
         requestID = sharedPhotoImageManager.requestImage(
-            for: asset, targetSize: CGSize(width: 320, height: 320),
+            for: asset, targetSize: CGSize(width: 240, height: 240),
             contentMode: .aspectFill, options: options
         ) { img, _ in
             if let img { image = img }
@@ -383,226 +581,54 @@ private struct Thumbnail: View {
                 Rectangle().fill(Color(hex: photo.color) ?? .gray.opacity(0.2))
             }
         }
-        .frame(height: 96)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
-        )
+        .thumbnailChrome(isSelected: isSelected)
         .help(photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)")
     }
 }
 
-// MARK: - Detail (preview canvas)
+// MARK: - Window chrome (whole-window behind-window material)
 
-private struct PreviewDetail: View {
-    @EnvironmentObject var model: AppModel
-
-    private var aspect: CGFloat {
-        let s = model.pixelSize
-        return CGFloat(s.width) / CGFloat(max(1, s.height))
+/// Full-bleed behind-window material (the same the system uses for sidebars)
+/// so the desktop shows through, blurred.
+private struct VisualEffectView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
     }
 
-    var body: some View {
-        ZStack {
-            Color(nsColor: .underPageBackgroundColor)
-
-            if let preview = model.preview {
-                Image(nsImage: preview)
-                    .resizable()
-                    .aspectRatio(aspect, contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(radius: 16, y: 8)
-                    .padding(32)
-                    .onDrag { model.makeDragProvider() }
-                    .help("Zum Exportieren in den Finder / auf den Schreibtisch ziehen")
-                    .overlay(alignment: .bottom) {
-                        Label("Ziehen exportiert das dynamische HEIC", systemImage: "arrow.down.doc")
-                            .font(.caption)
-                            .padding(.horizontal, 10).padding(.vertical, 5)
-                            .glassEffect(.regular, in: Capsule())
-                            .padding(.bottom, 44)
-                    }
-            } else {
-                ContentUnavailableView {
-                    Label("Kein Bild für „\(model.editing.label)“", systemImage: "photo.badge.plus")
-                } description: {
-                    Text("Wähle links ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei.")
-                } actions: {
-                    EmptyView()
-                }
-            }
-
-            if model.isLoadingSource { ProgressView().controlSize(.large) }
-
-            VStack {
-                AppearanceSwitcher()
-                    .padding(.top, 16)
-                Spacer()
-                if model.statusMessage != nil {
-                    StatusCapsule()
-                        .padding(.bottom, 20)
-                }
-            }
-        }
-        .animation(.spring(duration: 0.3), value: model.statusMessage)
-    }
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
-/// Floating Hell/Dunkel switch + "auf andere Ansicht übernehmen" button.
-private struct AppearanceSwitcher: View {
-    @EnvironmentObject var model: AppModel
+/// Makes the hosting window non-opaque so the behind-window blur reveals the
+/// desktop instead of a solid backing colour. Configures once, as soon as a
+/// window is available — not on every SwiftUI render.
+private struct WindowAccessor: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
-    var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 8) {
-                Picker("", selection: $model.editing) {
-                    ForEach(Appearance.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 160)
-                .glassEffect(.regular.interactive(), in: Capsule())
-
-                Button {
-                    model.copyCurrentLookToOther()
-                } label: {
-                    Image(systemName: "square.on.square")
-                }
-                .buttonStyle(.plain)
-                .padding(8)
-                .glassEffect(.regular.interactive(), in: Circle())
-                .disabled(!model.lookHasContent(model.currentLook))
-                .help("Auf „\(model.editing.other.label)“ übernehmen")
-            }
-        }
-    }
-}
-
-private struct StatusCapsule: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        Label(model.statusMessage ?? "", systemImage: "checkmark.circle")
-            .font(.callout)
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .glassEffect(.regular, in: Capsule())
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-}
-
-// MARK: - Inspector (style + parameters + output)
-
-private struct InspectorForm: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        Form {
-            Section("Stil") {
-                Picker("Stil", selection: model.bind(\.style)) {
-                    ForEach(WallpaperStyle.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-
-            switch model.currentLook.style {
-            case .blur: blurSection
-            case .flow: flowSection
-            case .mirror: mirrorSection
-            }
-
-            Section("Ausgabe") {
-                Picker("Auflösung", selection: $model.preset) {
-                    ForEach(ResolutionPreset.all) { Text($0.name).tag($0) }
-                }
-                if model.preset.isCustom {
-                    HStack {
-                        TextField("Breite", value: $model.customWidth, format: .number)
-                        Text("×").foregroundStyle(.secondary)
-                        TextField("Höhe", value: $model.customHeight, format: .number)
-                        Text("px").foregroundStyle(.secondary)
-                    }
-                    .textFieldStyle(.roundedBorder)
-                }
-                Text(model.pixelSizeLabel)
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-            }
-
-            Section {
-                HStack {
-                    Button("Zurücksetzen") { model.resetCurrentLook() }
-                    Spacer()
-                    if let attribution = model.currentLook.attribution {
-                        if let link = model.currentLook.attributionURL, let url = URL(string: link) {
-                            Link(attribution, destination: url).font(.caption)
-                        } else {
-                            Text(attribution).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-        }
-        .formStyle(.grouped)
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { context.coordinator.configureIfNeeded(view.window) }
+        return view
     }
 
-    private var blurSection: some View {
-        Section("Blur") {
-            labeledSlider("Blur", model.bind(\.blur), 0...100)
-            labeledSlider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
-            labeledSlider("Sättigung", model.bind(\.saturation), 0...2)
-            labeledSlider("Kontrast", model.bind(\.contrast), 0.8...1.3)
-            labeledSlider("Körnung", model.bind(\.dither), 0...1)
-        }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard !context.coordinator.configured else { return }
+        DispatchQueue.main.async { context.coordinator.configureIfNeeded(nsView.window) }
     }
 
-    private var mirrorSection: some View {
-        Section("Spiegel") {
-            labeledSlider("Blur", model.bind(\.blur), 0...100)
-            labeledSlider("Spiegel-Linie", model.bind(\.mirrorLine), 0.15...0.85)
-            labeledSlider("Amplitude", model.bind(\.mirrorAmplitude), 0...0.15)
-            labeledSlider("Frequenz", model.bind(\.mirrorFrequency), 0.3...3)
-            labeledSlider("Kantenschärfe", model.bind(\.mirrorHardness), 0...1)
-            labeledSlider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
-            labeledSlider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
-            labeledSlider("Körnung", model.bind(\.dither), 0...1)
-        }
-    }
+    final class Coordinator {
+        private(set) var configured = false
 
-    private var flowSection: some View {
-        Section("Flow") {
-            Picker("Farben", selection: model.bind(\.flowBands)) {
-                Text("2 Farben").tag(2)
-                Text("3 Farben").tag(3)
-            }
-            .pickerStyle(.segmented)
-
-            HStack {
-                ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
-                ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
-                if model.currentLook.flowBands >= 3 {
-                    ColorPicker("Farbe 3", selection: model.bind(\.flowColor2), supportsOpacity: false)
-                }
-            }
-
-            Button { model.reloadPaletteFromPhoto() } label: {
-                Label("Aus Foto", systemImage: "eyedropper")
-            }
-            .disabled(model.currentLook.source == nil)
-
-            labeledSlider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
-            labeledSlider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
-            labeledSlider("Kantenschärfe", model.bind(\.flowSharpness), 0...1)
-            labeledSlider("Rand-Weichheit", model.bind(\.flowEdgeSoftness), 0...1)
-            labeledSlider("Variante", model.bind(\.flowPhase), 0...6.283)
-            labeledSlider("Körnung", model.bind(\.dither), 0...1)
-        }
-    }
-
-    private func labeledSlider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
-        LabeledContent(title) {
-            Slider(value: value, in: range)
+        func configureIfNeeded(_ window: NSWindow?) {
+            guard !configured, let window else { return }
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            configured = true
         }
     }
 }

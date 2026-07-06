@@ -8,9 +8,10 @@ struct LurentApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
-                .frame(minWidth: 1200, minHeight: 680)
+                .frame(minWidth: 1100, minHeight: 660)
         }
         .defaultSize(width: 1440, height: 840)
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {}
         }

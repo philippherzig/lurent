@@ -12,6 +12,20 @@ enum ImageSource: Hashable {
     case album(id: String, title: String)
 }
 
+/// Top-level source choice for the consolidated inspector picker. The Photos
+/// case fans out into a per-album sub-picker (see `selectedAlbumID`).
+enum SourceKind: String, CaseIterable, Identifiable {
+    case unsplash, files, photos
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .unsplash: return "Unsplash"
+        case .files:    return "Dateien"
+        case .photos:   return "Fotos"
+        }
+    }
+}
+
 // MARK: - Color <-> CIColor
 
 extension Color {
@@ -172,8 +186,14 @@ final class AppModel: ObservableObject {
         didSet { scheduleStatusDismiss() }
     }
 
-    // Source picking (three-column layout)
-    @Published var selectedSource: ImageSource? = .unsplash
+    // Source picking. `lastAlbumID` remembers the chosen album so switching the
+    // source away from Photos and back restores it instead of jumping to the first.
+    @Published var selectedSource: ImageSource? = .unsplash {
+        didSet {
+            if case let .album(id, _) = selectedSource, !id.isEmpty { lastAlbumID = id }
+        }
+    }
+    private var lastAlbumID: String?
 
     // Local files ("Dateien" source)
     @Published private(set) var recentFiles: [URL] = []
@@ -245,6 +265,62 @@ final class AppModel: ObservableObject {
         )
     }
 
+    // MARK: Source kind (consolidated inspector picker)
+
+    /// The top-level source, derived from / written back to `selectedSource`.
+    /// Choosing `.photos` lands on the first available album (or a placeholder
+    /// until the library is authorized and albums load).
+    var sourceKind: SourceKind {
+        get {
+            switch selectedSource {
+            case .files:            return .files
+            case .album:            return .photos
+            case .unsplash, .none:  return .unsplash
+            }
+        }
+        set {
+            switch newValue {
+            case .unsplash: selectedSource = .unsplash
+            case .files:    selectedSource = .files
+            case .photos:
+                if case .album = selectedSource { return }   // already on an album
+                let remembered = lastAlbumID.flatMap { id in photoAlbums.first(where: { $0.id == id }) }
+                if let album = remembered ?? photoAlbums.first {
+                    selectedSource = .album(id: album.id, title: album.title)
+                } else {
+                    selectedSource = .album(id: "", title: "")
+                }
+            }
+        }
+    }
+
+    /// Currently selected album id ("" when none), for the album sub-picker.
+    var selectedAlbumID: String {
+        get { if case let .album(id, _) = selectedSource { return id }; return "" }
+        set {
+            guard let album = photoAlbums.first(where: { $0.id == newValue }) else { return }
+            selectedSource = .album(id: album.id, title: album.title)
+        }
+    }
+
+    var sourceKindBinding: Binding<SourceKind> {
+        Binding(get: { self.sourceKind }, set: { self.sourceKind = $0 })
+    }
+
+    var albumBinding: Binding<String> {
+        Binding(
+            get: {
+                // Fall back to the first album while `selectedAlbumID` is still the
+                // empty placeholder (albums just loaded) so the Picker always has a
+                // matching tag — avoids SwiftUI's "selection does not match any tag".
+                let current = self.selectedAlbumID
+                if self.photoAlbums.contains(where: { $0.id == current }) { return current }
+                return self.photoAlbums.first?.id ?? current
+            },
+            set: { self.selectedAlbumID = $0 }
+        )
+    }
+
     func resetCurrentLook() {
         mutateCurrentLook {
             let d = Look()
@@ -308,7 +384,9 @@ final class AppModel: ObservableObject {
 
     func runSearch() {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return }
+        // Clearing the field (e.g. the search field's native clear button) runs
+        // this with an empty query — drop stale results instead of leaving them.
+        guard !q.isEmpty else { results = []; errorMessage = nil; return }
         isSearching = true
         errorMessage = nil
         Task {
