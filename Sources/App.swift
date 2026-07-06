@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct BlurWallpaperMakerApp: App {
+struct LurentApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {

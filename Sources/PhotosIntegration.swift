@@ -131,9 +131,9 @@ enum PhotosExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .denied:
-            return "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Blur Wallpaper Maker erlauben."
+            return "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben."
         case .albumFailed:
-            return "Das Album „Wallpaper Maker“ konnte nicht angelegt werden."
+            return "Das Album „Lurent“ konnte nicht angelegt werden."
         case .addFailed:
             return "Das Wallpaper konnte nicht in Fotos gesichert werden."
         }
@@ -141,10 +141,10 @@ enum PhotosExportError: LocalizedError {
 }
 
 extension AppModel {
-    private static let albumName = "Wallpaper Maker"
+    private static let albumName = "Lurent"
 
     /// Renders the dynamic HEIC to a temp file, then imports it into a
-    /// (created-if-needed) "Wallpaper Maker" album in the Photos library.
+    /// (created-if-needed) "Lurent" album in the Photos library.
     func saveToPhotosLibrary() {
         errorMessage = nil
         do {
@@ -154,7 +154,7 @@ extension AppModel {
             Task {
                 do {
                     try await Self.addHEIC(at: url, toAlbumNamed: Self.albumName)
-                    await MainActor.run { self.statusMessage = "In Fotos gesichert (Album „Wallpaper Maker“)." }
+                    await MainActor.run { self.statusMessage = "In Fotos gesichert (Album „Lurent“)." }
                 } catch {
                     await MainActor.run { self.errorMessage = error.localizedDescription }
                 }

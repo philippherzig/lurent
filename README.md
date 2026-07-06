@@ -1,4 +1,4 @@
-# Blur Wallpaper Maker
+# Lurent
 
 Kleine native macOS-App (SwiftUI). Nimmt ein Unsplash-Foto (oder ein eigenes Bild)
 als Quelle und macht daraus per Gaussian-Blur ein weiches Gradient-Wallpaper in
@@ -9,11 +9,56 @@ Display-Auflösung — Export per **Drag & Drop** oder Speichern-Dialog.
 ```bash
 cp .env.example .env          # einmalig: Unsplash-Key eintragen
 ./build.sh
-open "build/Blur Wallpaper Maker.app"
+open "build/Lurent.app"
 ```
 
 Benötigt nur die **Command Line Tools** (`xcode-select --install`), kein volles Xcode.
 Gebaut für Apple Silicon / macOS 14+.
+
+## Signieren & Notarisieren
+
+`build.sh` erkennt automatisch eine **„Developer ID Application"**-Identität in
+deinem Schlüsselbund und signiert damit inkl. **Hardened Runtime**, den
+Entitlements aus `Lurent.entitlements` und einem sicheren Zeitstempel. Ohne
+Developer-ID-Zertifikat fällt es auf **Ad-hoc**-Signatur zurück (läuft lokal,
+wird aber nach dem Download von Gatekeeper abgelehnt). Ist der Apple-Zeitstempel-
+Server nicht erreichbar (offline), signiert es ohne Zeitstempel weiter — das
+Ergebnis läuft lokal, muss für die Notarisierung aber online neu gebaut werden.
+
+```bash
+./build.sh                                   # auto-erkennt Developer ID
+SIGN_IDENTITY="Developer ID Application: …" ./build.sh   # Identität erzwingen
+SIGN_IDENTITY="-" ./build.sh                 # Ad-hoc erzwingen (nur lokal)
+```
+
+Für die Verteilung an andere Macs muss die App zusätzlich **notarisiert** werden.
+Einmalig die Apple-Credentials im Schlüsselbund hinterlegen (App-spezifisches
+Passwort von https://account.apple.com → *Anmelden & Sicherheit*):
+
+```bash
+xcrun notarytool store-credentials "lurent-notary" \
+  --apple-id "du@example.com" --team-id "6UQUNT93NG" --password "xxxx-xxxx-xxxx-xxxx"
+```
+
+Danach genügt nach jedem signierten Build:
+
+```bash
+./notarize.sh          # zippt, reicht ein, wartet, stapelt das Ticket & prüft
+```
+
+### Verteilung
+
+Eine notarisierte `.app` läuft **von überall** (Download-Ordner, Desktop, USB) —
+ein Installer ist optional. Für ein Doppelklick-Setup, das die App nach
+`/Applications` legt, baut `package.sh` ein signiertes + notarisiertes `.pkg`
+(nutzt das „Developer ID Installer"-Zertifikat und dasselbe `lurent-notary`-
+Profil). Es notarisiert + stapelt dabei zuerst die App selbst (falls noch nicht
+geschehen), damit die installierte App auch offline von Gatekeeper akzeptiert
+wird:
+
+```bash
+./build.sh && ./package.sh    # → build/Lurent.pkg (notarisiert notfalls auch die App)
+```
 
 ## Unsplash Access-Key
 
@@ -119,7 +164,10 @@ Sources/
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
   DynamicWallpaper.swift  HEIC-Writer mit Light/Dark-Metadaten
 Info.plist             Bundle-Metadaten
-build.sh               swiftc → .app-Bundle
+Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
+build.sh               swiftc → .app-Bundle (+ Developer-ID-Signatur)
+notarize.sh            Notarisieren & Ticket stapeln für die Verteilung
+package.sh             Signiertes + notarisiertes .pkg für /Applications
 ```
 
 ## Hinweis Unsplash

@@ -568,7 +568,7 @@ final class AppModel: ObservableObject {
 
     func exportFileName(ext: String) -> String {
         let s = pixelSize
-        let base = lightLook.baseName ?? "blur-wallpaper"
+        let base = lightLook.baseName ?? "lurent-wallpaper"
         return "\(base)-dynamic-\(s.width)x\(s.height).\(ext)"
     }
 
@@ -683,7 +683,7 @@ final class AppModel: ObservableObject {
 
     static func appSupportDir() throws -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = base.appendingPathComponent("Blur Wallpaper Maker", isDirectory: true)
+        let dir = base.appendingPathComponent("Lurent", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
