@@ -29,16 +29,31 @@ enum Secrets {
 }
 EOF
 
+echo "▸ Ensuring Sparkle is vendored"
+"$ROOT/Tools/fetch-sparkle.sh"
+
 echo "▸ Compiling ($ARCH)"
+# -F/-framework let swiftc find the Sparkle module + link it; the rpath tells the
+# built binary to load Sparkle.framework from Contents/Frameworks at runtime.
 swiftc -O -parse-as-library \
   -sdk "$SDK" \
   -target "${ARCH}-apple-macos26.0" \
+  -F "$ROOT/vendor/Sparkle" \
+  -framework Sparkle \
+  -Xlinker -rpath -Xlinker "@executable_path/../Frameworks" \
   -o "$BIN" \
   "$ROOT"/Sources/*.swift \
   "$GEN"
 
 echo "▸ Assembling bundle"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
+
+echo "▸ Embedding Sparkle.framework"
+FRAMEWORKS="$APP/Contents/Frameworks"
+SPARKLE_FW="$FRAMEWORKS/Sparkle.framework"
+mkdir -p "$FRAMEWORKS"
+# ditto preserves the framework's Versions/Current symlink layout.
+ditto "$ROOT/vendor/Sparkle/Sparkle.framework" "$SPARKLE_FW"
 
 echo "▸ Compiling app icon"
 ACTOOL="$(xcrun -f actool 2>/dev/null || true)"
@@ -65,6 +80,33 @@ fi
 
 echo "▸ Code signing"
 ENTITLEMENTS="$ROOT/Lurent.entitlements"
+SPARKLE_V="$SPARKLE_FW/Versions/Current"
+# Nested Sparkle executables/bundles, signed inside-out (deepest first) *before*
+# the framework and the app. Re-signing with *your* Developer ID is mandatory:
+# the app's hardened runtime enforces library validation, which only loads a
+# framework signed by the same team. They get no app entitlements (not sandboxed).
+SPARKLE_NESTED=(
+  "$SPARKLE_V/XPCServices/Downloader.xpc"
+  "$SPARKLE_V/XPCServices/Installer.xpc"
+  "$SPARKLE_V/Autoupdate"
+  "$SPARKLE_V/Updater.app"
+)
+
+# codesign with the hardened runtime; retry without a secure timestamp when the
+# Apple timestamp server is unreachable (offline). Only a timestamped build can
+# be notarized. Args: <identity> <entitlements-or-empty> <path>
+sign_hardened() {
+  local id="$1" ent="$2" path="$3"
+  local args=(--force --options runtime --sign "$id")
+  if [ -n "$ent" ]; then args+=(--entitlements "$ent"); fi
+  if codesign "${args[@]}" --timestamp "$path" 2>/dev/null; then return 0; fi
+  # Retry without a secure timestamp. The usual cause is an unreachable timestamp
+  # server (offline), but any codesign failure lands here; if the real problem is
+  # something else, this second attempt surfaces its error (stderr not silenced).
+  echo "  ⚠ signing $(basename "$path") with a secure timestamp failed (offline?) — retrying without one"
+  codesign "${args[@]}" --timestamp=none "$path"
+}
+
 # SIGN_IDENTITY controls how the bundle is signed:
 #   unset / "auto" → auto-detect a "Developer ID Application" identity
 #   "Developer ID Application: …" or a cert SHA-1 → sign with that identity
@@ -74,23 +116,23 @@ ENTITLEMENTS="$ROOT/Lurent.entitlements"
 # is rejected by Gatekeeper once downloaded.
 SIGN_IDENTITY="${SIGN_IDENTITY-auto}"
 if [ "$SIGN_IDENTITY" = "auto" ]; then
-  SIGN_IDENTITY="$(security find-identity -v -p codesigning \
-    | awk -F'"' '/Developer ID Application/ {print $2; exit}')"
+  # Capture first, then parse: `security … | awk …exit` can SIGPIPE-fail security
+  # under `set -o pipefail` (the hazard notarize.sh/release.sh already avoid).
+  IDENTITIES="$(security find-identity -v -p codesigning || true)"
+  SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
-  sign_args=(--force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY")
-  # A secure timestamp needs Apple's timestamp server. Try it, but don't fail the
-  # whole build when offline (or when the server is flaky) — fall back to a valid
-  # local signature without a timestamp. Only a timestamped build can be notarized.
-  if codesign "${sign_args[@]}" --timestamp "$APP" 2>/dev/null; then
-    echo "  ✓ signed: $SIGN_IDENTITY"
-    echo "    hardened runtime + entitlements + timestamp → run ./notarize.sh to distribute"
-  else
-    echo "  ⚠ timestamp server unreachable — signing without a secure timestamp"
-    codesign "${sign_args[@]}" --timestamp=none "$APP"
-    echo "  ✓ signed: $SIGN_IDENTITY (no timestamp — re-run online before ./notarize.sh)"
-  fi
+  echo "  signing Sparkle.framework inside-out with $SIGN_IDENTITY"
+  for c in "${SPARKLE_NESTED[@]}"; do sign_hardened "$SIGN_IDENTITY" "" "$c"; done
+  sign_hardened "$SIGN_IDENTITY" "" "$SPARKLE_FW"
+  echo "  signing Lurent.app"
+  sign_hardened "$SIGN_IDENTITY" "$ENTITLEMENTS" "$APP"
+  echo "  ✓ signed: $SIGN_IDENTITY (hardened runtime + entitlements)"
+  echo "    → run ./notarize.sh to distribute (re-run online first if a timestamp was skipped)"
 else
+  echo "  ad-hoc signing Sparkle.framework + app (local use only)"
+  for c in "${SPARKLE_NESTED[@]}"; do codesign --force --sign - "$c" >/dev/null 2>&1 || true; done
+  codesign --force --sign - "$SPARKLE_FW" >/dev/null 2>&1 || true
   codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
   echo "  ad-hoc signed — local use only (set SIGN_IDENTITY to a Developer ID to distribute)"
 fi

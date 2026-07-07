@@ -36,5 +36,15 @@
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Fotos via Unsplash. Erstellt mit Lurent.</string>
+	<!-- Sparkle auto-update. The appcast + archives are hosted on Cloudflare R2
+	     behind updates.lurent.app; each update is EdDSA-signed with SUPublicEDKey's
+	     private half (login Keychain). SUEnableAutomaticChecks turns on the daily
+	     background check; the app menu also has a manual "Nach Updates suchen…". -->
+	<key>SUFeedURL</key>
+	<string>https://updates.lurent.app/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>hF36Nb4XK0w+6GAEGIkhTRf6FspFy4GZHv+omimHRu0=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

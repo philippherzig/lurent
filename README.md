@@ -60,6 +60,47 @@ wird:
 ./build.sh && ./package.sh    # → build/Lurent.pkg (notarisiert notfalls auch die App)
 ```
 
+## Auto-Updates (Sparkle)
+
+Die App bringt **[Sparkle](https://sparkle-project.org) 2.9.4** mit: sie prüft
+täglich im Hintergrund auf Updates, und im App-Menü gibt es **„Nach Updates
+suchen…"**. Kein öffentliches GitHub-Repo nötig — Sparkle lädt nur zwei
+statische Dateien über HTTPS von **`updates.lurent.app`** (Cloudflare R2):
+`appcast.xml` (der Update-Feed) und das jeweilige `Lurent-<version>.zip`.
+
+Jedes Update ist **EdDSA-signiert**; der öffentliche Schlüssel steht als
+`SUPublicEDKey` in der `Info.plist`, der private liegt in deinem Login-Keychain
+(einmalig via `vendor/Sparkle/bin/generate_keys` erzeugt — **unbedingt sichern**,
+z. B. `generate_keys -x sparkle_private_key.txt` und im Passwortmanager ablegen).
+
+Das Framework wird nicht committet, sondern per `Tools/fetch-sparkle.sh` in das
+gitignorte `vendor/` geladen (macht `build.sh` automatisch) und beim Bauen
+inside-out mit deiner Developer ID neu signiert — nötig, weil der Hardened
+Runtime nur gleich-signierte Frameworks lädt.
+
+### Einmalig: R2 einrichten
+
+Trage die Cloudflare-R2-Zugangsdaten in `.env` ein (siehe `.env.example`), dann:
+
+```bash
+./Tools/provision-r2.sh    # legt den Bucket an + bindet updates.lurent.app
+```
+
+Die Custom Domain lässt sich per API-Token binden oder mit 4 Klicks im
+Dashboard (R2 → Bucket → Settings → Custom Domains → Connect Domain).
+
+### Ein Update veröffentlichen
+
+```bash
+# 1) Version in Info.plist hochzählen (CFBundleShortVersionString + CFBundleVersion)
+./build.sh          # baut + signiert (Developer ID)
+./release.sh        # notarisiert (falls nötig), zippt, signiert, appcast → R2
+```
+
+`release.sh` erzeugt `Lurent-<version>.zip`, signiert es, aktualisiert
+`appcast.xml` und lädt beides nach R2. Beim nächsten Check sehen bestehende
+Nutzer das Update.
+
 ## Unsplash Access-Key
 
 Der Key liegt in einer **gitignorten `.env`** und wird beim Bauen in
@@ -157,17 +198,21 @@ App (plus das ältere `apple_desktop`-Format für frühere macOS-Versionen).
 
 ```
 Sources/
-  App.swift            App-Einstieg + Settings-Szene
+  App.swift            App-Einstieg + Settings-Szene + Update-Menüpunkt
   ContentView.swift    UI (Sidebar, Vorschau, Regler, Settings)
   Model.swift          Zustand, Looks (Hell/Dunkel), Export/Drag/Desktop
+  Updater.swift        Sparkle-Anbindung („Nach Updates suchen…")
   Unsplash.swift       Unsplash-API-Client
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
   DynamicWallpaper.swift  HEIC-Writer mit Light/Dark-Metadaten
-Info.plist             Bundle-Metadaten
+Info.plist             Bundle-Metadaten (+ SUFeedURL / SUPublicEDKey)
 Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
-build.sh               swiftc → .app-Bundle (+ Developer-ID-Signatur)
+build.sh               swiftc → .app-Bundle (+ Sparkle einbetten & signieren)
 notarize.sh            Notarisieren & Ticket stapeln für die Verteilung
 package.sh             Signiertes + notarisiertes .pkg für /Applications
+release.sh             Update veröffentlichen (zip, signieren, appcast → R2)
+Tools/fetch-sparkle.sh  Sparkle 2.9.4 nach vendor/ laden (gitignored)
+Tools/provision-r2.sh   Einmaliges R2-Setup (Bucket + Custom Domain)
 ```
 
 ## Hinweis Unsplash

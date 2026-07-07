@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct LurentApp: App {
     @StateObject private var model = AppModel()
+    @StateObject private var updater = UpdaterViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,9 @@ struct LurentApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesCommand(updater: updater)
+            }
         }
 
         Settings {
