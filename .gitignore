@@ -16,3 +16,6 @@ vendor/
 *.swiftpm
 .build/
 xcuserdata/
+
+# Wrangler cache (Cloudflare Pages deploys)
+.wrangler/
