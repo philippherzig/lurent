@@ -604,51 +604,37 @@ final class AppModel: ObservableObject {
     func setAsDesktop() {
         do {
             let dir = try Self.appSupportDir()
-            // macOS 26 stores an *absolute path per Space and per Display* in the
-            // WallpaperAgent index. A fresh random filename each time (plus deleting
-            // the previous export) leaves every other Space pointing at a file that
-            // no longer exists — so the wallpaper vanishes on Space/Display switch and
-            // System Settings shows a broken "?" thumbnail. Use one stable path that
-            // every Space can keep referencing, and update it in place instead.
-            let url = dir.appendingPathComponent("current.heic")
-            let tmp = dir.appendingPathComponent("current.heic.tmp")
+            // macOS 26 keeps an *absolute path per Space and per Display* in the
+            // WallpaperAgent index, and the agent caches by path — setting the same
+            // URL again won't repaint. The previous approach forced a repaint by
+            // killing the WallpaperAgent, but `setDesktopImageURL` persists to the
+            // agent's store *asynchronously*: killing it right after races that write,
+            // so the agent respawns onto the previous wallpaper (flicker → snaps back,
+            // to the "all Spaces" system wallpaper when one is active).
+            //
+            // Instead alternate between two stable files. Each set presents a NEW path
+            // (so it repaints without a kill), while BOTH files always exist — so any
+            // other Space/Display keeps resolving its reference after a switch.
+            let slotA = dir.appendingPathComponent("wallpaper-a.heic")
+            let slotB = dir.appendingPathComponent("wallpaper-b.heic")
+            let shown = NSScreen.main.flatMap { NSWorkspace.shared.desktopImageURL(for: $0) }
+            let target = (shown?.lastPathComponent == slotA.lastPathComponent) ? slotB : slotA
+
+            let tmp = target.appendingPathExtension("tmp")
             try? FileManager.default.removeItem(at: tmp)
             try writeOutput(to: tmp)
-            if FileManager.default.fileExists(atPath: url.path) {
-                _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+            if FileManager.default.fileExists(atPath: target.path) {
+                _ = try FileManager.default.replaceItemAt(target, withItemAt: tmp)
             } else {
-                try FileManager.default.moveItem(at: tmp, to: url)
-            }
-
-            // One-time cleanup of the old buggy exports (current-<uuid>.heic).
-            if let existing = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
-                for f in existing where f.lastPathComponent.hasPrefix("current-") {
-                    try? FileManager.default.removeItem(at: f)
-                }
+                try FileManager.default.moveItem(at: tmp, to: target)
             }
 
             for screen in NSScreen.screens {
-                try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])
+                try NSWorkspace.shared.setDesktopImageURL(target, for: screen, options: [:])
             }
-            // The path is unchanged across sets, so the agent caches the old pixels.
-            // Restart it so it re-reads current.heic and repaints every Space.
-            Self.reloadWallpaperAgent()
             statusMessage = "Als dynamisches Wallpaper gesetzt."
         } catch {
             errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Force the wallpaper agent to reload from disk. `setDesktopImageURL` caches
-    /// by file path, so overwriting the same `current.heic` won't repaint on its
-    /// own; launchd respawns the agent immediately after it's killed.
-    static func reloadWallpaperAgent() {
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        proc.arguments = ["WallpaperAgent"]
-        // Only wait if the process actually launched; run() throwing means it never did.
-        if (try? proc.run()) != nil {
-            proc.waitUntilExit()
         }
     }
 
