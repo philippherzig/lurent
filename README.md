@@ -94,12 +94,19 @@ Dashboard (R2 → Bucket → Settings → Custom Domains → Connect Domain).
 ```bash
 # 1) Version in Info.plist hochzählen (CFBundleShortVersionString + CFBundleVersion)
 ./build.sh          # baut + signiert (Developer ID)
-./release.sh        # notarisiert (falls nötig), zippt, signiert, appcast → R2
+./release.sh        # notarisiert, zippt + signiert, appcast + .pkg → R2
 ```
 
-`release.sh` erzeugt `Lurent-<version>.zip`, signiert es, aktualisiert
-`appcast.xml` und lädt beides nach R2. Beim nächsten Check sehen bestehende
-Nutzer das Update.
+`release.sh` lädt bei jedem Release **zwei Artefakte** nach R2:
+
+- **`Lurent-<version>-<build>.zip`** + `appcast.xml` — der Sparkle-Update-Kanal.
+  Bestehende Nutzer bekommen das automatisch (inkl. Delta-Updates).
+- **`Lurent.pkg`** (signierter, notarisierter Installer) — der **Erst-Download**
+  für neue Nutzer (Doppelklick → `/Applications`). Immer erreichbar unter dem
+  stabilen Link `https://updates.lurent.app/Lurent.pkg`, plus eine versionierte
+  Kopie `Lurent-<version>-<build>.pkg`.
+
+Kurz: **Zip = Auto-Update, Pkg = Erstinstallation.**
 
 ## Unsplash Access-Key
 
