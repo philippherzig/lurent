@@ -45,9 +45,27 @@ else
   bash "$ROOT/notarize.sh"
 fi
 
+echo "▸ Staging app for a non-relocatable payload"
+# Copy the app into a clean root so the payload is exactly Lurent.app (build/
+# also holds other artifacts). ditto preserves the code signature & staple.
+STAGE="$ROOT/build/pkgroot"
+CPLIST="$ROOT/build/component.plist"
+COMPONENT_PKG="$ROOT/build/Lurent-component.pkg"
+rm -rf "$STAGE"; mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/Lurent.app"
+
+# Turn OFF bundle relocation. With the default (relocatable=true) the Installer
+# follows an existing copy found by bundle id via Spotlight and installs the
+# update on top of THAT (e.g. this build folder) instead of /Applications.
+pkgbuild --analyze --root "$STAGE" "$CPLIST" >/dev/null
+/usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$CPLIST"
+
 echo "▸ Building signed installer → $PKG"
-productbuild --component "$APP" /Applications --sign "$INSTALL_IDENTITY" "$PKG"
-echo "  ✓ signed: $INSTALL_IDENTITY"
+pkgbuild --root "$STAGE" --component-plist "$CPLIST" \
+  --install-location /Applications "$COMPONENT_PKG"
+productbuild --package "$COMPONENT_PKG" --sign "$INSTALL_IDENTITY" "$PKG"
+rm -rf "$STAGE" "$CPLIST" "$COMPONENT_PKG"
+echo "  ✓ signed: $INSTALL_IDENTITY (non-relocatable → always /Applications)"
 
 echo "▸ Notarizing the installer (waits for the result)"
 if ! xcrun notarytool submit "$PKG" --keychain-profile "$PROFILE" --wait; then
