@@ -83,15 +83,19 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, flow, mirror
+    case blur, flow, liquid, mirror
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .blur: return "Blur"
-        case .flow: return "Flow"
+        case .blur:   return "Blur"
+        case .flow:   return "Flow"
+        case .liquid: return "Liquid"
         case .mirror: return "Spiegel"
         }
     }
+
+    /// Styles that synthesize the image from parameters alone (no source photo).
+    var isSynthetic: Bool { self == .flow || self == .liquid }
 }
 
 // MARK: - A single wallpaper "look"
@@ -123,6 +127,20 @@ struct Look {
     var flowEdgeSoftness: Double = 0.7
     var flowPhase: Double = 1.0
 
+    // Liquid style (domain-warped turbulence gradient — heart.zuerich look)
+    var liquidColor0: Color = Color(red: 0.00, green: 0.04, blue: 0.08) // deep navy  #000a14
+    var liquidColor1: Color = Color(red: 0.78, green: 0.25, blue: 1.00) // purple     #c841ff
+    var liquidColor2: Color = Color(red: 0.81, green: 0.00, blue: 0.43) // magenta    #cf006e
+    var liquidColor3: Color = Color(red: 1.00, green: 0.00, blue: 0.30) // pink-red   #ff004d
+    var liquidColor4: Color = Color(red: 1.00, green: 0.24, blue: 0.00) // orange     #ff3c00
+    var liquidCount: Int = 5
+    var liquidTime: Double = 6.0
+    var liquidSeed: Double = 3.0
+    var liquidScale: Double = 0.0   // zoom above a calm base (see liquidSettings)
+    var liquidTurb: Double = 0.0    // 0 = smooth satin bands, higher = liquid churn
+    var liquidWave: Double = 1.0
+    var liquidBias: Double = 0.0
+
     // Mirror style (builds on the blur controls)
     var mirrorLine: Double = 0.52
     var mirrorAmplitude: Double = 0.05
@@ -141,7 +159,18 @@ struct Look {
         .init(colors: [flowColor0.asCIColor, flowColor1.asCIColor, flowColor2.asCIColor],
               bands: flowBands, amplitude: flowAmplitude, frequency: flowFrequency,
               sharpness: flowSharpness, edgeSoftness: flowEdgeSoftness,
-              phase: flowPhase, dither: dither)
+              phase: flowPhase, brightness: brightness, saturation: saturation,
+              contrast: contrast, dither: dither)
+    }
+
+    var liquidSettings: LiquidProcessor.Settings {
+        .init(colors: [liquidColor0.asCIColor, liquidColor1.asCIColor, liquidColor2.asCIColor,
+                       liquidColor3.asCIColor, liquidColor4.asCIColor],
+              count: liquidCount, time: liquidTime, seed: liquidSeed,
+              // Slider sits at 0 for a calm base zoom; higher values zoom in.
+              scale: 0.5 + liquidScale, turbAmp: liquidTurb, waveFreq: liquidWave,
+              bias: liquidBias, brightness: brightness, saturation: saturation,
+              contrast: contrast, dither: dither)
     }
 
     var mirrorSettings: MirrorProcessor.Settings {
@@ -325,22 +354,27 @@ final class AppModel: ObservableObject {
         mutateCurrentLook {
             let d = Look()
             switch $0.style {
+            case .blur:
+                $0.blur = d.blur
             case .flow:
                 $0.flowBands = d.flowBands; $0.flowAmplitude = d.flowAmplitude
                 $0.flowFrequency = d.flowFrequency; $0.flowSharpness = d.flowSharpness
                 $0.flowEdgeSoftness = d.flowEdgeSoftness; $0.flowPhase = d.flowPhase
+            case .liquid:
+                $0.liquidCount = d.liquidCount; $0.liquidTime = d.liquidTime
+                $0.liquidSeed = d.liquidSeed; $0.liquidScale = d.liquidScale
+                $0.liquidTurb = d.liquidTurb; $0.liquidWave = d.liquidWave
+                $0.liquidBias = d.liquidBias
             case .mirror:
-                $0.blur = d.blur; $0.brightness = d.brightness
-                $0.saturation = d.saturation; $0.contrast = d.contrast
+                $0.blur = d.blur
                 $0.mirrorLine = d.mirrorLine; $0.mirrorAmplitude = d.mirrorAmplitude
                 $0.mirrorFrequency = d.mirrorFrequency; $0.mirrorPhase = d.mirrorPhase
                 $0.mirrorHardness = d.mirrorHardness; $0.mirrorDepth = d.mirrorDepth
                 $0.mirrorSideFade = d.mirrorSideFade
-            case .blur:
-                $0.blur = d.blur; $0.brightness = d.brightness
-                $0.saturation = d.saturation; $0.contrast = d.contrast
             }
-            $0.dither = d.dither
+            // Colour grade + grain: shared across every style.
+            $0.brightness = d.brightness; $0.saturation = d.saturation
+            $0.contrast = d.contrast; $0.dither = d.dither
         }
     }
 
@@ -469,11 +503,18 @@ final class AppModel: ObservableObject {
 
     func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
-        let palette = Self.extractPalette(from: cg)
+        let flow = Self.extractPalette(from: cg, count: 3)
+        let liquid = Self.extractPalette(from: cg, count: 5, sortedByLuminance: true)
         let apply: (inout Look) -> Void = {
             $0.source = cg; $0.photoID = photoID; $0.baseName = baseName
             $0.attribution = attribution; $0.attributionURL = attributionURL
-            $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
+            if flow.count == 3 {
+                $0.flowColor0 = flow[0]; $0.flowColor1 = flow[1]; $0.flowColor2 = flow[2]
+            }
+            if liquid.count == 5 {
+                $0.liquidColor0 = liquid[0]; $0.liquidColor1 = liquid[1]; $0.liquidColor2 = liquid[2]
+                $0.liquidColor3 = liquid[3]; $0.liquidColor4 = liquid[4]
+            }
         }
         if appearance == .light { apply(&lightLook) } else { apply(&darkLook) }
         seedOtherIfNeeded(from: appearance)
@@ -483,27 +524,47 @@ final class AppModel: ObservableObject {
     /// Re-derive the Flow palette from the current look's photo.
     func reloadPaletteFromPhoto() {
         guard let src = currentLook.source else { return }
-        let palette = Self.extractPalette(from: src)
+        let palette = Self.extractPalette(from: src, count: 3)
+        guard palette.count == 3 else { return }
         mutateCurrentLook {
             $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
         }
     }
 
-    /// Three dominant colours (bottom → top thirds), saturation-boosted so the
-    /// Flow gradient stays vivid.
-    private static func extractPalette(from cg: CGImage) -> [Color] {
+    /// Re-derive the Liquid palette (5 stops, dark → bright) from the current photo.
+    func reloadLiquidPaletteFromPhoto() {
+        guard let src = currentLook.source else { return }
+        let p = Self.extractPalette(from: src, count: 5, sortedByLuminance: true)
+        guard p.count == 5 else { return }
+        mutateCurrentLook {
+            $0.liquidColor0 = p[0]; $0.liquidColor1 = p[1]; $0.liquidColor2 = p[2]
+            $0.liquidColor3 = p[3]; $0.liquidColor4 = p[4]
+        }
+    }
+
+    /// `count` dominant colours sampled across horizontal bands (bottom → top),
+    /// saturation-boosted so the synthetic gradients stay vivid. With
+    /// `sortedByLuminance` the stops are ordered dark → bright, giving Liquid a
+    /// natural deep-base / bright-vein ramp regardless of the photo's layout.
+    private static func extractPalette(from cg: CGImage, count: Int,
+                                       sortedByLuminance: Bool = false) -> [Color] {
         let ci = CIImage(cgImage: cg)
         let e = ci.extent
-        let third = e.height / 3
-        let rects = [
-            CGRect(x: e.minX, y: e.minY, width: e.width, height: third),
-            CGRect(x: e.minX, y: e.minY + third, width: e.width, height: third),
-            CGRect(x: e.minX, y: e.minY + 2 * third, width: e.width, height: third),
-        ]
-        return rects.map { rect in
-            let avg = FlowProcessor.averageColor(of: ci, in: rect)
-            return Color.vivid(from: avg)
+        guard count > 0, e.height > 0, e.width > 0 else { return [] }
+        let band = e.height / CGFloat(count)
+        var avgs = (0..<count).map { i -> CIColor in
+            let rect = CGRect(x: e.minX, y: e.minY + CGFloat(i) * band, width: e.width, height: band)
+            return FlowProcessor.averageColor(of: ci, in: rect)
         }
+        if sortedByLuminance {
+            avgs.sort { Self.luminance($0) < Self.luminance($1) }
+        }
+        return avgs.map { Color.vivid(from: $0) }
+    }
+
+    /// Rec. 709 relative luminance of an sRGB CIColor.
+    private static func luminance(_ c: CIColor) -> CGFloat {
+        0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue
     }
 
     // MARK: Rendering
@@ -531,6 +592,8 @@ final class AppModel: ObservableObject {
             return BlurProcessor.render(source: src, targetSize: size, settings: look.settings, deepColor: deep)
         case .flow:
             return FlowProcessor.render(size: size, settings: look.flowSettings, deepColor: deep)
+        case .liquid:
+            return LiquidProcessor.render(size: size, settings: look.liquidSettings, deepColor: deep)
         case .mirror:
             guard let src = look.source,
                   let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)
@@ -550,7 +613,7 @@ final class AppModel: ObservableObject {
     }
 
     private func renderFull(_ look: Look) throws -> CGImage {
-        if look.style != .flow, look.source == nil { throw ExportError.noSource }
+        if !look.style.isSynthetic, look.source == nil { throw ExportError.noSource }
         let s = pixelSize
         guard let cg = renderCG(look, size: CGSize(width: s.width, height: s.height), deep: true) else {
             throw ExportError.renderFailed
@@ -560,7 +623,7 @@ final class AppModel: ObservableObject {
 
     // MARK: File names
 
-    func lookHasContent(_ l: Look) -> Bool { l.style == .flow || l.source != nil }
+    func lookHasContent(_ l: Look) -> Bool { l.style.isSynthetic || l.source != nil }
 
     var canExport: Bool {
         lookHasContent(lightLook) && lookHasContent(darkLook)

@@ -274,10 +274,6 @@ private struct EffectSection: View {
         switch model.currentLook.style {
         case .blur:
             slider("Blur", model.bind(\.blur), 0...100)
-            slider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
-            slider("Sättigung", model.bind(\.saturation), 0...2)
-            slider("Kontrast", model.bind(\.contrast), 0.8...1.3)
-            slider("Körnung", model.bind(\.dither), 0...1)
 
         case .mirror:
             slider("Blur", model.bind(\.blur), 0...100)
@@ -287,7 +283,6 @@ private struct EffectSection: View {
             slider("Kantenschärfe", model.bind(\.mirrorHardness), 0...1)
             slider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
             slider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
-            slider("Körnung", model.bind(\.dither), 0...1)
 
         case .flow:
             Picker("Farben", selection: model.bind(\.flowBands)) {
@@ -317,8 +312,46 @@ private struct EffectSection: View {
             slider("Kantenschärfe", model.bind(\.flowSharpness), 0...1)
             slider("Rand-Weichheit", model.bind(\.flowEdgeSoftness), 0...1)
             slider("Variante", model.bind(\.flowPhase), 0...6.283)
-            slider("Körnung", model.bind(\.dither), 0...1)
+
+        case .liquid:
+            Picker("Farben", selection: model.bind(\.liquidCount)) {
+                Text("3").tag(3); Text("4").tag(4); Text("5").tag(5)
+            }
+            .pickerStyle(.segmented)
+
+            HStack {
+                ColorPicker("Farbe 1", selection: model.bind(\.liquidColor0), supportsOpacity: false)
+                ColorPicker("Farbe 2", selection: model.bind(\.liquidColor1), supportsOpacity: false)
+                ColorPicker("Farbe 3", selection: model.bind(\.liquidColor2), supportsOpacity: false)
+                if model.currentLook.liquidCount >= 4 {
+                    ColorPicker("Farbe 4", selection: model.bind(\.liquidColor3), supportsOpacity: false)
+                }
+                if model.currentLook.liquidCount >= 5 {
+                    ColorPicker("Farbe 5", selection: model.bind(\.liquidColor4), supportsOpacity: false)
+                }
+            }
+            .labelsHidden()
+
+            Button {
+                model.reloadLiquidPaletteFromPhoto()
+            } label: {
+                Label("Aus Foto", systemImage: "eyedropper")
+            }
+            .disabled(model.currentLook.source == nil)
+
+            slider("Frame", model.bind(\.liquidTime), 0...30)
+            slider("Variante", model.bind(\.liquidSeed), 0...12)
+            slider("Skalierung", model.bind(\.liquidScale), 0...2.5)
+            slider("Turbulenz", model.bind(\.liquidTurb), 0...1.6)
+            slider("Wellen", model.bind(\.liquidWave), 0.3...3)
+            slider("Tonwert", model.bind(\.liquidBias), -1...1)
         }
+
+        // Colour grade + grain — shared by every style.
+        slider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
+        slider("Sättigung", model.bind(\.saturation), 0...2)
+        slider("Kontrast", model.bind(\.contrast), 0.8...1.3)
+        slider("Körnung", model.bind(\.dither), 0...1)
     }
 
     private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {

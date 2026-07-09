@@ -56,13 +56,9 @@ enum BlurProcessor {
                 .cropped(to: content)
         }
 
-        // Colour grading.
-        let color = CIFilter.colorControls()
-        color.inputImage = image
-        color.brightness = Float(settings.brightness)
-        color.saturation = Float(settings.saturation)
-        color.contrast = Float(settings.contrast)
-        image = color.outputImage ?? image
+        // Colour grading (shared with the synthetic styles).
+        image = colorGrade(image, brightness: settings.brightness,
+                           saturation: settings.saturation, contrast: settings.contrast)
 
         // Aspect-fill into the target canvas, centred.
         let ext = image.extent
@@ -81,6 +77,18 @@ enum BlurProcessor {
             .cropped(to: cropRect)
             .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x,
                                                y: -cropRect.origin.y))
+    }
+
+    /// Brightness / saturation / contrast grade — shared by every style so the
+    /// three controls behave identically across Blur, Flow, Liquid and Spiegel.
+    static func colorGrade(_ image: CIImage, brightness: Double,
+                           saturation: Double, contrast: Double) -> CIImage {
+        let color = CIFilter.colorControls()
+        color.inputImage = image
+        color.brightness = Float(brightness)
+        color.saturation = Float(saturation)
+        color.contrast = Float(contrast)
+        return color.outputImage ?? image
     }
 
     /// Applies dithering and renders to a CGImage of exactly `size` pixels.

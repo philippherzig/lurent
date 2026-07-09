@@ -16,6 +16,9 @@ enum FlowProcessor {
         var sharpness: Double = 0.8    // 0…1, higher = harder centre edge
         var edgeSoftness: Double = 0.7 // 0…1, higher = more dissolve at the sides
         var phase: Double = 1.0        // wave variation
+        var brightness: Double = 0
+        var saturation: Double = 1.15
+        var contrast: Double = 1.0
         var dither: Double = 0.1
     }
 
@@ -77,6 +80,9 @@ enum FlowProcessor {
                 hwMin, hwMax, w, h])
         }
         guard var img = image else { return nil }
+
+        img = BlurProcessor.colorGrade(img, brightness: settings.brightness,
+                                       saturation: settings.saturation, contrast: settings.contrast)
 
         if settings.dither > 0 {
             let d = CIFilter.dither()
