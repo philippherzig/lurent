@@ -1,0 +1,90 @@
+/* Lurent — 日本語. キーはドイツ語のソース文字列.
+   "Blur", "Flow", "Liquid", "Unsplash" は意図的に省略 → キーにフォールバック. */
+
+"Bild" = "画像";
+"Quelle" = "ソース";
+"Effekt" = "エフェクト";
+"Stil" = "スタイル";
+"Ausgabe" = "出力";
+"Auflösung" = "解像度";
+"Album" = "アルバム";
+"Farben" = "カラー";
+
+"Dateien" = "ファイル";
+"Fotos" = "写真";
+"Alle Fotos" = "すべての写真";
+
+"Hell" = "ライト";
+"Dunkel" = "ダーク";
+
+"Spiegel" = "ミラー";
+
+"Spiegel-Linie" = "ミラーライン";
+"Amplitude" = "振幅";
+"Frequenz" = "周波数";
+"Kantenschärfe" = "エッジのシャープさ";
+"Tiefe" = "深度";
+"Seiten-Fade" = "サイドフェード";
+"Rand-Weichheit" = "エッジのソフトさ";
+"Variante" = "バリエーション";
+"Frame" = "フレーム";
+"Skalierung" = "スケール";
+"Turbulenz" = "乱流";
+"Wellen" = "波";
+"Tonwert" = "トーン";
+"Helligkeit" = "明るさ";
+"Sättigung" = "彩度";
+"Kontrast" = "コントラスト";
+"Körnung" = "粒状感";
+
+"2 Farben" = "2色";
+"3 Farben" = "3色";
+"Farbe 1" = "カラー 1";
+"Farbe 2" = "カラー 2";
+"Farbe 3" = "カラー 3";
+"Farbe 4" = "カラー 4";
+"Farbe 5" = "カラー 5";
+"Aus Foto" = "写真から";
+
+"Zurücksetzen" = "リセット";
+"Datei öffnen…" = "ファイルを開く…";
+"Fotos-Mediathek verbinden…" = "写真ライブラリを接続…";
+"Unsplash durchsuchen" = "Unsplash を検索";
+"In Fotos sichern" = "写真に保存";
+"Als HEIC exportieren…" = "HEIC として書き出す…";
+"Exportieren" = "書き出す";
+"Als Schreibtisch setzen" = "デスクトップに設定";
+"Nach Updates suchen…" = "アップデートを確認…";
+"Breite" = "幅";
+"Höhe" = "高さ";
+"Eigene Größe…" = "カスタムサイズ…";
+
+"Fehler" = "エラー";
+
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Finder／デスクトップにドラッグして書き出し";
+"Kein Bild für „%@“" = "「%@」の画像がありません";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "右側で Unsplash の写真、写真アプリの画像、またはファイルを選んでください。";
+"Auf „%@“ übernehmen" = "「%@」に適用";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "写真へのアクセスがありません — システム設定で許可してください。";
+
+"Keine Treffer für „%@“." = "「%@」の検索結果がありません。";
+"Kein Quellbild ausgewählt." = "ソース画像が選択されていません。";
+"Das Wallpaper konnte nicht gerendert werden." = "壁紙をレンダリングできませんでした。";
+"Das Bild konnte nicht kodiert werden." = "画像をエンコードできませんでした。";
+"Bild konnte nicht geladen werden: %@" = "画像を読み込めませんでした: %@";
+"Exportiert: %@" = "書き出し完了: %@";
+"Als dynamisches Wallpaper gesetzt." = "ダイナミック壁紙に設定しました。";
+"Bild konnte nicht aus Fotos geladen werden." = "写真から画像を読み込めませんでした。";
+"In Fotos gesichert (Album „Lurent“)." = "写真に保存しました（アルバム「Lurent」）。";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "写真にアクセスできません。システム設定 →「プライバシーとセキュリティ」→「写真」で Lurent のアクセスを許可してください。";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "アルバム「Lurent」を作成できませんでした。";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "壁紙を写真に保存できませんでした。";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "このビルドでは Unsplash 検索は利用できません（キーが埋め込まれていません）。「自分の画像を開く…」は引き続き使用できます。";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash がアクセスキーを拒否しました（401）。";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash のレート制限に達しました（403）。しばらくお待ちください。";
+"Unsplash-Fehler (HTTP %ld)." = "Unsplash エラー（HTTP %ld）。";
+"Unerwartete Antwort von Unsplash." = "Unsplash から予期しない応答がありました。";
+"Das Bild konnte nicht geladen werden." = "画像を読み込めませんでした。";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "壁紙のメタデータを作成できませんでした。";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC を作成できませんでした（HEVC エンコーダーが利用できない可能性があります）。";
+"HEIC konnte nicht geschrieben werden." = "HEIC を書き込めませんでした。";

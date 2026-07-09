@@ -48,7 +48,7 @@ extension AppModel {
             let smart = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil)
             if let all = smart.firstObject {
                 let count = all.estimatedAssetCount
-                albums.append(PhotoAlbum(id: all.localIdentifier, title: "Alle Fotos", count: count == NSNotFound ? 0 : count))
+                albums.append(PhotoAlbum(id: all.localIdentifier, title: L("Alle Fotos"), count: count == NSNotFound ? 0 : count))
             }
 
             var userAlbums: [PhotoAlbum] = []
@@ -57,7 +57,7 @@ extension AppModel {
                 let count = collection.estimatedAssetCount
                 guard count == NSNotFound || count > 0 else { return }
                 userAlbums.append(PhotoAlbum(id: collection.localIdentifier,
-                                             title: collection.localizedTitle ?? "Album",
+                                             title: collection.localizedTitle ?? L("Album"),
                                              count: count == NSNotFound ? 0 : count))
             }
             userAlbums.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
@@ -111,7 +111,7 @@ extension AppModel {
                 guard let data,
                       let image = NSImage(data: data),
                       let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-                    self.errorMessage = "Bild konnte nicht aus Fotos geladen werden."
+                    self.errorMessage = L("Bild konnte nicht aus Fotos geladen werden.")
                     return
                 }
                 let baseName = "photos-\(assetID.prefix(8))"
@@ -131,11 +131,11 @@ enum PhotosExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .denied:
-            return "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben."
+            return L("Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben.")
         case .albumFailed:
-            return "Das Album „Lurent“ konnte nicht angelegt werden."
+            return L("Das Album „Lurent“ konnte nicht angelegt werden.")
         case .addFailed:
-            return "Das Wallpaper konnte nicht in Fotos gesichert werden."
+            return L("Das Wallpaper konnte nicht in Fotos gesichert werden.")
         }
     }
 }
@@ -154,7 +154,7 @@ extension AppModel {
             Task {
                 do {
                     try await Self.addHEIC(at: url, toAlbumNamed: Self.albumName)
-                    await MainActor.run { self.statusMessage = "In Fotos gesichert (Album „Lurent“)." }
+                    await MainActor.run { self.statusMessage = L("In Fotos gesichert (Album „Lurent“).") }
                 } catch {
                     await MainActor.run { self.errorMessage = error.localizedDescription }
                 }

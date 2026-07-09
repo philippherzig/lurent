@@ -48,6 +48,14 @@ swiftc -O -parse-as-library \
 echo "▸ Assembling bundle"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 
+echo "▸ Copying localizations"
+# Each Localizations/<lang>.lproj/Localizable.strings ships as a bundle
+# localization; German is the base (the string literals in code are the keys).
+if compgen -G "$ROOT/Localizations/*.lproj" >/dev/null; then
+  cp -R "$ROOT/Localizations/"*.lproj "$APP/Contents/Resources/"
+  echo "  ($(ls -d "$ROOT/Localizations/"*.lproj | wc -l | tr -d ' ') localizations)"
+fi
+
 echo "▸ Embedding Sparkle.framework"
 FRAMEWORKS="$APP/Contents/Frameworks"
 SPARKLE_FW="$FRAMEWORKS/Sparkle.framework"

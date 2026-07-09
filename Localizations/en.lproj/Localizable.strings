@@ -1,0 +1,100 @@
+/* Lurent — English. Keys are the German source strings.
+   "Blur", "Flow", "Liquid", "Unsplash" are intentionally omitted → fall back to the key. */
+
+// Sections & pickers
+"Bild" = "Image";
+"Quelle" = "Source";
+"Effekt" = "Effect";
+"Stil" = "Style";
+"Ausgabe" = "Output";
+"Auflösung" = "Resolution";
+"Album" = "Album";
+"Farben" = "Colors";
+
+// Sources
+"Dateien" = "Files";
+"Fotos" = "Photos";
+"Alle Fotos" = "All Photos";
+
+// Appearance
+"Hell" = "Light";
+"Dunkel" = "Dark";
+
+// Style names
+"Spiegel" = "Mirror";
+
+// Sliders
+"Spiegel-Linie" = "Mirror Line";
+"Amplitude" = "Amplitude";
+"Frequenz" = "Frequency";
+"Kantenschärfe" = "Edge Sharpness";
+"Tiefe" = "Depth";
+"Seiten-Fade" = "Side Fade";
+"Rand-Weichheit" = "Edge Softness";
+"Variante" = "Variant";
+"Frame" = "Frame";
+"Skalierung" = "Scale";
+"Turbulenz" = "Turbulence";
+"Wellen" = "Waves";
+"Tonwert" = "Tone";
+"Helligkeit" = "Brightness";
+"Sättigung" = "Saturation";
+"Kontrast" = "Contrast";
+"Körnung" = "Grain";
+
+// Colors
+"2 Farben" = "2 Colors";
+"3 Farben" = "3 Colors";
+"Farbe 1" = "Color 1";
+"Farbe 2" = "Color 2";
+"Farbe 3" = "Color 3";
+"Farbe 4" = "Color 4";
+"Farbe 5" = "Color 5";
+"Aus Foto" = "From Photo";
+
+// Buttons & actions
+"Zurücksetzen" = "Reset";
+"Datei öffnen…" = "Open File…";
+"Fotos-Mediathek verbinden…" = "Connect Photos Library…";
+"Unsplash durchsuchen" = "Search Unsplash";
+"In Fotos sichern" = "Save to Photos";
+"Als HEIC exportieren…" = "Export as HEIC…";
+"Exportieren" = "Export";
+"Als Schreibtisch setzen" = "Set as Desktop";
+"Nach Updates suchen…" = "Check for Updates…";
+"Breite" = "Width";
+"Höhe" = "Height";
+"Eigene Größe…" = "Custom Size…";
+
+// Output fields, resolution
+"Fehler" = "Error";
+
+// Preview / help
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Drag to the Finder / desktop to export";
+"Kein Bild für „%@“" = "No image for “%@”";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Pick an Unsplash photo, a Photos image, or a file on the right.";
+"Auf „%@“ übernehmen" = "Apply to “%@”";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "No Photos access — allow it in System Settings.";
+
+// Status & error messages
+"Keine Treffer für „%@“." = "No results for “%@”.";
+"Kein Quellbild ausgewählt." = "No source image selected.";
+"Das Wallpaper konnte nicht gerendert werden." = "The wallpaper could not be rendered.";
+"Das Bild konnte nicht kodiert werden." = "The image could not be encoded.";
+"Bild konnte nicht geladen werden: %@" = "The image could not be loaded: %@";
+"Exportiert: %@" = "Exported: %@";
+"Als dynamisches Wallpaper gesetzt." = "Set as dynamic wallpaper.";
+"Bild konnte nicht aus Fotos geladen werden." = "The image could not be loaded from Photos.";
+"In Fotos gesichert (Album „Lurent“)." = "Saved to Photos (album “Lurent”).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "No access to Photos. Please allow access for Lurent in System Settings → Privacy & Security → Photos.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "The “Lurent” album could not be created.";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "The wallpaper could not be saved to Photos.";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "Unsplash search isn’t available in this build (no key embedded). “Open your own image…” still works.";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash rejected the access key (401).";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash rate limit reached (403). Please wait a moment.";
+"Unsplash-Fehler (HTTP %ld)." = "Unsplash error (HTTP %ld).";
+"Unerwartete Antwort von Unsplash." = "Unexpected response from Unsplash.";
+"Das Bild konnte nicht geladen werden." = "The image could not be loaded.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Wallpaper metadata could not be created.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC could not be created (HEVC encoder unavailable?).";
+"HEIC konnte nicht geschrieben werden." = "HEIC could not be written.";

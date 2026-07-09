@@ -55,12 +55,12 @@ enum UnsplashError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey:  return "Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin."
-        case .invalidKey:  return "Unsplash lehnt den Access-Key ab (401)."
-        case .rateLimited: return "Unsplash-Ratenlimit erreicht (403). Bitte etwas warten."
-        case .http(let c): return "Unsplash-Fehler (HTTP \(c))."
-        case .badResponse: return "Unerwartete Antwort von Unsplash."
-        case .imageDecode: return "Das Bild konnte nicht geladen werden."
+        case .missingKey:  return L("Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin.")
+        case .invalidKey:  return L("Unsplash lehnt den Access-Key ab (401).")
+        case .rateLimited: return L("Unsplash-Ratenlimit erreicht (403). Bitte etwas warten.")
+        case .http(let c): return L("Unsplash-Fehler (HTTP %ld).", c)
+        case .badResponse: return L("Unerwartete Antwort von Unsplash.")
+        case .imageDecode: return L("Das Bild konnte nicht geladen werden.")
         }
     }
 }
@@ -97,6 +97,36 @@ struct UnsplashService {
         }
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
         return decoded.results
+    }
+
+    /// Lists photos from an editorial topic (default: the "wallpapers" topic,
+    /// sorted by popularity) — used to fill the picker on launch with curated,
+    /// on-theme images instead of an empty state. The `/search` endpoint only
+    /// knows `relevant`/`latest`, so a topic is the way to get "popular wallpapers".
+    func topicPhotos(topic: String = "wallpapers", page: Int = 1, perPage: Int = 12,
+                     orderBy: String = "popular") async throws -> [UnsplashPhoto] {
+        let key = accessKey.trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty else { throw UnsplashError.missingKey }
+
+        var comps = URLComponents(string: "https://api.unsplash.com/topics/\(topic)/photos")!
+        comps.queryItems = [
+            .init(name: "page", value: String(page)),
+            .init(name: "per_page", value: String(perPage)),
+            .init(name: "order_by", value: orderBy),
+        ]
+        var req = URLRequest(url: comps.url!)
+        req.setValue(authHeader, forHTTPHeaderField: "Authorization")
+        req.setValue("v1", forHTTPHeaderField: "Accept-Version")
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw UnsplashError.badResponse }
+        switch http.statusCode {
+        case 200: break
+        case 401: throw UnsplashError.invalidKey
+        case 403: throw UnsplashError.rateLimited
+        default:  throw UnsplashError.http(http.statusCode)
+        }
+        return try JSONDecoder().decode([UnsplashPhoto].self, from: data)
     }
 
     /// Downloads a source image (no auth needed for the image CDN).

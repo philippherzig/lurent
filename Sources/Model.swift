@@ -19,9 +19,9 @@ enum SourceKind: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .unsplash: return "Unsplash"
-        case .files:    return "Dateien"
-        case .photos:   return "Fotos"
+        case .unsplash: return L("Unsplash")
+        case .files:    return L("Dateien")
+        case .photos:   return L("Fotos")
         }
     }
 }
@@ -57,6 +57,9 @@ struct ResolutionPreset: Identifiable, Hashable {
     let height: Int
     var id: String { name }
     var isCustom: Bool { width == 0 && height == 0 }
+    /// Localized name for display; product-size presets stay verbatim, only the
+    /// "custom size" entry is translated. (`name` remains the stable identity.)
+    var displayName: String { isCustom ? L("Eigene Größe…") : name }
 
     static let all: [ResolutionPreset] = [
         .init(name: "Pro Display XDR — 6016 × 3384", width: 6016, height: 3384),
@@ -78,7 +81,7 @@ struct ResolutionPreset: Identifiable, Hashable {
 enum Appearance: String, CaseIterable, Identifiable {
     case light, dark
     var id: String { rawValue }
-    var label: String { self == .light ? "Hell" : "Dunkel" }
+    var label: String { self == .light ? L("Hell") : L("Dunkel") }
     var other: Appearance { self == .light ? .dark : .light }
 }
 
@@ -87,10 +90,10 @@ enum WallpaperStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .blur:   return "Blur"
-        case .flow:   return "Flow"
-        case .liquid: return "Liquid"
-        case .mirror: return "Spiegel"
+        case .blur:   return L("Blur")
+        case .flow:   return L("Flow")
+        case .liquid: return L("Liquid")
+        case .mirror: return L("Spiegel")
         }
     }
 
@@ -184,9 +187,9 @@ enum ExportError: LocalizedError {
     case noSource, renderFailed, encodeFailed
     var errorDescription: String? {
         switch self {
-        case .noSource:     return "Kein Quellbild ausgewählt."
-        case .renderFailed: return "Das Wallpaper konnte nicht gerendert werden."
-        case .encodeFailed: return "Das Bild konnte nicht kodiert werden."
+        case .noSource:     return L("Kein Quellbild ausgewählt.")
+        case .renderFailed: return L("Das Wallpaper konnte nicht gerendert werden.")
+        case .encodeFailed: return L("Das Bild konnte nicht kodiert werden.")
         }
     }
 }
@@ -398,6 +401,36 @@ final class AppModel: ObservableObject {
         preset.isCustom ? (max(1, customWidth), max(1, customHeight)) : (preset.width, preset.height)
     }
 
+    // MARK: Initial load
+
+    private var didLoadInitial = false
+
+    /// On first launch, fill the Unsplash picker with a few popular wallpaper
+    /// photos and auto-select the first one (Blur style) so the app opens on a
+    /// real preview instead of the empty state. No-ops if the user already picked
+    /// an image, switched away from Unsplash, or if there's no bundled key / network.
+    func loadInitialPhotosIfNeeded() {
+        guard !didLoadInitial else { return }
+        didLoadInitial = true
+        guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil else { return }
+
+        isSearching = true
+        Task {
+            defer { isSearching = false }
+            do {
+                let photos = try await service.topicPhotos()
+                // Bail if the user started interacting while the request was in flight.
+                guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil,
+                      let first = photos.first else { return }
+                results = photos
+                select(first)
+            } catch {
+                // Startup convenience — stay silent so a missing key or offline
+                // launch just falls back to the empty state, no error alert.
+            }
+        }
+    }
+
     // MARK: Search
 
     func runSearch() {
@@ -411,7 +444,7 @@ final class AppModel: ObservableObject {
             defer { isSearching = false }
             do {
                 results = try await service.search(query: q)
-                if results.isEmpty { errorMessage = "Keine Treffer für „\(q)“." }
+                if results.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -452,7 +485,7 @@ final class AppModel: ObservableObject {
         errorMessage = nil
         guard let image = NSImage(contentsOf: url),
               let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            errorMessage = "Bild konnte nicht geladen werden: \(url.lastPathComponent)"
+            errorMessage = L("Bild konnte nicht geladen werden: %@", url.lastPathComponent)
             return
         }
         applySource(cg, photoID: url.path,
@@ -638,7 +671,7 @@ final class AppModel: ObservableObject {
             Task { @MainActor in
                 do {
                     try self.writeOutput(to: url)
-                    self.statusMessage = "Exportiert: \(url.lastPathComponent)"
+                    self.statusMessage = L("Exportiert: %@", url.lastPathComponent)
                 } catch {
                     self.errorMessage = error.localizedDescription
                 }
@@ -679,7 +712,7 @@ final class AppModel: ObservableObject {
             for screen in NSScreen.screens {
                 try NSWorkspace.shared.setDesktopImageURL(target, for: screen, options: [:])
             }
-            statusMessage = "Als dynamisches Wallpaper gesetzt."
+            statusMessage = L("Als dynamisches Wallpaper gesetzt.")
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -18,6 +18,23 @@
 	<string>0.2</string>
 	<key>CFBundleVersion</key>
 	<string>3</string>
+	<!-- German is the development/base language (the string literals in code are
+	     the localization keys); the other languages ship as <lang>.lproj bundles. -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>de</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>de</string>
+		<string>en</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>pt-BR</string>
+		<string>it</string>
+		<string>ja</string>
+		<string>zh-Hans</string>
+		<string>ko</string>
+		<string>ru</string>
+	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>CFBundleIconName</key>
