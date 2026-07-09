@@ -58,7 +58,7 @@ private struct PreviewPane: View {
                     .help("Zum Exportieren in den Finder / auf den Schreibtisch ziehen")
             } else {
                 ContentUnavailableView {
-                    Label("Kein Bild für „\(model.editing.label)“", systemImage: "photo.badge.plus")
+                    Label(L("Kein Bild für „%@“", model.editing.label), systemImage: "photo.badge.plus")
                 } description: {
                     Text("Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei.")
                 }
@@ -105,7 +105,7 @@ private struct AppearanceSwitcher: View {
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: Circle())
                 .disabled(!model.lookHasContent(model.currentLook))
-                .help("Auf „\(model.editing.other.label)“ übernehmen")
+                .help(L("Auf „%@“ übernehmen", model.editing.other.label))
             }
         }
     }
@@ -197,7 +197,7 @@ private struct BaseImageSection: View {
         switch model.sourceKind {
         case .unsplash:
             HStack(spacing: 8) {
-                NativeSearchField(text: $model.query, placeholder: "Unsplash durchsuchen") {
+                NativeSearchField(text: $model.query, placeholder: L("Unsplash durchsuchen")) {
                     model.runSearch()
                 }
                 .frame(height: 24)
@@ -362,7 +362,7 @@ private struct EffectSection: View {
         slider("Körnung", model.bind(\.dither), 0...1)
     }
 
-    private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+    private func slider(_ title: LocalizedStringKey, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
         LabeledContent(title) {
             Slider(value: value, in: range)
         }
@@ -377,7 +377,7 @@ private struct OutputSection: View {
     var body: some View {
         Section("Ausgabe") {
             Picker("Auflösung", selection: $model.preset) {
-                ForEach(ResolutionPreset.all) { Text($0.name).tag($0) }
+                ForEach(ResolutionPreset.all) { Text($0.displayName).tag($0) }
             }
 
             if model.preset.isCustom {

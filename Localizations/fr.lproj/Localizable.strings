@@ -1,0 +1,90 @@
+/* Lurent — Français. Les clés sont les chaînes source en allemand.
+   "Blur", "Flow", "Liquid", "Unsplash" sont omis volontairement → repli sur la clé. */
+
+"Bild" = "Image";
+"Quelle" = "Source";
+"Effekt" = "Effet";
+"Stil" = "Style";
+"Ausgabe" = "Sortie";
+"Auflösung" = "Résolution";
+"Album" = "Album";
+"Farben" = "Couleurs";
+
+"Dateien" = "Fichiers";
+"Fotos" = "Photos";
+"Alle Fotos" = "Toutes les photos";
+
+"Hell" = "Clair";
+"Dunkel" = "Sombre";
+
+"Spiegel" = "Miroir";
+
+"Spiegel-Linie" = "Ligne de miroir";
+"Amplitude" = "Amplitude";
+"Frequenz" = "Fréquence";
+"Kantenschärfe" = "Netteté des bords";
+"Tiefe" = "Profondeur";
+"Seiten-Fade" = "Fondu latéral";
+"Rand-Weichheit" = "Douceur des bords";
+"Variante" = "Variante";
+"Frame" = "Image";
+"Skalierung" = "Échelle";
+"Turbulenz" = "Turbulence";
+"Wellen" = "Vagues";
+"Tonwert" = "Tonalité";
+"Helligkeit" = "Luminosité";
+"Sättigung" = "Saturation";
+"Kontrast" = "Contraste";
+"Körnung" = "Grain";
+
+"2 Farben" = "2 couleurs";
+"3 Farben" = "3 couleurs";
+"Farbe 1" = "Couleur 1";
+"Farbe 2" = "Couleur 2";
+"Farbe 3" = "Couleur 3";
+"Farbe 4" = "Couleur 4";
+"Farbe 5" = "Couleur 5";
+"Aus Foto" = "Depuis la photo";
+
+"Zurücksetzen" = "Réinitialiser";
+"Datei öffnen…" = "Ouvrir un fichier…";
+"Fotos-Mediathek verbinden…" = "Connecter la photothèque…";
+"Unsplash durchsuchen" = "Rechercher sur Unsplash";
+"In Fotos sichern" = "Enregistrer dans Photos";
+"Als HEIC exportieren…" = "Exporter en HEIC…";
+"Exportieren" = "Exporter";
+"Als Schreibtisch setzen" = "Définir comme fond d’écran";
+"Nach Updates suchen…" = "Rechercher des mises à jour…";
+"Breite" = "Largeur";
+"Höhe" = "Hauteur";
+"Eigene Größe…" = "Taille personnalisée…";
+
+"Fehler" = "Erreur";
+
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Glissez vers le Finder / le bureau pour exporter";
+"Kein Bild für „%@“" = "Aucune image pour « %@ »";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Choisissez à droite une photo Unsplash, une image de Photos ou un fichier.";
+"Auf „%@“ übernehmen" = "Appliquer à « %@ »";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Pas d’accès à Photos — autorisez-le dans Réglages Système.";
+
+"Keine Treffer für „%@“." = "Aucun résultat pour « %@ ».";
+"Kein Quellbild ausgewählt." = "Aucune image source sélectionnée.";
+"Das Wallpaper konnte nicht gerendert werden." = "Impossible de générer le fond d’écran.";
+"Das Bild konnte nicht kodiert werden." = "Impossible d’encoder l’image.";
+"Bild konnte nicht geladen werden: %@" = "Impossible de charger l’image : %@";
+"Exportiert: %@" = "Exporté : %@";
+"Als dynamisches Wallpaper gesetzt." = "Défini comme fond d’écran dynamique.";
+"Bild konnte nicht aus Fotos geladen werden." = "Impossible de charger l’image depuis Photos.";
+"In Fotos gesichert (Album „Lurent“)." = "Enregistré dans Photos (album « Lurent »).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Pas d’accès à Photos. Autorisez l’accès pour Lurent dans Réglages Système → Confidentialité et sécurité → Photos.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "Impossible de créer l’album « Lurent ».";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "Impossible d’enregistrer le fond d’écran dans Photos.";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "La recherche Unsplash n’est pas disponible dans cette version (aucune clé intégrée). « Ouvrir votre propre image… » fonctionne toujours.";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash a refusé la clé d’accès (401).";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Limite de requêtes Unsplash atteinte (403). Veuillez patienter.";
+"Unsplash-Fehler (HTTP %ld)." = "Erreur Unsplash (HTTP %ld).";
+"Unerwartete Antwort von Unsplash." = "Réponse inattendue d’Unsplash.";
+"Das Bild konnte nicht geladen werden." = "Impossible de charger l’image.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Impossible de créer les métadonnées du fond d’écran.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Impossible de créer le HEIC (encodeur HEVC indisponible ?).";
+"HEIC konnte nicht geschrieben werden." = "Impossible d’écrire le HEIC.";

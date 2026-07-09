@@ -55,12 +55,12 @@ enum UnsplashError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey:  return "Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin."
-        case .invalidKey:  return "Unsplash lehnt den Access-Key ab (401)."
-        case .rateLimited: return "Unsplash-Ratenlimit erreicht (403). Bitte etwas warten."
-        case .http(let c): return "Unsplash-Fehler (HTTP \(c))."
-        case .badResponse: return "Unerwartete Antwort von Unsplash."
-        case .imageDecode: return "Das Bild konnte nicht geladen werden."
+        case .missingKey:  return L("Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin.")
+        case .invalidKey:  return L("Unsplash lehnt den Access-Key ab (401).")
+        case .rateLimited: return L("Unsplash-Ratenlimit erreicht (403). Bitte etwas warten.")
+        case .http(let c): return L("Unsplash-Fehler (HTTP %ld).", c)
+        case .badResponse: return L("Unerwartete Antwort von Unsplash.")
+        case .imageDecode: return L("Das Bild konnte nicht geladen werden.")
         }
     }
 }

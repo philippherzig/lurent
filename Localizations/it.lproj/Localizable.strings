@@ -1,0 +1,90 @@
+/* Lurent — Italiano. Le chiavi sono le stringhe sorgente in tedesco.
+   "Blur", "Flow", "Liquid", "Unsplash" sono omessi di proposito → usano la chiave. */
+
+"Bild" = "Immagine";
+"Quelle" = "Sorgente";
+"Effekt" = "Effetto";
+"Stil" = "Stile";
+"Ausgabe" = "Uscita";
+"Auflösung" = "Risoluzione";
+"Album" = "Album";
+"Farben" = "Colori";
+
+"Dateien" = "File";
+"Fotos" = "Foto";
+"Alle Fotos" = "Tutte le foto";
+
+"Hell" = "Chiaro";
+"Dunkel" = "Scuro";
+
+"Spiegel" = "Specchio";
+
+"Spiegel-Linie" = "Linea specchio";
+"Amplitude" = "Ampiezza";
+"Frequenz" = "Frequenza";
+"Kantenschärfe" = "Nitidezza bordi";
+"Tiefe" = "Profondità";
+"Seiten-Fade" = "Dissolvenza laterale";
+"Rand-Weichheit" = "Morbidezza bordi";
+"Variante" = "Variante";
+"Frame" = "Fotogramma";
+"Skalierung" = "Scala";
+"Turbulenz" = "Turbolenza";
+"Wellen" = "Onde";
+"Tonwert" = "Tono";
+"Helligkeit" = "Luminosità";
+"Sättigung" = "Saturazione";
+"Kontrast" = "Contrasto";
+"Körnung" = "Grana";
+
+"2 Farben" = "2 colori";
+"3 Farben" = "3 colori";
+"Farbe 1" = "Colore 1";
+"Farbe 2" = "Colore 2";
+"Farbe 3" = "Colore 3";
+"Farbe 4" = "Colore 4";
+"Farbe 5" = "Colore 5";
+"Aus Foto" = "Dalla foto";
+
+"Zurücksetzen" = "Ripristina";
+"Datei öffnen…" = "Apri file…";
+"Fotos-Mediathek verbinden…" = "Collega Libreria Foto…";
+"Unsplash durchsuchen" = "Cerca su Unsplash";
+"In Fotos sichern" = "Salva in Foto";
+"Als HEIC exportieren…" = "Esporta come HEIC…";
+"Exportieren" = "Esporta";
+"Als Schreibtisch setzen" = "Imposta come sfondo";
+"Nach Updates suchen…" = "Verifica aggiornamenti…";
+"Breite" = "Larghezza";
+"Höhe" = "Altezza";
+"Eigene Größe…" = "Dimensione personalizzata…";
+
+"Fehler" = "Errore";
+
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Trascina nel Finder / sulla scrivania per esportare";
+"Kein Bild für „%@“" = "Nessuna immagine per “%@”";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Scegli a destra una foto di Unsplash, un’immagine da Foto o un file.";
+"Auf „%@“ übernehmen" = "Applica a “%@”";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Nessun accesso a Foto — consentilo in Impostazioni di Sistema.";
+
+"Keine Treffer für „%@“." = "Nessun risultato per “%@”.";
+"Kein Quellbild ausgewählt." = "Nessuna immagine sorgente selezionata.";
+"Das Wallpaper konnte nicht gerendert werden." = "Impossibile generare lo sfondo.";
+"Das Bild konnte nicht kodiert werden." = "Impossibile codificare l’immagine.";
+"Bild konnte nicht geladen werden: %@" = "Impossibile caricare l’immagine: %@";
+"Exportiert: %@" = "Esportato: %@";
+"Als dynamisches Wallpaper gesetzt." = "Impostato come sfondo dinamico.";
+"Bild konnte nicht aus Fotos geladen werden." = "Impossibile caricare l’immagine da Foto.";
+"In Fotos gesichert (Album „Lurent“)." = "Salvato in Foto (album “Lurent”).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Nessun accesso a Foto. Consenti l’accesso a Lurent in Impostazioni di Sistema → Privacy e sicurezza → Foto.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "Impossibile creare l’album “Lurent”.";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "Impossibile salvare lo sfondo in Foto.";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "La ricerca Unsplash non è disponibile in questa build (nessuna chiave incorporata). “Apri una tua immagine…” funziona ancora.";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash ha rifiutato la chiave di accesso (401).";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Limite di richieste Unsplash raggiunto (403). Attendi un momento.";
+"Unsplash-Fehler (HTTP %ld)." = "Errore Unsplash (HTTP %ld).";
+"Unerwartete Antwort von Unsplash." = "Risposta inattesa da Unsplash.";
+"Das Bild konnte nicht geladen werden." = "Impossibile caricare l’immagine.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Impossibile creare i metadati dello sfondo.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Impossibile creare l’HEIC (encoder HEVC non disponibile?).";
+"HEIC konnte nicht geschrieben werden." = "Impossibile scrivere l’HEIC.";

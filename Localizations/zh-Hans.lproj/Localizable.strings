@@ -1,0 +1,90 @@
+/* Lurent — 简体中文. 键为德语源字符串.
+   "Blur"、"Flow"、"Liquid"、"Unsplash" 有意省略 → 回退到键本身. */
+
+"Bild" = "图片";
+"Quelle" = "来源";
+"Effekt" = "效果";
+"Stil" = "样式";
+"Ausgabe" = "输出";
+"Auflösung" = "分辨率";
+"Album" = "相簿";
+"Farben" = "颜色";
+
+"Dateien" = "文件";
+"Fotos" = "照片";
+"Alle Fotos" = "所有照片";
+
+"Hell" = "浅色";
+"Dunkel" = "深色";
+
+"Spiegel" = "镜像";
+
+"Spiegel-Linie" = "镜像线";
+"Amplitude" = "振幅";
+"Frequenz" = "频率";
+"Kantenschärfe" = "边缘锐度";
+"Tiefe" = "深度";
+"Seiten-Fade" = "边缘淡化";
+"Rand-Weichheit" = "边缘柔和度";
+"Variante" = "变体";
+"Frame" = "帧";
+"Skalierung" = "缩放";
+"Turbulenz" = "湍流";
+"Wellen" = "波浪";
+"Tonwert" = "色调";
+"Helligkeit" = "亮度";
+"Sättigung" = "饱和度";
+"Kontrast" = "对比度";
+"Körnung" = "颗粒";
+
+"2 Farben" = "2 种颜色";
+"3 Farben" = "3 种颜色";
+"Farbe 1" = "颜色 1";
+"Farbe 2" = "颜色 2";
+"Farbe 3" = "颜色 3";
+"Farbe 4" = "颜色 4";
+"Farbe 5" = "颜色 5";
+"Aus Foto" = "从照片";
+
+"Zurücksetzen" = "重置";
+"Datei öffnen…" = "打开文件…";
+"Fotos-Mediathek verbinden…" = "连接照片图库…";
+"Unsplash durchsuchen" = "搜索 Unsplash";
+"In Fotos sichern" = "存储到照片";
+"Als HEIC exportieren…" = "导出为 HEIC…";
+"Exportieren" = "导出";
+"Als Schreibtisch setzen" = "设为桌面";
+"Nach Updates suchen…" = "检查更新…";
+"Breite" = "宽度";
+"Höhe" = "高度";
+"Eigene Größe…" = "自定义尺寸…";
+
+"Fehler" = "错误";
+
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "拖到访达／桌面以导出";
+"Kein Bild für „%@“" = "没有“%@”的图片";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "在右侧选择 Unsplash 照片、照片图库中的图片或文件。";
+"Auf „%@“ übernehmen" = "应用到“%@”";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "无照片访问权限 — 请在系统设置中允许。";
+
+"Keine Treffer für „%@“." = "没有“%@”的结果。";
+"Kein Quellbild ausgewählt." = "未选择源图片。";
+"Das Wallpaper konnte nicht gerendert werden." = "无法渲染壁纸。";
+"Das Bild konnte nicht kodiert werden." = "无法编码图片。";
+"Bild konnte nicht geladen werden: %@" = "无法加载图片：%@";
+"Exportiert: %@" = "已导出：%@";
+"Als dynamisches Wallpaper gesetzt." = "已设为动态壁纸。";
+"Bild konnte nicht aus Fotos geladen werden." = "无法从照片加载图片。";
+"In Fotos gesichert (Album „Lurent“)." = "已存储到照片（相簿“Lurent”）。";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "无法访问照片。请在系统设置 → 隐私与安全性 → 照片中允许 Lurent 访问。";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "无法创建相簿“Lurent”。";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "无法将壁纸存储到照片。";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "此版本不支持 Unsplash 搜索（未内置密钥）。“打开自己的图片…”仍可使用。";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash 拒绝了访问密钥（401）。";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "已达到 Unsplash 速率限制（403）。请稍候。";
+"Unsplash-Fehler (HTTP %ld)." = "Unsplash 错误（HTTP %ld）。";
+"Unerwartete Antwort von Unsplash." = "Unsplash 返回了意外的响应。";
+"Das Bild konnte nicht geladen werden." = "无法加载图片。";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "无法生成壁纸元数据。";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "无法创建 HEIC（HEVC 编码器不可用？）。";
+"HEIC konnte nicht geschrieben werden." = "无法写入 HEIC。";

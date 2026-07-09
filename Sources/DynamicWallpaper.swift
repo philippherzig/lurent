@@ -7,9 +7,9 @@ enum WallpaperError: LocalizedError {
     case metadata, destination, finalize
     var errorDescription: String? {
         switch self {
-        case .metadata:    return "Wallpaper-Metadaten konnten nicht erzeugt werden."
-        case .destination: return "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)."
-        case .finalize:    return "HEIC konnte nicht geschrieben werden."
+        case .metadata:    return L("Wallpaper-Metadaten konnten nicht erzeugt werden.")
+        case .destination: return L("HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?).")
+        case .finalize:    return L("HEIC konnte nicht geschrieben werden.")
         }
     }
 }

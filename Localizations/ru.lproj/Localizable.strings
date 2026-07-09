@@ -1,0 +1,90 @@
+/* Lurent — Русский. Ключи — исходные строки на немецком.
+   "Blur", "Flow", "Liquid", "Unsplash" намеренно опущены → используется ключ. */
+
+"Bild" = "Изображение";
+"Quelle" = "Источник";
+"Effekt" = "Эффект";
+"Stil" = "Стиль";
+"Ausgabe" = "Вывод";
+"Auflösung" = "Разрешение";
+"Album" = "Альбом";
+"Farben" = "Цвета";
+
+"Dateien" = "Файлы";
+"Fotos" = "Фото";
+"Alle Fotos" = "Все фото";
+
+"Hell" = "Светлая";
+"Dunkel" = "Тёмная";
+
+"Spiegel" = "Зеркало";
+
+"Spiegel-Linie" = "Линия зеркала";
+"Amplitude" = "Амплитуда";
+"Frequenz" = "Частота";
+"Kantenschärfe" = "Резкость краёв";
+"Tiefe" = "Глубина";
+"Seiten-Fade" = "Боковое затухание";
+"Rand-Weichheit" = "Мягкость краёв";
+"Variante" = "Вариант";
+"Frame" = "Кадр";
+"Skalierung" = "Масштаб";
+"Turbulenz" = "Турбулентность";
+"Wellen" = "Волны";
+"Tonwert" = "Тон";
+"Helligkeit" = "Яркость";
+"Sättigung" = "Насыщенность";
+"Kontrast" = "Контраст";
+"Körnung" = "Зерно";
+
+"2 Farben" = "2 цвета";
+"3 Farben" = "3 цвета";
+"Farbe 1" = "Цвет 1";
+"Farbe 2" = "Цвет 2";
+"Farbe 3" = "Цвет 3";
+"Farbe 4" = "Цвет 4";
+"Farbe 5" = "Цвет 5";
+"Aus Foto" = "Из фото";
+
+"Zurücksetzen" = "Сбросить";
+"Datei öffnen…" = "Открыть файл…";
+"Fotos-Mediathek verbinden…" = "Подключить медиатеку Фото…";
+"Unsplash durchsuchen" = "Поиск в Unsplash";
+"In Fotos sichern" = "Сохранить в Фото";
+"Als HEIC exportieren…" = "Экспортировать в HEIC…";
+"Exportieren" = "Экспорт";
+"Als Schreibtisch setzen" = "Сделать обоями";
+"Nach Updates suchen…" = "Проверить обновления…";
+"Breite" = "Ширина";
+"Höhe" = "Высота";
+"Eigene Größe…" = "Свой размер…";
+
+"Fehler" = "Ошибка";
+
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Перетащите в Finder / на рабочий стол для экспорта";
+"Kein Bild für „%@“" = "Нет изображения для «%@»";
+"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Выберите справа фото из Unsplash, изображение из Фото или файл.";
+"Auf „%@“ übernehmen" = "Применить к «%@»";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Нет доступа к Фото — разрешите в Системных настройках.";
+
+"Keine Treffer für „%@“." = "Нет результатов для «%@».";
+"Kein Quellbild ausgewählt." = "Исходное изображение не выбрано.";
+"Das Wallpaper konnte nicht gerendert werden." = "Не удалось отрендерить обои.";
+"Das Bild konnte nicht kodiert werden." = "Не удалось закодировать изображение.";
+"Bild konnte nicht geladen werden: %@" = "Не удалось загрузить изображение: %@";
+"Exportiert: %@" = "Экспортировано: %@";
+"Als dynamisches Wallpaper gesetzt." = "Установлено как динамические обои.";
+"Bild konnte nicht aus Fotos geladen werden." = "Не удалось загрузить изображение из Фото.";
+"In Fotos gesichert (Album „Lurent“)." = "Сохранено в Фото (альбом «Lurent»).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Нет доступа к Фото. Разрешите доступ для Lurent в Системных настройках → Конфиденциальность и безопасность → Фото.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "Не удалось создать альбом «Lurent».";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "Не удалось сохранить обои в Фото.";
+"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "Поиск Unsplash недоступен в этой сборке (ключ не встроен). «Открыть своё изображение…» по-прежнему работает.";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash отклонил ключ доступа (401).";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Достигнут лимит запросов Unsplash (403). Пожалуйста, подождите.";
+"Unsplash-Fehler (HTTP %ld)." = "Ошибка Unsplash (HTTP %ld).";
+"Unerwartete Antwort von Unsplash." = "Неожиданный ответ от Unsplash.";
+"Das Bild konnte nicht geladen werden." = "Не удалось загрузить изображение.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Не удалось создать метаданные обоев.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Не удалось создать HEIC (кодировщик HEVC недоступен?).";
+"HEIC konnte nicht geschrieben werden." = "Не удалось записать HEIC.";
