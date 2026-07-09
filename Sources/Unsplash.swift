@@ -99,6 +99,36 @@ struct UnsplashService {
         return decoded.results
     }
 
+    /// Lists photos from an editorial topic (default: the "wallpapers" topic,
+    /// sorted by popularity) — used to fill the picker on launch with curated,
+    /// on-theme images instead of an empty state. The `/search` endpoint only
+    /// knows `relevant`/`latest`, so a topic is the way to get "popular wallpapers".
+    func topicPhotos(topic: String = "wallpapers", page: Int = 1, perPage: Int = 12,
+                     orderBy: String = "popular") async throws -> [UnsplashPhoto] {
+        let key = accessKey.trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty else { throw UnsplashError.missingKey }
+
+        var comps = URLComponents(string: "https://api.unsplash.com/topics/\(topic)/photos")!
+        comps.queryItems = [
+            .init(name: "page", value: String(page)),
+            .init(name: "per_page", value: String(perPage)),
+            .init(name: "order_by", value: orderBy),
+        ]
+        var req = URLRequest(url: comps.url!)
+        req.setValue(authHeader, forHTTPHeaderField: "Authorization")
+        req.setValue("v1", forHTTPHeaderField: "Accept-Version")
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw UnsplashError.badResponse }
+        switch http.statusCode {
+        case 200: break
+        case 401: throw UnsplashError.invalidKey
+        case 403: throw UnsplashError.rateLimited
+        default:  throw UnsplashError.http(http.statusCode)
+        }
+        return try JSONDecoder().decode([UnsplashPhoto].self, from: data)
+    }
+
     /// Downloads a source image (no auth needed for the image CDN).
     func loadImage(from urlString: String) async throws -> CGImage {
         guard let url = URL(string: urlString) else { throw UnsplashError.badResponse }

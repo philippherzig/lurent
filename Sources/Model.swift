@@ -398,6 +398,36 @@ final class AppModel: ObservableObject {
         preset.isCustom ? (max(1, customWidth), max(1, customHeight)) : (preset.width, preset.height)
     }
 
+    // MARK: Initial load
+
+    private var didLoadInitial = false
+
+    /// On first launch, fill the Unsplash picker with a few popular wallpaper
+    /// photos and auto-select the first one (Blur style) so the app opens on a
+    /// real preview instead of the empty state. No-ops if the user already picked
+    /// an image, switched away from Unsplash, or if there's no bundled key / network.
+    func loadInitialPhotosIfNeeded() {
+        guard !didLoadInitial else { return }
+        didLoadInitial = true
+        guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil else { return }
+
+        isSearching = true
+        Task {
+            defer { isSearching = false }
+            do {
+                let photos = try await service.topicPhotos()
+                // Bail if the user started interacting while the request was in flight.
+                guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil,
+                      let first = photos.first else { return }
+                results = photos
+                select(first)
+            } catch {
+                // Startup convenience — stay silent so a missing key or offline
+                // launch just falls back to the empty state, no error alert.
+            }
+        }
+    }
+
     // MARK: Search
 
     func runSearch() {

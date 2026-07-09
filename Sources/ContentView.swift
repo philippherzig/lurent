@@ -26,6 +26,7 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(VisualEffectView().ignoresSafeArea())
         .background(WindowAccessor())
+        .task { model.loadInitialPhotosIfNeeded() }
         .alert("Fehler", isPresented: errorBinding) {
             Button("OK") { model.errorMessage = nil }
         } message: {
