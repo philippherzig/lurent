@@ -19,10 +19,5 @@ struct LurentApp: App {
                 CheckForUpdatesCommand(updater: updater)
             }
         }
-
-        Settings {
-            SettingsView()
-                .environmentObject(model)
-        }
     }
 }

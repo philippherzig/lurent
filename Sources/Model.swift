@@ -195,15 +195,10 @@ enum ExportError: LocalizedError {
 
 @MainActor
 final class AppModel: ObservableObject {
-    private static let keyDefaultsKey = "unsplashAccessKey"
-    /// Bundled key (injected at build time from .env via Secrets.generated.swift)
-    /// so search works out of the box; empty if no .env was present.
+    /// Bundled Unsplash key (injected at build time from .env via
+    /// Secrets.generated.swift) so search works out of the box; empty if no .env
+    /// was present. This is the only key the app uses — there is no user override.
     static let bundledKey = Secrets.unsplashKey
-
-    // Credentials
-    @Published var accessKey: String {
-        didSet { UserDefaults.standard.set(accessKey, forKey: Self.keyDefaultsKey) }
-    }
 
     // Search
     @Published var query: String = ""
@@ -250,7 +245,6 @@ final class AppModel: ObservableObject {
     private var statusDismissTask: Task<Void, Never>?
 
     init() {
-        accessKey = UserDefaults.standard.string(forKey: Self.keyDefaultsKey) ?? ""
         recentFiles = Self.loadRecentFiles()
         refreshPhotosAuthStatus()
     }
@@ -267,11 +261,7 @@ final class AppModel: ObservableObject {
 
     // MARK: Key
 
-    var effectiveKey: String {
-        let user = accessKey.trimmingCharacters(in: .whitespaces)
-        return user.isEmpty ? Self.bundledKey : user
-    }
-    private var service: UnsplashService { UnsplashService(accessKey: effectiveKey) }
+    private var service: UnsplashService { UnsplashService(accessKey: Self.bundledKey) }
 
     // MARK: Current look editing
 
@@ -406,12 +396,6 @@ final class AppModel: ObservableObject {
 
     var pixelSize: (width: Int, height: Int) {
         preset.isCustom ? (max(1, customWidth), max(1, customHeight)) : (preset.width, preset.height)
-    }
-
-    var pixelSizeLabel: String {
-        let s = pixelSize
-        let mp = Double(s.width * s.height) / 1_000_000
-        return "\(s.width) × \(s.height) px · \(String(format: "%.1f", mp)) MP"
     }
 
     // MARK: Search

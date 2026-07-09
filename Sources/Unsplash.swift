@@ -55,8 +55,8 @@ enum UnsplashError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey:  return "Kein Unsplash Access-Key hinterlegt. Öffne die Einstellungen (⌘,)."
-        case .invalidKey:  return "Unsplash lehnt den Access-Key ab (401). Bitte in den Einstellungen prüfen."
+        case .missingKey:  return "Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin."
+        case .invalidKey:  return "Unsplash lehnt den Access-Key ab (401)."
         case .rateLimited: return "Unsplash-Ratenlimit erreicht (403). Bitte etwas warten."
         case .http(let c): return "Unsplash-Fehler (HTTP \(c))."
         case .badResponse: return "Unerwartete Antwort von Unsplash."

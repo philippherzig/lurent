@@ -80,30 +80,51 @@ private struct PreviewPane: View {
     }
 }
 
-/// Floating Hell/Dunkel switch + "auf andere Ansicht übernehmen" button.
+/// Floating Hell/Dunkel switch + "auf andere Ansicht übernehmen" button, rendered
+/// as one Liquid Glass cluster (macOS 26) that floats above the preview. A system
+/// segmented picker stays flat at rest, so the two appearances are custom glass
+/// segments (selected = accent-tinted) to match the copy button's glass.
 private struct AppearanceSwitcher: View {
     @EnvironmentObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 12) {
-            Picker("", selection: $model.editing) {
-                ForEach(Appearance.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 150)
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                ForEach(Appearance.allCases) { segment($0) }
 
-            Button {
-                model.copyCurrentLookToOther()
-            } label: {
-                Image(systemName: "square.on.square")
+                Button {
+                    model.copyCurrentLookToOther()
+                } label: {
+                    Image(systemName: "square.on.square")
+                        .font(.body)
+                        .frame(width: 20, height: 20)
+                        .padding(11)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: Circle())
+                .disabled(!model.lookHasContent(model.currentLook))
+                .help("Auf „\(model.editing.other.label)“ übernehmen")
             }
-            .buttonStyle(.plain)
-            .padding(8)
-            .glassEffect(.regular.interactive(), in: Circle())
-            .disabled(!model.lookHasContent(model.currentLook))
-            .help("Auf „\(model.editing.other.label)“ übernehmen")
         }
+    }
+
+    private func segment(_ appearance: Appearance) -> some View {
+        let selected = model.editing == appearance
+        return Button {
+            model.editing = appearance
+        } label: {
+            Text(appearance.label)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(selected ? .white : .primary)
+                .frame(minWidth: 54)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(selected ? .regular.tint(.accentColor).interactive()
+                              : .regular.interactive(), in: Capsule())
     }
 }
 
@@ -189,10 +210,6 @@ private struct BaseImageSection: View {
                     }
                 }
             }
-            // Unsplash API guidelines require a persistent credit to the platform.
-            Link("Fotos von Unsplash", destination: URL(string: "https://unsplash.com")!)
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
         case .files:
             Button {
@@ -256,17 +273,7 @@ private struct EffectSection: View {
 
             styleControls
 
-            HStack {
-                Button("Zurücksetzen") { model.resetCurrentLook() }
-                Spacer()
-                if let attribution = model.currentLook.attribution {
-                    if let link = model.currentLook.attributionURL, let url = URL(string: link) {
-                        Link(attribution, destination: url).font(.caption)
-                    } else {
-                        Text(attribution).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-            }
+            Button("Zurücksetzen") { model.resetCurrentLook() }
         }
     }
 
@@ -381,9 +388,6 @@ private struct OutputSection: View {
                 }
                 .textFieldStyle(.roundedBorder)
             }
-
-            Text(model.pixelSizeLabel)
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
         }
     }
 }
@@ -663,34 +667,6 @@ private struct WindowAccessor: NSViewRepresentable {
             window.titleVisibility = .hidden
             configured = true
         }
-    }
-}
-
-// MARK: - Settings
-
-struct SettingsView: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        Form {
-            Section {
-                TextField("Access-Key (optional)", text: $model.accessKey)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 360)
-            } header: {
-                Text("Unsplash Access-Key")
-            } footer: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Ein Key ist bereits hinterlegt (gemeinsames Ratenlimit). Für ein eigenes Limit unter unsplash.com/developers einen Key erstellen und hier einsetzen.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Link("unsplash.com/developers öffnen",
-                         destination: URL(string: "https://unsplash.com/developers")!)
-                        .font(.caption)
-                }
-            }
-        }
-        .padding(20)
-        .frame(width: 460)
     }
 }
 

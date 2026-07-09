@@ -118,8 +118,8 @@ UNSPLASH_ACCESS_KEY=dein_key
 ```
 
 Kostenlos erstellbar unter https://unsplash.com/developers → **New Application**
-(der **Access Key**, nicht der Secret Key). Alternativ lässt sich in der App unter
-**⌘,** (Einstellungen) ein Key eintragen, der den aus `.env` überschreibt.
+(der **Access Key**, nicht der Secret Key). Dieser gebackene Key ist der einzige,
+den die App verwendet — Endnutzer müssen (und können) keinen eigenen eintragen.
 
 Ohne Key funktioniert **„Eigenes Bild öffnen…"** weiterhin mit jeder lokalen
 Bilddatei.
