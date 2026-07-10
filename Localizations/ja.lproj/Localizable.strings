@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "壁紙のメタデータを作成できませんでした。";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC を作成できませんでした（HEVC エンコーダーが利用できない可能性があります）。";
 "HEIC konnte nicht geschrieben werden." = "HEIC を書き込めませんでした。";
+
+// Dune style
+"Neigung" = "傾き";
+"Faltenlicht" = "折り目の光";
+"Weichheit" = "柔らかさ";

@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Impossibile creare i metadati dello sfondo.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Impossibile creare l’HEIC (encoder HEVC non disponibile?).";
 "HEIC konnte nicht geschrieben werden." = "Impossibile scrivere l’HEIC.";
+
+// Dune style
+"Neigung" = "Inclinazione";
+"Faltenlicht" = "Luce delle pieghe";
+"Weichheit" = "Morbidezza";

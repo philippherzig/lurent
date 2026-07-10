@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Не удалось создать метаданные обоев.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Не удалось создать HEIC (кодировщик HEVC недоступен?).";
 "HEIC konnte nicht geschrieben werden." = "Не удалось записать HEIC.";
+
+// Dune style
+"Neigung" = "Наклон";
+"Faltenlicht" = "Свет складок";
+"Weichheit" = "Мягкость";

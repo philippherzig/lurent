@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "无法生成壁纸元数据。";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "无法创建 HEIC（HEVC 编码器不可用？）。";
 "HEIC konnte nicht geschrieben werden." = "无法写入 HEIC。";
+
+// Dune style
+"Neigung" = "倾斜";
+"Faltenlicht" = "褶皱光泽";
+"Weichheit" = "柔和度";

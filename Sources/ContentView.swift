@@ -353,6 +353,40 @@ private struct EffectSection: View {
             slider("Turbulenz", model.bind(\.liquidTurb), 0...1.6)
             slider("Wellen", model.bind(\.liquidWave), 0.3...3)
             slider("Tonwert", model.bind(\.liquidBias), -1...1)
+
+        case .dune:
+            Picker("Farben", selection: model.bind(\.duneCount)) {
+                Text("3").tag(3); Text("4").tag(4); Text("5").tag(5)
+            }
+            .pickerStyle(.segmented)
+
+            HStack {
+                ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
+                ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
+                ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
+                if model.currentLook.duneCount >= 4 {
+                    ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
+                }
+                if model.currentLook.duneCount >= 5 {
+                    ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
+                }
+            }
+            .labelsHidden()
+
+            Button {
+                model.reloadDunePaletteFromPhoto()
+            } label: {
+                Label("Aus Foto", systemImage: "eyedropper")
+            }
+            .disabled(model.currentLook.source == nil)
+
+            slider("Neigung", model.bind(\.duneTilt), -0.8...0.8)
+            slider("Amplitude", model.bind(\.duneAmplitude), 0...0.3)
+            slider("Frequenz", model.bind(\.duneFrequency), 0.3...3)
+            slider("Kantenschärfe", model.bind(\.duneSharpness), 0...1)
+            slider("Faltenlicht", model.bind(\.duneShading), 0...1)
+            slider("Weichheit", model.bind(\.duneSoftness), 0...0.04)
+            slider("Variante", model.bind(\.dunePhase), 0...6.283)
         }
 
         // Colour grade + grain — shared by every style.

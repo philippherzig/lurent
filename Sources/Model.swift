@@ -86,19 +86,20 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, flow, liquid, mirror
+    case blur, flow, liquid, dune, mirror
     var id: String { rawValue }
     var label: String {
         switch self {
         case .blur:   return L("Blur")
         case .flow:   return L("Flow")
         case .liquid: return L("Liquid")
+        case .dune:   return L("Dune")
         case .mirror: return L("Spiegel")
         }
     }
 
     /// Styles that synthesize the image from parameters alone (no source photo).
-    var isSynthetic: Bool { self == .flow || self == .liquid }
+    var isSynthetic: Bool { self == .flow || self == .liquid || self == .dune }
 }
 
 // MARK: - A single wallpaper "look"
@@ -144,6 +145,21 @@ struct Look {
     var liquidWave: Double = 1.0
     var liquidBias: Double = 0.0
 
+    // Dune style (Big Sur–style flowing gradient: warped multi-stop ramp)
+    var duneColor0: Color = Color(red: 0.45, green: 0.16, blue: 0.62) // purple
+    var duneColor1: Color = Color(red: 1.00, green: 0.15, blue: 0.45) // magenta/pink
+    var duneColor2: Color = Color(red: 1.00, green: 0.42, blue: 0.20) // orange-red
+    var duneColor3: Color = Color(red: 1.00, green: 0.80, blue: 0.30) // golden yellow
+    var duneColor4: Color = Color(red: 0.20, green: 0.62, blue: 0.95) // sky blue
+    var duneCount: Int = 5
+    var duneTilt: Double = 0.42
+    var duneAmplitude: Double = 0.12
+    var duneFrequency: Double = 1.05
+    var duneSharpness: Double = 0.9
+    var duneShading: Double = 0.65
+    var duneSoftness: Double = 0.005
+    var dunePhase: Double = 0.5
+
     // Mirror style (builds on the blur controls)
     var mirrorLine: Double = 0.52
     var mirrorAmplitude: Double = 0.05
@@ -173,6 +189,16 @@ struct Look {
               // Slider sits at 0 for a calm base zoom; higher values zoom in.
               scale: 0.5 + liquidScale, turbAmp: liquidTurb, waveFreq: liquidWave,
               bias: liquidBias, brightness: brightness, saturation: saturation,
+              contrast: contrast, dither: dither)
+    }
+
+    var duneSettings: DuneProcessor.Settings {
+        .init(colors: [duneColor0.asCIColor, duneColor1.asCIColor, duneColor2.asCIColor,
+                       duneColor3.asCIColor, duneColor4.asCIColor],
+              count: duneCount, tilt: duneTilt, amplitude: duneAmplitude,
+              frequency: duneFrequency, sharpness: duneSharpness, shading: duneShading,
+              softness: duneSoftness, phase: dunePhase,
+              brightness: brightness, saturation: saturation,
               contrast: contrast, dither: dither)
     }
 
@@ -358,6 +384,11 @@ final class AppModel: ObservableObject {
                 $0.liquidSeed = d.liquidSeed; $0.liquidScale = d.liquidScale
                 $0.liquidTurb = d.liquidTurb; $0.liquidWave = d.liquidWave
                 $0.liquidBias = d.liquidBias
+            case .dune:
+                $0.duneCount = d.duneCount; $0.duneTilt = d.duneTilt
+                $0.duneAmplitude = d.duneAmplitude; $0.duneFrequency = d.duneFrequency
+                $0.duneSharpness = d.duneSharpness; $0.duneShading = d.duneShading
+                $0.duneSoftness = d.duneSoftness; $0.dunePhase = d.dunePhase
             case .mirror:
                 $0.blur = d.blur
                 $0.mirrorLine = d.mirrorLine; $0.mirrorAmplitude = d.mirrorAmplitude
@@ -531,6 +562,9 @@ final class AppModel: ObservableObject {
             if liquid.count == 5 {
                 $0.liquidColor0 = liquid[0]; $0.liquidColor1 = liquid[1]; $0.liquidColor2 = liquid[2]
                 $0.liquidColor3 = liquid[3]; $0.liquidColor4 = liquid[4]
+                // Dune shares the dark→bright directional ramp.
+                $0.duneColor0 = liquid[0]; $0.duneColor1 = liquid[1]; $0.duneColor2 = liquid[2]
+                $0.duneColor3 = liquid[3]; $0.duneColor4 = liquid[4]
             }
         }
         if appearance == .light { apply(&lightLook) } else { apply(&darkLook) }
@@ -556,6 +590,17 @@ final class AppModel: ObservableObject {
         mutateCurrentLook {
             $0.liquidColor0 = p[0]; $0.liquidColor1 = p[1]; $0.liquidColor2 = p[2]
             $0.liquidColor3 = p[3]; $0.liquidColor4 = p[4]
+        }
+    }
+
+    /// Re-derive the Dune palette (5 stops, dark → bright) from the current photo.
+    func reloadDunePaletteFromPhoto() {
+        guard let src = currentLook.source else { return }
+        let p = Self.extractPalette(from: src, count: 5, sortedByLuminance: true)
+        guard p.count == 5 else { return }
+        mutateCurrentLook {
+            $0.duneColor0 = p[0]; $0.duneColor1 = p[1]; $0.duneColor2 = p[2]
+            $0.duneColor3 = p[3]; $0.duneColor4 = p[4]
         }
     }
 
@@ -611,6 +656,8 @@ final class AppModel: ObservableObject {
             return FlowProcessor.render(size: size, settings: look.flowSettings, deepColor: deep)
         case .liquid:
             return LiquidProcessor.render(size: size, settings: look.liquidSettings, deepColor: deep)
+        case .dune:
+            return DuneProcessor.render(size: size, settings: look.duneSettings, deepColor: deep)
         case .mirror:
             guard let src = look.source,
                   let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)

@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "배경화면 메타데이터를 생성할 수 없습니다.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC를 생성할 수 없습니다(HEVC 인코더를 사용할 수 없나요?).";
 "HEIC konnte nicht geschrieben werden." = "HEIC를 기록할 수 없습니다.";
+
+// Dune style
+"Neigung" = "기울기";
+"Faltenlicht" = "주름 광택";
+"Weichheit" = "부드러움";

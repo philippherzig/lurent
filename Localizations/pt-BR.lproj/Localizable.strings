@@ -88,3 +88,8 @@
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Não foi possível gerar os metadados do papel de parede.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Não foi possível criar o HEIC (codificador HEVC indisponível?).";
 "HEIC konnte nicht geschrieben werden." = "Não foi possível gravar o HEIC.";
+
+// Dune style
+"Neigung" = "Inclinação";
+"Faltenlicht" = "Luz das dobras";
+"Weichheit" = "Suavidade";
