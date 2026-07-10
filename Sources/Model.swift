@@ -34,19 +34,6 @@ extension Color {
         let ns = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 1)
         return CIColor(red: ns.redComponent, green: ns.greenComponent, blue: ns.blueComponent, alpha: 1)
     }
-
-    /// Builds a saturation-boosted SwiftUI Color from an averaged CIColor.
-    static func vivid(from ci: CIColor) -> Color {
-        let base = NSColor(srgbRed: min(1, max(0, ci.red)),
-                           green: min(1, max(0, ci.green)),
-                           blue: min(1, max(0, ci.blue)), alpha: 1)
-        guard let rgb = base.usingColorSpace(.sRGB) else { return Color(nsColor: base) }
-        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        rgb.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
-        s = min(1, s * 1.35 + 0.06)
-        b = min(1, max(0.28, b))
-        return Color(nsColor: NSColor(hue: h, saturation: s, brightness: b, alpha: 1))
-    }
 }
 
 // MARK: - Resolution presets
@@ -604,29 +591,184 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// `count` dominant colours sampled across horizontal bands (bottom → top),
-    /// saturation-boosted so the synthetic gradients stay vivid. With
-    /// `sortedByLuminance` the stops are ordered dark → bright, giving Liquid a
-    /// natural deep-base / bright-vein ramp regardless of the photo's layout.
-    private static func extractPalette(from cg: CGImage, count: Int,
-                                       sortedByLuminance: Bool = false) -> [Color] {
-        let ci = CIImage(cgImage: cg)
-        let e = ci.extent
-        guard count > 0, e.height > 0, e.width > 0 else { return [] }
-        let band = e.height / CGFloat(count)
-        var avgs = (0..<count).map { i -> CIColor in
-            let rect = CGRect(x: e.minX, y: e.minY + CGFloat(i) * band, width: e.width, height: band)
-            return FlowProcessor.averageColor(of: ci, in: rect)
+    /// A single palette candidate in HSB, with the accumulated vibrance `w`eight
+    /// of the pixels that formed it.
+    private struct PaletteSwatch {
+        var h: Double, s: Double, b: Double, w: Double
+        var lum: Double {
+            let (r, g, bl) = AppModel.rgb(fromHue: h, sat: s, bri: b)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * bl
         }
-        if sortedByLuminance {
-            avgs.sort { Self.luminance($0) < Self.luminance($1) }
-        }
-        return avgs.map { Color.vivid(from: $0) }
+        var color: Color { Color(hue: h, saturation: s, brightness: b) }
     }
 
-    /// Rec. 709 relative luminance of an sRGB CIColor.
-    private static func luminance(_ c: CIColor) -> CGFloat {
-        0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue
+    /// A *curated* palette from a photo: the dominant **vibrant** colours (not
+    /// horizontal strip averages, which mud together adjacent regions), chosen to
+    /// be distinct across the hue wheel, then harmonised into a cohesive set.
+    ///
+    /// Pipeline: downsample → vibrance-weighted HSB histogram (drops grey / near
+    /// black+white) → one best swatch per hue sector (so a big mono-hue field
+    /// can't claim several slots) → farthest-point selection for distinctness →
+    /// lift dull saturations + gentle hue spacing (stronger with more stops). With
+    /// `sortedByLuminance` the stops are ordered dark → bright (Liquid/Dune ramp);
+    /// otherwise by hue (Flow). Always returns exactly `count` colours.
+    private static func extractPalette(from cg: CGImage, count: Int,
+                                       sortedByLuminance: Bool = false) -> [Color] {
+        guard count > 0 else { return [] }
+        let bins = dominantSwatches(downsampledPixels(from: cg, maxDim: 64))
+        var cands = bestPerHueSector(bins, sectors: 6)
+        if cands.count < count {   // few hue families: top up from remaining bins
+            let have = Set(cands.map { $0.h })
+            for s in bins where !have.contains(s.h) {
+                cands.append(s); if cands.count >= max(count, 6) { break }
+            }
+        }
+        if cands.isEmpty {         // desaturated photo: spread along the value axis
+            cands = (0..<max(count, 3)).map {
+                PaletteSwatch(h: 0, s: 0.18, b: 0.25 + 0.65 * Double($0) / Double(count), w: 1)
+            }
+        }
+        var picks = harmonise(farthestPoint(cands, count: count), count: count)
+        picks.sort { sortedByLuminance ? $0.lum < $1.lum : $0.h < $1.h }
+        return picks.map { $0.color }
+    }
+
+    /// Draws the source into a small RGB bitmap and returns its opaque pixels as
+    /// (r, g, b) in 0…1 — a fast, representative sample of the whole image.
+    private static func downsampledPixels(from cg: CGImage, maxDim: Int) -> [(Double, Double, Double)] {
+        let w0 = cg.width, h0 = cg.height
+        guard w0 > 0, h0 > 0 else { return [] }
+        let scale = Double(maxDim) / Double(max(w0, h0))
+        let w = max(1, Int(Double(w0) * scale)), h = max(1, Int(Double(h0) * scale))
+        var buf = [UInt8](repeating: 0, count: w * h * 4)
+        guard let c = CGContext(data: &buf, width: w, height: h, bitsPerComponent: 8,
+                                bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return [] }
+        c.interpolationQuality = .medium
+        c.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        var out: [(Double, Double, Double)] = []
+        out.reserveCapacity(w * h)
+        var i = 0
+        while i < buf.count {
+            if buf[i + 3] > 127 {
+                out.append((Double(buf[i]) / 255, Double(buf[i + 1]) / 255, Double(buf[i + 2]) / 255))
+            }
+            i += 4
+        }
+        return out
+    }
+
+    /// Vibrance-weighted HSB histogram → one representative swatch per populated
+    /// bin, sorted by weight. Grey / near-black / near-white pixels are dropped so
+    /// the palette skews to the image's actual colour.
+    private static func dominantSwatches(_ pixels: [(Double, Double, Double)]) -> [PaletteSwatch] {
+        let hb = 12, sb = 3, bb = 3
+        let n = hb * sb * bb
+        var sh = [Double](repeating: 0, count: n), ss = sh, sv = sh, sw = sh
+        for (r, g, b) in pixels {
+            let (h, s, v) = hsb(fromR: r, g: g, b: b)
+            if s < 0.18 || v < 0.10 || v > 0.97 { continue }
+            let hi = min(hb - 1, Int(h * Double(hb)))
+            let si = min(sb - 1, Int(s * Double(sb)))
+            let bi = min(bb - 1, Int(v * Double(bb)))
+            let idx = (hi * sb + si) * bb + bi
+            sh[idx] += h * s; ss[idx] += s * s; sv[idx] += v * s; sw[idx] += s
+        }
+        var out: [PaletteSwatch] = []
+        for idx in 0..<n where sw[idx] > 0 {
+            out.append(PaletteSwatch(h: sh[idx] / sw[idx], s: ss[idx] / sw[idx],
+                                     b: sv[idx] / sw[idx], w: sw[idx]))
+        }
+        return out.sorted { $0.w > $1.w }
+    }
+
+    /// Keeps only the heaviest swatch per hue sector, so one large mono-hue region
+    /// can't take several palette slots.
+    private static func bestPerHueSector(_ bins: [PaletteSwatch], sectors: Int) -> [PaletteSwatch] {
+        var best: [Int: PaletteSwatch] = [:]
+        for s in bins {
+            let sec = min(sectors - 1, Int(s.h * Double(sectors)))
+            if let cur = best[sec] { if s.w > cur.w { best[sec] = s } } else { best[sec] = s }
+        }
+        return best.values.sorted { $0.w > $1.w }
+    }
+
+    /// Perceptual-ish distance, hue-dominant (circular), for distinctness.
+    private static func swatchDistance(_ a: PaletteSwatch, _ b: PaletteSwatch) -> Double {
+        var dh = abs(a.h - b.h); if dh > 0.5 { dh = 1 - dh }
+        return dh * 2.0 + abs(a.s - b.s) * 0.6 + abs(a.b - b.b) * 0.6
+    }
+
+    /// Greedy farthest-point selection: seed with the most dominant swatch, then
+    /// repeatedly add the candidate farthest from those already chosen. Pads by
+    /// brightness variation if the photo has fewer than `count` distinct colours.
+    private static func farthestPoint(_ cands: [PaletteSwatch], count: Int) -> [PaletteSwatch] {
+        guard !cands.isEmpty else { return [] }
+        var chosen = [cands[0]]
+        var pool = Array(cands.dropFirst())
+        while chosen.count < count && !pool.isEmpty {
+            var bestIdx = 0, bestD = -1.0
+            for (i, c) in pool.enumerated() {
+                let d = chosen.map { swatchDistance($0, c) }.min() ?? 0
+                if d > bestD { bestD = d; bestIdx = i }
+            }
+            chosen.append(pool.remove(at: bestIdx))
+        }
+        var k = 0
+        while chosen.count < count {
+            var v = chosen[k % chosen.count]
+            v.b = min(1, max(0.12, v.b * (k.isMultiple(of: 2) ? 0.65 : 1.3)))
+            chosen.append(v); k += 1
+        }
+        return chosen
+    }
+
+    /// Cohesion pass: lift dull picks toward a vivid floor (never crush an already
+    /// vivid colour — that turns a saturated warm into mud), keep a brightness
+    /// floor, and gently even out hue spacing (stronger with more stops).
+    private static func harmonise(_ picks: [PaletteSwatch], count: Int) -> [PaletteSwatch] {
+        guard !picks.isEmpty else { return picks }
+        var p = picks
+        for i in p.indices {
+            p[i].s = min(1.0, max(0.42, p[i].s < 0.6 ? p[i].s + (0.70 - p[i].s) * 0.6 : p[i].s))
+            p[i].b = max(0.30, p[i].b)
+        }
+        let hueK = count >= 5 ? 0.25 : count == 4 ? 0.15 : 0.0
+        if hueK > 0 && p.count >= 3 {
+            let byHue = p.enumerated().sorted { $0.element.h < $1.element.h }
+            let lo = byHue.first!.element.h, hi = byHue.last!.element.h, span = hi - lo
+            if span > 0.03 {
+                for (rank, item) in byHue.enumerated() {
+                    let ideal = lo + span * Double(rank) / Double(byHue.count - 1)
+                    p[item.offset].h = item.element.h + (ideal - item.element.h) * hueK
+                }
+            }
+        }
+        return p
+    }
+
+    /// RGB (0…1) → HSB (0…1).
+    private static func hsb(fromR r: Double, g: Double, b: Double) -> (Double, Double, Double) {
+        let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
+        var h = 0.0
+        if d > 1e-6 {
+            if mx == r { h = ((g - b) / d).truncatingRemainder(dividingBy: 6) }
+            else if mx == g { h = (b - r) / d + 2 }
+            else { h = (r - g) / d + 4 }
+            h /= 6; if h < 0 { h += 1 }
+        }
+        return (h, mx <= 1e-6 ? 0 : d / mx, mx)
+    }
+
+    /// HSB (0…1) → RGB (0…1), for luminance ordering.
+    private nonisolated static func rgb(fromHue h: Double, sat s: Double, bri b: Double) -> (Double, Double, Double) {
+        if s <= 1e-6 { return (b, b, b) }
+        let i = floor(h * 6), f = h * 6 - i
+        let p = b * (1 - s), q = b * (1 - s * f), t = b * (1 - s * (1 - f))
+        switch Int(i) % 6 {
+        case 0: return (b, t, p); case 1: return (q, b, p); case 2: return (p, b, t)
+        case 3: return (p, q, b); case 4: return (t, p, b); default: return (b, p, q)
+        }
     }
 
     // MARK: Rendering

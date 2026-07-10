@@ -96,17 +96,4 @@ enum FlowProcessor {
         }
         return ctx.createCGImage(img, from: rect)
     }
-
-    /// Average colour of a rectangle of `image`, read back as a CIColor.
-    static func averageColor(of image: CIImage, in rect: CGRect) -> CIColor {
-        let f = CIFilter.areaAverage()
-        f.inputImage = image
-        f.extent = rect
-        guard let out = f.outputImage else { return CIColor(red: 0.5, green: 0.5, blue: 0.5) }
-        var px = [UInt8](repeating: 0, count: 4)
-        ctx.render(out, toBitmap: &px, rowBytes: 4,
-                   bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-                   format: .RGBA8, colorSpace: cs)
-        return CIColor(red: CGFloat(px[0]) / 255, green: CGFloat(px[1]) / 255, blue: CGFloat(px[2]) / 255)
-    }
 }
