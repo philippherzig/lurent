@@ -103,7 +103,7 @@ struct Look {
     // Blur style
     var blur: Double = 55
     var brightness: Double = 0
-    var saturation: Double = 1.05
+    var saturation: Double = 1.0
     var contrast: Double = 1.0
     var dither: Double = 0        // shared grain; off by default (16-bit export avoids banding)
 
@@ -247,7 +247,7 @@ final class AppModel: ObservableObject {
 
     // Looks
     @Published var lightLook = Look()
-    @Published var darkLook = Look(brightness: -0.15, saturation: 1.05, contrast: 1.05)
+    @Published var darkLook = Look(brightness: -0.15, saturation: 1.0, contrast: 1.05)
 
     // Output size
     @Published var preset: ResolutionPreset = .proDisplayXDR { didSet { renderPreview() } }
@@ -395,12 +395,12 @@ final class AppModel: ObservableObject {
         if seeded == .light {
             guard darkLook.source == nil, lightLook.source != nil else { return }
             var d = lightLook
-            d.brightness = -0.15; d.saturation = 1.05; d.contrast = 1.05
+            d.brightness = -0.15; d.saturation = 1.0; d.contrast = 1.05
             darkLook = d
         } else {
             guard lightLook.source == nil, darkLook.source != nil else { return }
             var l = darkLook
-            l.brightness = 0; l.saturation = 1.05; l.contrast = 1.0
+            l.brightness = 0; l.saturation = 1.0; l.contrast = 1.0
             lightLook = l
         }
     }
