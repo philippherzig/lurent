@@ -625,16 +625,17 @@ final class AppModel: ObservableObject {
         }
         hues = Array(hues.prefix(hueSlots))
 
-        // Render each hue clean, vivid and bright (keeping a little of its own sat).
+        // Render each hue soft, light and airy — a low-saturation / high-brightness
+        // target dialled in via a good/bad calibration pass over a set of photos.
         var stops: [(Double, Double, Double)] = []
         let n = max(hues.count, 1)
         for (i, hs) in hues.enumerated() {
             let t = n > 1 ? Double(i) / Double(n - 1) : 0.5
-            let s = min(0.9, max(0.5, hs.s + (0.74 - hs.s) * 0.6))
-            let v = 0.80 + 0.17 * t                                // all bright; gentle range
+            let s = min(0.90, max(0.40, hs.s + (0.44 - hs.s) * 0.6))   // soft, low saturation
+            let v = 0.85 + 0.14 * t                                    // bright, airy (0.85…0.99)
             stops.append(rgb(fromHue: hs.h, sat: s, bri: v))
         }
-        if airy { stops.append(rgb(fromHue: hues.first?.h ?? 0.6, sat: 0.06, bri: 0.98)) }
+        if airy { stops.append(rgb(fromHue: hues.first?.h ?? 0.6, sat: 0.05, bri: 0.99)) }
         while stops.count < count, let last = stops.last { stops.append(last) }
         stops = Array(stops.prefix(count))
 
