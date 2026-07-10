@@ -105,7 +105,7 @@ struct Look {
     var brightness: Double = 0
     var saturation: Double = 1.15
     var contrast: Double = 1.0
-    var dither: Double = 0.1
+    var dither: Double = 0        // shared grain; off by default (16-bit export avoids banding)
 
     // Flow style
     var flowColor0: Color = Color(red: 0.98, green: 0.55, blue: 0.10)
@@ -142,8 +142,8 @@ struct Look {
     var duneTilt: Double = 0.42
     var duneAmplitude: Double = 0.12
     var duneFrequency: Double = 1.05
-    var duneSharpness: Double = 0.9
-    var duneShading: Double = 0.65
+    var duneSharpness: Double = 1.0
+    var duneShading: Double = 1.0
     var duneSoftness: Double = 0.005
     var dunePhase: Double = 0.5
 

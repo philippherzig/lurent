@@ -23,9 +23,9 @@ enum DuneProcessor {
         var tilt: Double = 0.42        // diagonal skew of the layered axis
         var amplitude: Double = 0.12   // fold height as fraction of the ramp
         var frequency: Double = 1.05   // number of folds across the width
-        var sharpness: Double = 0.9    // 0 = all edges soft, 1 = crisp where the
+        var sharpness: Double = 1.0    // 0 = all edges soft, 1 = crisp where the
                                        //     per-edge field is hard (layered look)
-        var shading: Double = 0.65     // emboss lip along the crisp edges
+        var shading: Double = 1.0      // emboss lip along the crisp edges
         var softness: Double = 0.005   // gaussian soft-focus, fraction of short side
         var phase: Double = 0.5        // fold variation
         var brightness: Double = 0
