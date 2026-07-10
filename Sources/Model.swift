@@ -591,40 +591,59 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// A single palette candidate in RGB (0…1), with the accumulated vibrance
-    /// `w`eight of the pixels that formed it.
-    private struct PaletteSwatch {
-        var r: Double, g: Double, b: Double, w: Double
-        var lum: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
-        var hsb: (Double, Double, Double) { AppModel.hsb(fromR: r, g: g, b: b) }
-        var lab: (Double, Double, Double) { AppModel.lab(fromR: r, g: g, b: b) }
-        var color: Color { Color(red: r, green: g, blue: b) }
-    }
-
-    /// A *curated* palette from a photo: the dominant colours found by clustering
-    /// ALL pixels (not horizontal strip averages, which mud adjacent regions into
-    /// greys), chosen to be maximally distinct — so a warm-dominant photo still
-    /// yields its blues, whites and darks rather than five browns.
+    /// A *curated* palette from a photo, tuned to read **bright, clean and
+    /// friendly** rather than dark and earthy — a faithful strip-average of an
+    /// earthy landscape only ever yields muddy browns.
     ///
-    /// Pipeline: downsample → RGB-grid clusters weighted by vibrance (colours
-    /// count more, but neutrals are kept — a clean white/grey/blue is a valid stop,
-    /// only *muddy strip-averages* are the enemy) → farthest-point selection in
-    /// CIE-Lab for perceptual distinctness → lift the saturation of the chromatic
-    /// picks (neutrals stay clean). `sortedByLuminance` orders dark → bright
-    /// (Liquid/Dune ramp); otherwise by hue (Flow). Always returns `count` colours.
+    /// It reads the image's dominant **hues** (an earthy brown is just a
+    /// desaturated orange; a hazy mountain is really only blue + a warm accent),
+    /// then renders each as a clean, vivid, light stop. If the photo has too few
+    /// distinct hues, the remaining stops are filled with **harmonious** hues
+    /// derived from the dominant one — a full, cohesive palette instead of the same
+    /// muted colour twice. A strong bright-neutral presence (clouds, haze, snow)
+    /// adds one airy near-white accent. `sortedByLuminance` orders the stops
+    /// dark → bright (Liquid/Dune ramp); otherwise by hue (Flow).
     private static func extractPalette(from cg: CGImage, count: Int,
                                        sortedByLuminance: Bool = false) -> [Color] {
         guard count > 0 else { return [] }
-        var cands = dominantSwatches(downsampledPixels(from: cg, maxDim: 64))
-        if cands.isEmpty {         // empty / unreadable: neutral value ramp
-            cands = (0..<max(count, 3)).map {
-                let v = 0.2 + 0.7 * Double($0) / Double(count)
-                return PaletteSwatch(r: v, g: v, b: v, w: 1)
-            }
+        let pixels = downsampledPixels(from: cg, maxDim: 64)
+        var hues = dominantHues(pixels)
+        if hues.isEmpty { hues = [(h: 0.58, s: 0.6, w: 1)] }        // fallback: friendly blue
+
+        // Reserve one slot for an airy near-white when the image is cloudy / hazy.
+        let airy = brightNeutralShare(pixels) > 0.06
+        let hueSlots = max(airy ? count - 1 : count, 1)
+
+        // Fill harmonically from the dominant hue when the photo has too few.
+        let base = hues[0].h
+        let offsets = [0.083, -0.083, 0.5, 0.166, -0.166, 0.25, -0.25, 0.33, -0.33, 0.417]
+        var oi = 0
+        while hues.count < hueSlots && oi < offsets.count {
+            var h = (base + offsets[oi]).truncatingRemainder(dividingBy: 1); if h < 0 { h += 1 }
+            if hues.allSatisfy({ hueDistance($0.h, h) > 0.075 }) { hues.append((h: h, s: 0.62, w: 0.3)) }
+            oi += 1
         }
-        var picks = harmonise(farthestPoint(cands, count: count))
-        picks.sort { sortedByLuminance ? $0.lum < $1.lum : $0.hsb.0 < $1.hsb.0 }
-        return picks.map { $0.color }
+        hues = Array(hues.prefix(hueSlots))
+
+        // Render each hue clean, vivid and bright (keeping a little of its own sat).
+        var stops: [(Double, Double, Double)] = []
+        let n = max(hues.count, 1)
+        for (i, hs) in hues.enumerated() {
+            let t = n > 1 ? Double(i) / Double(n - 1) : 0.5
+            let s = min(0.9, max(0.5, hs.s + (0.74 - hs.s) * 0.6))
+            let v = 0.80 + 0.17 * t                                // all bright; gentle range
+            stops.append(rgb(fromHue: hs.h, sat: s, bri: v))
+        }
+        if airy { stops.append(rgb(fromHue: hues.first?.h ?? 0.6, sat: 0.06, bri: 0.98)) }
+        while stops.count < count, let last = stops.last { stops.append(last) }
+        stops = Array(stops.prefix(count))
+
+        if sortedByLuminance {
+            stops.sort { luminance($0) < luminance($1) }
+        } else {
+            stops.sort { hsb(fromR: $0.0, g: $0.1, b: $0.2).0 < hsb(fromR: $1.0, g: $1.1, b: $1.2).0 }
+        }
+        return stops.map { Color(red: $0.0, green: $0.1, blue: $0.2) }
     }
 
     /// Draws the source into a small RGB bitmap and returns its opaque pixels as
@@ -652,77 +671,50 @@ final class AppModel: ObservableObject {
         return out
     }
 
-    /// Clusters ALL pixels in a coarse RGB grid, each pixel weighted by its
-    /// vibrance (1 + 2·saturation), and returns one average swatch per populated
-    /// cell, sorted by weight. Clustering finds colour *modes* (real regions), so —
-    /// unlike averaging — it never invents a muddy in-between colour; neutrals are
-    /// kept (only pure-black noise is dropped) so whites/greys can anchor a palette.
-    private static func dominantSwatches(_ pixels: [(Double, Double, Double)]) -> [PaletteSwatch] {
-        let q = 6, n = 6 * 6 * 6
-        var sr = [Double](repeating: 0, count: n), sg = sr, sb = sr, sw = sr
+    /// The image's distinct dominant **hues**, most prominent first. Builds a
+    /// vibrance-weighted (s·v) hue histogram over the chromatic pixels, then greedily
+    /// takes the heaviest bin and suppresses its neighbours within ~36°, so one hue
+    /// family can't claim several slots. Returns (hue, representative saturation, weight).
+    private static func dominantHues(_ pixels: [(Double, Double, Double)]) -> [(h: Double, s: Double, w: Double)] {
+        let bins = 36
+        var wsum = [Double](repeating: 0, count: bins), ssum = wsum
+        for (r, g, b) in pixels {
+            let (h, s, v) = hsb(fromR: r, g: g, b: b)
+            if s < 0.12 || v < 0.12 { continue }          // only chromatic pixels vote on hue
+            let bi = min(bins - 1, Int(h * Double(bins)))
+            let wt = s * v
+            wsum[bi] += wt; ssum[bi] += s * wt
+        }
+        var idx = (0..<bins).filter { wsum[$0] > 0 }.sorted { wsum[$0] > wsum[$1] }
+        var out: [(h: Double, s: Double, w: Double)] = []
+        while let bi = idx.first {
+            let h = (Double(bi) + 0.5) / Double(bins)
+            out.append((h: h, s: ssum[bi] / max(wsum[bi], 1e-9), w: wsum[bi]))
+            idx.removeAll { hueDistance((Double($0) + 0.5) / Double(bins), h) < 0.10 }
+        }
+        return out
+    }
+
+    /// Fraction of pixels that are bright and near-neutral (clouds / haze / snow) —
+    /// decides whether the palette gets an airy near-white accent.
+    private static func brightNeutralShare(_ pixels: [(Double, Double, Double)]) -> Double {
+        guard !pixels.isEmpty else { return 0 }
+        var n = 0
         for (r, g, b) in pixels {
             let (_, s, v) = hsb(fromR: r, g: g, b: b)
-            if v < 0.05 { continue }                 // drop only pure-black noise
-            let wt = 1.0 + 2.0 * s                    // vibrance weighting
-            let ri = min(q - 1, Int(r * Double(q)))
-            let gi = min(q - 1, Int(g * Double(q)))
-            let bi = min(q - 1, Int(b * Double(q)))
-            let idx = (ri * q + gi) * q + bi
-            sr[idx] += r * wt; sg[idx] += g * wt; sb[idx] += b * wt; sw[idx] += wt
+            if s < 0.14 && v > 0.72 { n += 1 }
         }
-        var out: [PaletteSwatch] = []
-        for idx in 0..<n where sw[idx] > 0 {
-            out.append(PaletteSwatch(r: sr[idx] / sw[idx], g: sg[idx] / sw[idx],
-                                     b: sb[idx] / sw[idx], w: sw[idx]))
-        }
-        return out.sorted { $0.w > $1.w }
+        return Double(n) / Double(pixels.count)
     }
 
-    /// CIE76 distance in Lab — perceptual, and (unlike a hue metric) meaningful
-    /// across neutrals, so white, near-black and a blue are all correctly "far".
-    private nonisolated static func labDistance(_ a: PaletteSwatch, _ b: PaletteSwatch) -> Double {
-        let (l1, a1, b1) = a.lab, (l2, a2, b2) = b.lab
-        let dl = l1 - l2, da = a1 - a2, db = b1 - b2
-        return (dl * dl + da * da + db * db).squareRoot()
+    /// Circular distance between two hues on the 0…1 wheel (0…0.5).
+    private nonisolated static func hueDistance(_ a: Double, _ b: Double) -> Double {
+        let d = abs(a - b); return d > 0.5 ? 1 - d : d
     }
 
-    /// Greedy farthest-point selection: seed with the most dominant swatch, then
-    /// repeatedly add the candidate farthest (in Lab) from those already chosen.
-    /// Pads by lightness variation if the photo has fewer than `count` colours.
-    private static func farthestPoint(_ cands: [PaletteSwatch], count: Int) -> [PaletteSwatch] {
-        guard !cands.isEmpty else { return [] }
-        var chosen = [cands[0]]
-        var pool = Array(cands.dropFirst())
-        while chosen.count < count && !pool.isEmpty {
-            var bestIdx = 0, bestD = -1.0
-            for (i, c) in pool.enumerated() {
-                let d = chosen.map { labDistance($0, c) }.min() ?? 0
-                if d > bestD { bestD = d; bestIdx = i }
-            }
-            chosen.append(pool.remove(at: bestIdx))
-        }
-        var k = 0
-        while chosen.count < count {
-            var v = chosen[k % chosen.count]
-            let f = k.isMultiple(of: 2) ? 0.6 : 1.4
-            v.r = min(1, v.r * f); v.g = min(1, v.g * f); v.b = min(1, v.b * f)
-            chosen.append(v); k += 1
-        }
-        return chosen
-    }
-
-    /// Vibrance pass: lift the saturation of the *chromatic* picks (a colour that
-    /// reads dull becomes punchy) while leaving neutrals untouched — crushing a
-    /// clean white or grey would only reintroduce mud.
-    private static func harmonise(_ picks: [PaletteSwatch]) -> [PaletteSwatch] {
-        picks.map { sw in
-            let (h, s, v) = sw.hsb
-            guard s > 0.18 else { return sw }        // neutral: keep it clean
-            let s2 = min(1.0, s < 0.6 ? s + (0.72 - s) * 0.5 : s)
-            let v2 = min(1.0, max(v, 0.32))
-            let (r, g, b) = rgb(fromHue: h, sat: s2, bri: v2)
-            return PaletteSwatch(r: r, g: g, b: b, w: sw.w)
-        }
+    /// Rec. 709 luminance of an (r, g, b) tuple.
+    private nonisolated static func luminance(_ c: (Double, Double, Double)) -> Double {
+        0.2126 * c.0 + 0.7152 * c.1 + 0.0722 * c.2
     }
 
     /// RGB (0…1) → HSB (0…1).
@@ -747,18 +739,6 @@ final class AppModel: ObservableObject {
         case 0: return (b, t, p); case 1: return (q, b, p); case 2: return (p, b, t)
         case 3: return (p, q, b); case 4: return (t, p, b); default: return (b, p, q)
         }
-    }
-
-    /// sRGB (0…1) → CIE-Lab (D65), for perceptual colour distance.
-    private nonisolated static func lab(fromR r: Double, g: Double, b: Double) -> (Double, Double, Double) {
-        func lin(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
-        let R = lin(r), G = lin(g), B = lin(b)
-        let X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047
-        let Y =  R * 0.2126 + G * 0.7152 + B * 0.0722
-        let Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883
-        func f(_ t: Double) -> Double { t > 0.008856 ? cbrt(t) : 7.787 * t + 16.0 / 116.0 }
-        let fx = f(X), fy = f(Y), fz = f(Z)
-        return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
     }
 
     // MARK: Rendering
