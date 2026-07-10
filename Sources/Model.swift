@@ -597,8 +597,10 @@ final class AppModel: ObservableObject {
     ///
     /// It reads the image's dominant **hues** (an earthy brown is just a
     /// desaturated orange; a hazy mountain is really only blue + a warm accent),
-    /// then renders each as a clean, vivid, light stop. If the photo has too few
-    /// distinct hues, the remaining stops are filled with **harmonious** hues
+    /// then renders each in **OKLCH** at a fixed perceptual lightness + chroma, so
+    /// every stop reads equally light and soft (a fixed HSB brightness would leave
+    /// blues/greens heavier than yellows). If the photo has too few distinct hues,
+    /// the remaining stops are filled with **harmonious** hues
     /// derived from the dominant one — a full, cohesive palette instead of the same
     /// muted colour twice. A strong bright-neutral presence (clouds, haze, snow)
     /// adds one airy near-white accent. `sortedByLuminance` orders the stops
@@ -607,42 +609,42 @@ final class AppModel: ObservableObject {
                                        sortedByLuminance: Bool = false) -> [Color] {
         guard count > 0 else { return [] }
         let pixels = downsampledPixels(from: cg, maxDim: 64)
-        var hues = dominantHues(pixels)
-        if hues.isEmpty { hues = [(h: 0.58, s: 0.6, w: 1)] }        // fallback: friendly blue
+        var hues = dominantHues(pixels)                            // OKLCH hues, 0…1
+        if hues.isEmpty { hues = [0.72] }                          // fallback: a friendly blue
 
         // Reserve one slot for an airy near-white when the image is cloudy / hazy.
         let airy = brightNeutralShare(pixels) > 0.06
         let hueSlots = max(airy ? count - 1 : count, 1)
 
         // Fill harmonically from the dominant hue when the photo has too few.
-        let base = hues[0].h
+        let base = hues[0]
         let offsets = [0.083, -0.083, 0.5, 0.166, -0.166, 0.25, -0.25, 0.33, -0.33, 0.417]
         var oi = 0
         while hues.count < hueSlots && oi < offsets.count {
             var h = (base + offsets[oi]).truncatingRemainder(dividingBy: 1); if h < 0 { h += 1 }
-            if hues.allSatisfy({ hueDistance($0.h, h) > 0.075 }) { hues.append((h: h, s: 0.62, w: 0.3)) }
+            if hues.allSatisfy({ hueDistance($0, h) > 0.075 }) { hues.append(h) }
             oi += 1
         }
         hues = Array(hues.prefix(hueSlots))
 
-        // Render each hue soft, light and airy — a low-saturation / high-brightness
-        // target dialled in via a good/bad calibration pass over a set of photos.
+        // Render each hue at a fixed *perceptual* lightness + chroma (OKLCH), so
+        // every stop reads equally light and soft regardless of hue — with a fixed
+        // HSB brightness, blue/violet/green come out heavier/darker than yellow/pink.
+        // L/chroma are the soft, airy target from the good/bad calibration pass.
         var stops: [(Double, Double, Double)] = []
         let n = max(hues.count, 1)
-        for (i, hs) in hues.enumerated() {
+        for (i, h) in hues.enumerated() {
             let t = n > 1 ? Double(i) / Double(n - 1) : 0.5
-            let s = min(0.90, max(0.40, hs.s + (0.44 - hs.s) * 0.6))   // soft, low saturation
-            let v = 0.85 + 0.14 * t                                    // bright, airy (0.85…0.99)
-            stops.append(rgb(fromHue: hs.h, sat: s, bri: v))
+            stops.append(oklchToRGB(lightness: 0.80 + 0.12 * t, chroma: 0.075, hue: h))
         }
-        if airy { stops.append(rgb(fromHue: hues.first?.h ?? 0.6, sat: 0.05, bri: 0.99)) }
+        if airy { stops.append(oklchToRGB(lightness: 0.965, chroma: 0.015, hue: hues.first ?? 0.72)) }
         while stops.count < count, let last = stops.last { stops.append(last) }
         stops = Array(stops.prefix(count))
 
         if sortedByLuminance {
             stops.sort { luminance($0) < luminance($1) }
         } else {
-            stops.sort { hsb(fromR: $0.0, g: $0.1, b: $0.2).0 < hsb(fromR: $1.0, g: $1.1, b: $1.2).0 }
+            stops.sort { rgbToOKLCH($0).h < rgbToOKLCH($1).h }
         }
         return stops.map { Color(red: $0.0, green: $0.1, blue: $0.2) }
     }
@@ -672,38 +674,37 @@ final class AppModel: ObservableObject {
         return out
     }
 
-    /// The image's distinct dominant **hues**, most prominent first. Builds a
-    /// vibrance-weighted (s·v) hue histogram over the chromatic pixels, then greedily
-    /// takes the heaviest bin and suppresses its neighbours within ~36°, so one hue
-    /// family can't claim several slots. Returns (hue, representative saturation, weight).
-    private static func dominantHues(_ pixels: [(Double, Double, Double)]) -> [(h: Double, s: Double, w: Double)] {
+    /// The image's distinct dominant **hues** (OKLCH), most prominent first. Builds
+    /// a chroma-weighted hue histogram over the colourful pixels — chroma is OKLCH's
+    /// perceptual "colourfulness" — then greedily takes the heaviest bin and
+    /// suppresses its neighbours within ~36°, so one hue family can't claim several
+    /// slots. Returns hues on the 0…1 wheel.
+    private static func dominantHues(_ pixels: [(Double, Double, Double)]) -> [Double] {
         let bins = 36
-        var wsum = [Double](repeating: 0, count: bins), ssum = wsum
+        var wsum = [Double](repeating: 0, count: bins)
         for (r, g, b) in pixels {
-            let (h, s, v) = hsb(fromR: r, g: g, b: b)
-            if s < 0.12 || v < 0.12 { continue }          // only chromatic pixels vote on hue
-            let bi = min(bins - 1, Int(h * Double(bins)))
-            let wt = s * v
-            wsum[bi] += wt; ssum[bi] += s * wt
+            let o = rgbToOKLCH(r, g, b)
+            if o.C < 0.04 || o.L < 0.15 || o.L > 0.98 { continue }   // only colourful pixels vote
+            wsum[min(bins - 1, Int(o.h * Double(bins)))] += o.C
         }
         var idx = (0..<bins).filter { wsum[$0] > 0 }.sorted { wsum[$0] > wsum[$1] }
-        var out: [(h: Double, s: Double, w: Double)] = []
+        var out: [Double] = []
         while let bi = idx.first {
             let h = (Double(bi) + 0.5) / Double(bins)
-            out.append((h: h, s: ssum[bi] / max(wsum[bi], 1e-9), w: wsum[bi]))
+            out.append(h)
             idx.removeAll { hueDistance((Double($0) + 0.5) / Double(bins), h) < 0.10 }
         }
         return out
     }
 
-    /// Fraction of pixels that are bright and near-neutral (clouds / haze / snow) —
-    /// decides whether the palette gets an airy near-white accent.
+    /// Fraction of pixels that are light and near-neutral (clouds / haze / snow), in
+    /// OKLCH — decides whether the palette gets an airy near-white accent.
     private static func brightNeutralShare(_ pixels: [(Double, Double, Double)]) -> Double {
         guard !pixels.isEmpty else { return 0 }
         var n = 0
         for (r, g, b) in pixels {
-            let (_, s, v) = hsb(fromR: r, g: g, b: b)
-            if s < 0.14 && v > 0.72 { n += 1 }
+            let o = rgbToOKLCH(r, g, b)
+            if o.C < 0.05 && o.L > 0.80 { n += 1 }
         }
         return Double(n) / Double(pixels.count)
     }
@@ -718,28 +719,55 @@ final class AppModel: ObservableObject {
         0.2126 * c.0 + 0.7152 * c.1 + 0.0722 * c.2
     }
 
-    /// RGB (0…1) → HSB (0…1).
-    private nonisolated static func hsb(fromR r: Double, g: Double, b: Double) -> (Double, Double, Double) {
-        let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
-        var h = 0.0
-        if d > 1e-6 {
-            if mx == r { h = ((g - b) / d).truncatingRemainder(dividingBy: 6) }
-            else if mx == g { h = (b - r) / d + 2 }
-            else { h = (r - g) / d + 4 }
-            h /= 6; if h < 0 { h += 1 }
-        }
-        return (h, mx <= 1e-6 ? 0 : d / mx, mx)
+    /// sRGB (0…1) → OKLCH (Björn Ottosson's OKLab): perceptual lightness `L`,
+    /// chroma `C`, and hue on the 0…1 wheel. Unlike HSB, a given L looks equally
+    /// light and a given C equally colourful across every hue.
+    private nonisolated static func rgbToOKLCH(_ r: Double, _ g: Double, _ b: Double) -> (L: Double, C: Double, h: Double) {
+        func lin(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        let R = lin(r), G = lin(g), B = lin(b)
+        let l = 0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B
+        let m = 0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B
+        let s = 0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B
+        let l_ = cbrt(l), m_ = cbrt(m), s_ = cbrt(s)
+        let L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+        let A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_
+        let Bb = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+        var h = atan2(Bb, A) / (2 * Double.pi); if h < 0 { h += 1 }
+        return (L, (A * A + Bb * Bb).squareRoot(), h)
     }
 
-    /// HSB (0…1) → RGB (0…1), for luminance ordering.
-    private nonisolated static func rgb(fromHue h: Double, sat s: Double, bri b: Double) -> (Double, Double, Double) {
-        if s <= 1e-6 { return (b, b, b) }
-        let i = floor(h * 6), f = h * 6 - i
-        let p = b * (1 - s), q = b * (1 - s * f), t = b * (1 - s * (1 - f))
-        switch Int(i) % 6 {
-        case 0: return (b, t, p); case 1: return (q, b, p); case 2: return (p, b, t)
-        case 3: return (p, q, b); case 4: return (t, p, b); default: return (b, p, q)
+    /// OKLCH for an (r, g, b) tuple.
+    private nonisolated static func rgbToOKLCH(_ c: (Double, Double, Double)) -> (L: Double, C: Double, h: Double) {
+        rgbToOKLCH(c.0, c.1, c.2)
+    }
+
+    /// OKLCH → sRGB (0…1). Reduces chroma until the colour fits the sRGB gamut, so
+    /// out-of-gamut targets (e.g. a very saturated blue) desaturate gracefully
+    /// instead of clipping to a wrong hue.
+    private nonisolated static func oklchToRGB(lightness L: Double, chroma C: Double, hue: Double) -> (Double, Double, Double) {
+        func toS(_ c: Double) -> Double { c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055 }
+        func lab(_ cc: Double) -> (Double, Double, Double) {
+            let A = cc * cos(2 * Double.pi * hue), B = cc * sin(2 * Double.pi * hue)
+            let l_ = L + 0.3963377774 * A + 0.2158037573 * B
+            let m_ = L - 0.1055613458 * A - 0.0638541728 * B
+            let s_ = L - 0.0894841775 * A - 1.2914855480 * B
+            let l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_
+            return (toS( 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+                    toS(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+                    toS(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s))
         }
+        func inGamut(_ c: (Double, Double, Double)) -> Bool {
+            let e = 0.001
+            return c.0 >= -e && c.0 <= 1 + e && c.1 >= -e && c.1 <= 1 + e && c.2 >= -e && c.2 <= 1 + e
+        }
+        func clamp(_ c: (Double, Double, Double)) -> (Double, Double, Double) {
+            (min(1, max(0, c.0)), min(1, max(0, c.1)), min(1, max(0, c.2)))
+        }
+        let full = lab(C)
+        if inGamut(full) { return clamp(full) }
+        var lo = 0.0, hi = C
+        for _ in 0..<22 { let mid = (lo + hi) / 2; if inGamut(lab(mid)) { lo = mid } else { hi = mid } }
+        return clamp(lab(lo))
     }
 
     // MARK: Rendering
