@@ -26,7 +26,7 @@ enum DuneProcessor {
         var sharpness: Double = 1.0    // 0 = all edges soft, 1 = crisp where the
                                        //     per-edge field is hard (layered look)
         var shading: Double = 1.0      // emboss lip along the crisp edges
-        var softness: Double = 0.005   // gaussian soft-focus, fraction of short side
+        var softness: Double = 0       // gaussian soft-focus, fraction of short side
         var phase: Double = 0.5        // fold variation
         var brightness: Double = 0
         var saturation: Double = 1.15

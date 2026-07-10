@@ -103,7 +103,7 @@ struct Look {
     // Blur style
     var blur: Double = 55
     var brightness: Double = 0
-    var saturation: Double = 1.15
+    var saturation: Double = 1.05
     var contrast: Double = 1.0
     var dither: Double = 0        // shared grain; off by default (16-bit export avoids banding)
 
@@ -144,7 +144,7 @@ struct Look {
     var duneFrequency: Double = 1.05
     var duneSharpness: Double = 1.0
     var duneShading: Double = 1.0
-    var duneSoftness: Double = 0.005
+    var duneSoftness: Double = 0
     var dunePhase: Double = 0.5
 
     // Mirror style (builds on the blur controls)
@@ -400,7 +400,7 @@ final class AppModel: ObservableObject {
         } else {
             guard lightLook.source == nil, darkLook.source != nil else { return }
             var l = darkLook
-            l.brightness = 0; l.saturation = 1.15; l.contrast = 1.0
+            l.brightness = 0; l.saturation = 1.05; l.contrast = 1.0
             lightLook = l
         }
     }
