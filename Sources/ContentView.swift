@@ -299,6 +299,8 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
+            paletteModePicker
+
             HStack {
                 ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
                 ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
@@ -307,13 +309,6 @@ private struct EffectSection: View {
                 }
             }
             .labelsHidden()
-
-            Button {
-                model.reloadPaletteFromPhoto()
-            } label: {
-                Label("Aus Foto", systemImage: "eyedropper")
-            }
-            .disabled(model.currentLook.source == nil)
 
             slider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
             slider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
@@ -327,25 +322,21 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
+            paletteModePicker
+
             HStack {
-                ColorPicker("Farbe 1", selection: model.bind(\.liquidColor0), supportsOpacity: false)
-                ColorPicker("Farbe 2", selection: model.bind(\.liquidColor1), supportsOpacity: false)
-                ColorPicker("Farbe 3", selection: model.bind(\.liquidColor2), supportsOpacity: false)
-                if model.currentLook.liquidCount >= 4 {
-                    ColorPicker("Farbe 4", selection: model.bind(\.liquidColor3), supportsOpacity: false)
-                }
+                // Shown dark → bright; reducing the count drops the darker stops (left).
                 if model.currentLook.liquidCount >= 5 {
-                    ColorPicker("Farbe 5", selection: model.bind(\.liquidColor4), supportsOpacity: false)
+                    ColorPicker("Farbe 1", selection: model.bind(\.liquidColor0), supportsOpacity: false)
                 }
+                if model.currentLook.liquidCount >= 4 {
+                    ColorPicker("Farbe 2", selection: model.bind(\.liquidColor1), supportsOpacity: false)
+                }
+                ColorPicker("Farbe 3", selection: model.bind(\.liquidColor2), supportsOpacity: false)
+                ColorPicker("Farbe 4", selection: model.bind(\.liquidColor3), supportsOpacity: false)
+                ColorPicker("Farbe 5", selection: model.bind(\.liquidColor4), supportsOpacity: false)
             }
             .labelsHidden()
-
-            Button {
-                model.reloadLiquidPaletteFromPhoto()
-            } label: {
-                Label("Aus Foto", systemImage: "eyedropper")
-            }
-            .disabled(model.currentLook.source == nil)
 
             slider("Frame", model.bind(\.liquidTime), 0...30)
             slider("Variante", model.bind(\.liquidSeed), 0...12)
@@ -360,25 +351,21 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
+            paletteModePicker
+
             HStack {
-                ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
-                ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
-                ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
-                if model.currentLook.duneCount >= 4 {
-                    ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
-                }
+                // Shown dark → bright; reducing the count drops the darker stops (left).
                 if model.currentLook.duneCount >= 5 {
-                    ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
+                    ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
                 }
+                if model.currentLook.duneCount >= 4 {
+                    ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
+                }
+                ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
+                ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
+                ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
             }
             .labelsHidden()
-
-            Button {
-                model.reloadDunePaletteFromPhoto()
-            } label: {
-                Label("Aus Foto", systemImage: "eyedropper")
-            }
-            .disabled(model.currentLook.source == nil)
 
             slider("Neigung", model.bind(\.duneTilt), -0.8...0.8)
             slider("Amplitude", model.bind(\.duneAmplitude), 0...0.3)
@@ -387,6 +374,38 @@ private struct EffectSection: View {
             slider("Faltenlicht", model.bind(\.duneShading), 0...1)
             slider("Weichheit", model.bind(\.duneSoftness), 0...0.04)
             slider("Variante", model.bind(\.dunePhase), 0...6.283)
+
+        case .glow:
+            Picker("Form", selection: model.bind(\.glowForm)) {
+                ForEach(GlowProcessor.Form.allCases) { Text($0.label).tag($0.rawValue) }
+            }
+
+            paletteModePicker
+
+            HStack {
+                ColorPicker("Hintergrund", selection: model.bind(\.glowBackground), supportsOpacity: false)
+                ColorPicker("Licht", selection: model.bind(\.glowLight), supportsOpacity: false)
+            }
+            .labelsHidden()
+
+            slider("Größe", model.bind(\.glowScale), 0.4...2.0)
+            slider("Verlauf", model.bind(\.glowTilt), 0...1)
+            slider("Richtung", model.bind(\.glowTiltDir), 0...6.283)
+            slider("Schärfe", model.bind(\.glowSharpness), 0...1)
+            slider("Weichheit", model.bind(\.glowSoftness), 0.05...0.6)
+            slider("Dehnung", model.bind(\.glowStretch), -1...1)
+            slider("Drehung", model.bind(\.glowRotation), 0...6.283)
+            slider("Verzerrung", model.bind(\.glowWarp), 0...0.6)
+            slider("Halo", model.bind(\.glowHalo), 0...1)
+            slider("Stärke", model.bind(\.glowIntensity), 0.2...1.5)
+
+            if model.currentLook.glowForm == GlowProcessor.Form.blobs.rawValue {
+                slider("Anzahl", model.bindInt(\.glowCount), 1...8)
+                slider("Verschmelzung", model.bind(\.glowMerge), 0.02...0.6)
+                slider("Variante", model.bind(\.glowSeed), 0...12)
+            } else if model.currentLook.glowForm != GlowProcessor.Form.orb.rawValue {
+                slider("Ringstärke", model.bind(\.glowThickness), 0.002...0.15)
+            }
         }
 
         // Colour grade + grain — shared by every style.
@@ -399,6 +418,14 @@ private struct EffectSection: View {
     private func slider(_ title: LocalizedStringKey, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
         LabeledContent(title) {
             Slider(value: value, in: range)
+        }
+    }
+
+    /// Palette-mood picker, shared by every photo-driven style. Changing it
+    /// re-derives that style's colours automatically (see `paletteStyleBinding`).
+    @ViewBuilder private var paletteModePicker: some View {
+        Picker("Farbmodus", selection: model.paletteStyleBinding) {
+            ForEach(PaletteStyle.allCases) { Text($0.label).tag($0) }
         }
     }
 }

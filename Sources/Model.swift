@@ -73,7 +73,7 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, flow, liquid, dune, mirror
+    case blur, flow, liquid, dune, glow, mirror
     var id: String { rawValue }
     var label: String {
         switch self {
@@ -81,12 +81,33 @@ enum WallpaperStyle: String, CaseIterable, Identifiable {
         case .flow:   return L("Flow")
         case .liquid: return L("Liquid")
         case .dune:   return L("Dune")
+        case .glow:   return L("Glow")
         case .mirror: return L("Spiegel")
         }
     }
 
     /// Styles that synthesize the image from parameters alone (no source photo).
-    var isSynthetic: Bool { self == .flow || self == .liquid || self == .dune }
+    var isSynthetic: Bool { self == .flow || self == .liquid || self == .dune || self == .glow }
+}
+
+/// How a source photo's colours are translated into a palette. An orthogonal
+/// dimension to `WallpaperStyle`: any photo-driven style can be derived in any of
+/// these moods. New moods slot in here without touching the styles themselves.
+enum PaletteStyle: String, CaseIterable, Identifiable {
+    case playful, pastel, jewel, duotone, night, sepia, metallic, mono
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .playful:  return L("Verspielt")
+        case .pastel:   return L("Pastell")
+        case .jewel:    return L("Juwel")
+        case .duotone:  return L("Duoton")
+        case .night:    return L("Nacht")
+        case .sepia:    return L("Sepia")
+        case .metallic: return L("Metallisch")
+        case .mono:     return L("Mono")
+        }
+    }
 }
 
 // MARK: - A single wallpaper "look"
@@ -99,6 +120,9 @@ struct Look {
     var attributionURL: String?
 
     var style: WallpaperStyle = .blur
+
+    // How photo colours are derived (orthogonal to `style`).
+    var paletteStyle: PaletteStyle = .playful
 
     // Blur style
     var blur: Double = 55
@@ -147,6 +171,25 @@ struct Look {
     var duneSoftness: Double = 0
     var dunePhase: Double = 0.5
 
+    // Glow style (soft light shapes dissolving into blur; SDF glow field)
+    var glowBackground: Color = Color(red: 0.72, green: 0.72, blue: 0.73)
+    var glowLight: Color = Color(red: 0.99, green: 0.99, blue: 1.00)
+    var glowForm: Int = GlowProcessor.Form.ring.rawValue
+    var glowSeed: Double = 3.0
+    var glowCount: Int = 4
+    var glowScale: Double = 1.0
+    var glowMerge: Double = 0.35
+    var glowThickness: Double = 0.01
+    var glowSharpness: Double = 0.85   // crisp-side edge; higher = harder edge
+    var glowSoftness: Double = 0.25    // how far the fading side dissolves
+    var glowHalo: Double = 0.5
+    var glowTilt: Double = 1.0         // the sharp↔dissolve gradient (the key knob)
+    var glowTiltDir: Double = 5.2
+    var glowIntensity: Double = 1.0
+    var glowWarp: Double = 0.0         // organic distortion of the subject
+    var glowStretch: Double = 0.0      // anisotropic stretch (−wide … +tall)
+    var glowRotation: Double = 0.0     // rotate the subject (rad)
+
     // Mirror style (builds on the blur controls)
     var mirrorLine: Double = 0.52
     var mirrorAmplitude: Double = 0.05
@@ -170,8 +213,10 @@ struct Look {
     }
 
     var liquidSettings: LiquidProcessor.Settings {
-        .init(colors: [liquidColor0.asCIColor, liquidColor1.asCIColor, liquidColor2.asCIColor,
-                       liquidColor3.asCIColor, liquidColor4.asCIColor],
+        // Colours are stored dark → bright; when fewer than 5 are active, keep the
+        // BRIGHTEST `count` (drop the darker stops), matching the light aesthetic.
+        let all = [liquidColor0, liquidColor1, liquidColor2, liquidColor3, liquidColor4]
+        return .init(colors: all.suffix(liquidCount).map(\.asCIColor),
               count: liquidCount, time: liquidTime, seed: liquidSeed,
               // Slider sits at 0 for a calm base zoom; higher values zoom in.
               scale: 0.5 + liquidScale, turbAmp: liquidTurb, waveFreq: liquidWave,
@@ -180,13 +225,28 @@ struct Look {
     }
 
     var duneSettings: DuneProcessor.Settings {
-        .init(colors: [duneColor0.asCIColor, duneColor1.asCIColor, duneColor2.asCIColor,
-                       duneColor3.asCIColor, duneColor4.asCIColor],
+        // Keep the brightest `count` stops when fewer than 5 are active (see Liquid).
+        let all = [duneColor0, duneColor1, duneColor2, duneColor3, duneColor4]
+        return .init(colors: all.suffix(duneCount).map(\.asCIColor),
               count: duneCount, tilt: duneTilt, amplitude: duneAmplitude,
               frequency: duneFrequency, sharpness: duneSharpness, shading: duneShading,
               softness: duneSoftness, phase: dunePhase,
               brightness: brightness, saturation: saturation,
               contrast: contrast, dither: dither)
+    }
+
+    var glowSettings: GlowProcessor.Settings {
+        // Map the 0…1 "Schärfe" slider to a crisp-side edge width (higher = harder).
+        let edge = 0.05 - glowSharpness * 0.048
+        return .init(background: glowBackground.asCIColor, light: glowLight.asCIColor,
+                     form: GlowProcessor.Form(rawValue: glowForm) ?? .ring,
+                     seed: glowSeed, count: glowCount, scale: glowScale,
+                     merge: glowMerge, thickness: glowThickness, edge: edge,
+                     softness: glowSoftness, halo: glowHalo, tilt: glowTilt,
+                     tiltDir: glowTiltDir, intensity: glowIntensity, warp: glowWarp,
+                     stretch: glowStretch, rotation: glowRotation,
+                     brightness: brightness, saturation: saturation,
+                     contrast: contrast, dither: dither)
     }
 
     var mirrorSettings: MirrorProcessor.Settings {
@@ -300,6 +360,14 @@ final class AppModel: ObservableObject {
         )
     }
 
+    /// Binding for an `Int` field exposed through a `Double` slider (rounds on set).
+    func bindInt(_ keyPath: WritableKeyPath<Look, Int>) -> Binding<Double> {
+        Binding(
+            get: { Double(self.currentLook[keyPath: keyPath]) },
+            set: { newValue in self.mutateCurrentLook { $0[keyPath: keyPath] = Int(newValue.rounded()) } }
+        )
+    }
+
     // MARK: Source kind (consolidated inspector picker)
 
     /// The top-level source, derived from / written back to `selectedSource`.
@@ -376,6 +444,16 @@ final class AppModel: ObservableObject {
                 $0.duneAmplitude = d.duneAmplitude; $0.duneFrequency = d.duneFrequency
                 $0.duneSharpness = d.duneSharpness; $0.duneShading = d.duneShading
                 $0.duneSoftness = d.duneSoftness; $0.dunePhase = d.dunePhase
+            case .glow:
+                $0.glowBackground = d.glowBackground; $0.glowLight = d.glowLight
+                $0.glowForm = d.glowForm; $0.glowSeed = d.glowSeed
+                $0.glowCount = d.glowCount; $0.glowScale = d.glowScale
+                $0.glowMerge = d.glowMerge; $0.glowThickness = d.glowThickness
+                $0.glowSharpness = d.glowSharpness; $0.glowSoftness = d.glowSoftness
+                $0.glowHalo = d.glowHalo
+                $0.glowTilt = d.glowTilt; $0.glowTiltDir = d.glowTiltDir
+                $0.glowIntensity = d.glowIntensity; $0.glowWarp = d.glowWarp
+                $0.glowStretch = d.glowStretch; $0.glowRotation = d.glowRotation
             case .mirror:
                 $0.blur = d.blur
                 $0.mirrorLine = d.mirrorLine; $0.mirrorAmplitude = d.mirrorAmplitude
@@ -538,8 +616,10 @@ final class AppModel: ObservableObject {
 
     func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
-        let flow = Self.extractPalette(from: cg, count: 3)
-        let liquid = Self.extractPalette(from: cg, count: 5, sortedByLuminance: true)
+        let mode = (appearance == .light ? lightLook : darkLook).paletteStyle
+        let flow = Self.extractPalette(from: cg, count: 3, mode: mode)
+        let liquid = Self.extractPalette(from: cg, count: 5, mode: mode, sortedByLuminance: true)
+        let glow = Self.glowPalette(from: cg, mode: mode)
         let apply: (inout Look) -> Void = {
             $0.source = cg; $0.photoID = photoID; $0.baseName = baseName
             $0.attribution = attribution; $0.attributionURL = attributionURL
@@ -553,6 +633,7 @@ final class AppModel: ObservableObject {
                 $0.duneColor0 = liquid[0]; $0.duneColor1 = liquid[1]; $0.duneColor2 = liquid[2]
                 $0.duneColor3 = liquid[3]; $0.duneColor4 = liquid[4]
             }
+            $0.glowBackground = glow.bg; $0.glowLight = glow.light
         }
         if appearance == .light { apply(&lightLook) } else { apply(&darkLook) }
         seedOtherIfNeeded(from: appearance)
@@ -562,7 +643,7 @@ final class AppModel: ObservableObject {
     /// Re-derive the Flow palette from the current look's photo.
     func reloadPaletteFromPhoto() {
         guard let src = currentLook.source else { return }
-        let palette = Self.extractPalette(from: src, count: 3)
+        let palette = Self.extractPalette(from: src, count: 3, mode: currentLook.paletteStyle)
         guard palette.count == 3 else { return }
         mutateCurrentLook {
             $0.flowColor0 = palette[0]; $0.flowColor1 = palette[1]; $0.flowColor2 = palette[2]
@@ -572,7 +653,7 @@ final class AppModel: ObservableObject {
     /// Re-derive the Liquid palette (5 stops, dark → bright) from the current photo.
     func reloadLiquidPaletteFromPhoto() {
         guard let src = currentLook.source else { return }
-        let p = Self.extractPalette(from: src, count: 5, sortedByLuminance: true)
+        let p = Self.extractPalette(from: src, count: 5, mode: currentLook.paletteStyle, sortedByLuminance: true)
         guard p.count == 5 else { return }
         mutateCurrentLook {
             $0.liquidColor0 = p[0]; $0.liquidColor1 = p[1]; $0.liquidColor2 = p[2]
@@ -583,12 +664,42 @@ final class AppModel: ObservableObject {
     /// Re-derive the Dune palette (5 stops, dark → bright) from the current photo.
     func reloadDunePaletteFromPhoto() {
         guard let src = currentLook.source else { return }
-        let p = Self.extractPalette(from: src, count: 5, sortedByLuminance: true)
+        let p = Self.extractPalette(from: src, count: 5, mode: currentLook.paletteStyle, sortedByLuminance: true)
         guard p.count == 5 else { return }
         mutateCurrentLook {
             $0.duneColor0 = p[0]; $0.duneColor1 = p[1]; $0.duneColor2 = p[2]
             $0.duneColor3 = p[3]; $0.duneColor4 = p[4]
         }
+    }
+
+    /// Re-derive the Glow (background, light) pair from the current photo.
+    func reloadGlowPaletteFromPhoto() {
+        guard let src = currentLook.source else { return }
+        let p = Self.glowPalette(from: src, mode: currentLook.paletteStyle)
+        mutateCurrentLook { $0.glowBackground = p.bg; $0.glowLight = p.light }
+    }
+
+    /// Re-derive whichever palette the current style uses — called when the palette
+    /// mood changes.
+    func rederivePaletteForCurrentStyle() {
+        switch currentLook.style {
+        case .flow:   reloadPaletteFromPhoto()
+        case .liquid: reloadLiquidPaletteFromPhoto()
+        case .dune:   reloadDunePaletteFromPhoto()
+        case .glow:   reloadGlowPaletteFromPhoto()
+        case .blur, .mirror: break
+        }
+    }
+
+    /// Palette-mood binding that re-derives the current style's colours on change.
+    var paletteStyleBinding: Binding<PaletteStyle> {
+        Binding(
+            get: { self.currentLook.paletteStyle },
+            set: { newValue in
+                self.mutateCurrentLook { $0.paletteStyle = newValue }
+                self.rederivePaletteForCurrentStyle()
+            }
+        )
     }
 
     /// A *curated* palette from a photo, tuned to read **bright, clean and
@@ -606,47 +717,185 @@ final class AppModel: ObservableObject {
     /// adds one airy near-white accent. `sortedByLuminance` orders the stops
     /// dark → bright (Liquid/Dune ramp); otherwise by hue (Flow).
     private static func extractPalette(from cg: CGImage, count: Int,
+                                       mode: PaletteStyle = .playful,
                                        sortedByLuminance: Bool = false) -> [Color] {
         guard count > 0 else { return [] }
         let pixels = downsampledPixels(from: cg, maxDim: 64)
         var hues = dominantHues(pixels)                            // OKLCH hues, 0…1
         if hues.isEmpty { hues = [0.72] }                          // fallback: a friendly blue
 
-        // Reserve one slot for an airy near-white when the image is cloudy / hazy.
-        let airy = brightNeutralShare(pixels) > 0.06
-        let hueSlots = max(airy ? count - 1 : count, 1)
-
-        // Fill harmonically from the dominant hue when the photo has too few.
-        let base = hues[0]
-        let offsets = [0.083, -0.083, 0.5, 0.166, -0.166, 0.25, -0.25, 0.33, -0.33, 0.417]
-        var oi = 0
-        while hues.count < hueSlots && oi < offsets.count {
-            var h = (base + offsets[oi]).truncatingRemainder(dividingBy: 1); if h < 0 { h += 1 }
-            if hues.allSatisfy({ hueDistance($0, h) > 0.075 }) { hues.append(h) }
-            oi += 1
+        var stops: [(Double, Double, Double)]
+        switch mode {
+        case .playful:  stops = playfulStops(count: count, hues: hues, airy: brightNeutralShare(pixels) > 0.06)
+        case .pastel:   stops = pastelStops(count: count, hues: hues)
+        case .jewel:    stops = jewelStops(count: count, hues: hues)
+        case .duotone:  stops = duotoneStops(count: count, hues: hues)
+        case .night:    stops = nightStops(count: count, hues: hues)
+        case .sepia:    stops = sepiaStops(count: count)
+        case .metallic: stops = metallicStops(count: count, tint: hues[0])
+        case .mono:     stops = monoStops(count: count)
         }
-        hues = Array(hues.prefix(hueSlots))
 
-        // Render each hue at a fixed *perceptual* lightness + chroma (OKLCH), so
-        // every stop reads equally light and soft regardless of hue — with a fixed
-        // HSB brightness, blue/violet/green come out heavier/darker than yellow/pink.
-        // L/chroma are the soft, airy target from the good/bad calibration pass.
-        var stops: [(Double, Double, Double)] = []
-        let n = max(hues.count, 1)
-        for (i, h) in hues.enumerated() {
-            let t = n > 1 ? Double(i) / Double(n - 1) : 0.5
-            stops.append(oklchToRGB(lightness: 0.80 + 0.12 * t, chroma: 0.075, hue: h))
-        }
-        if airy { stops.append(oklchToRGB(lightness: 0.965, chroma: 0.015, hue: hues.first ?? 0.72)) }
-        while stops.count < count, let last = stops.last { stops.append(last) }
-        stops = Array(stops.prefix(count))
-
-        if sortedByLuminance {
+        // Playful is designed around distinct hues (Flow orders them by hue); every
+        // other mood is a designed dark→bright ramp, so keep it in luminance order.
+        if sortedByLuminance || mode != .playful {
             stops.sort { luminance($0) < luminance($1) }
         } else {
             stops.sort { rgbToOKLCH($0).h < rgbToOKLCH($1).h }
         }
         return stops.map { Color(red: $0.0, green: $0.1, blue: $0.2) }
+    }
+
+    /// Expands a seed of dominant hues to `n` distinct hues, filling harmonically
+    /// (complement, thirds, analogues) from the dominant one when the photo is too
+    /// monochrome — a full, cohesive set instead of the same hue repeated.
+    private static func fillHues(_ seed: [Double], to n: Int) -> [Double] {
+        guard n > 0 else { return [] }
+        var hues = seed
+        let base = hues.first ?? 0.72
+        let offsets = [0.083, -0.083, 0.5, 0.166, -0.166, 0.25, -0.25, 0.33, -0.33, 0.417]
+        var oi = 0
+        while hues.count < n && oi < offsets.count {
+            var h = (base + offsets[oi]).truncatingRemainder(dividingBy: 1); if h < 0 { h += 1 }
+            if hues.allSatisfy({ hueDistance($0, h) > 0.075 }) { hues.append(h) }
+            oi += 1
+        }
+        return Array(hues.prefix(n))
+    }
+
+    /// Renders hues at per-index (lightness, chroma) from `tone(t)`, padding the
+    /// result to `count`. The shared body behind most colourful moods.
+    private static func hueRamp(count: Int, hues: [Double],
+                                tone: (Double) -> (L: Double, C: Double)) -> [(Double, Double, Double)] {
+        var stops: [(Double, Double, Double)] = []
+        let n = max(hues.count, 1)
+        for (i, h) in hues.enumerated() {
+            let t = n > 1 ? Double(i) / Double(n - 1) : 0.5
+            let s = tone(t)
+            stops.append(oklchToRGB(lightness: s.L, chroma: s.C, hue: h))
+        }
+        while stops.count < count, let last = stops.last { stops.append(last) }
+        return Array(stops.prefix(count))
+    }
+
+    /// The **playful** mood: render each dominant hue at a fixed *perceptual*
+    /// lightness + chroma (OKLCH) so every stop reads equally light and soft, with
+    /// harmonically-derived fills and one airy near-white accent for hazy photos.
+    private static func playfulStops(count: Int, hues seed: [Double], airy: Bool) -> [(Double, Double, Double)] {
+        let hueSlots = max(airy ? count - 1 : count, 1)
+        let hues = fillHues(seed, to: hueSlots)
+        var stops = hueRamp(count: airy ? hueSlots : count, hues: hues) { (0.80 + 0.12 * $0, 0.075) }
+        if airy { stops.append(oklchToRGB(lightness: 0.965, chroma: 0.015, hue: hues.first ?? 0.72)) }
+        while stops.count < count, let last = stops.last { stops.append(last) }
+        return Array(stops.prefix(count))
+    }
+
+    /// **Pastell**: very light, milky, low-chroma candy tones — softer still than playful.
+    private static func pastelStops(count: Int, hues seed: [Double]) -> [(Double, Double, Double)] {
+        hueRamp(count: count, hues: fillHues(seed, to: count)) { (0.88 + 0.06 * $0, 0.045) }
+    }
+
+    /// **Juwel**: deep, richly saturated gem tones at mid lightness (emerald, sapphire, ruby).
+    private static func jewelStops(count: Int, hues seed: [Double]) -> [(Double, Double, Double)] {
+        hueRamp(count: count, hues: fillHues(seed, to: count)) { (0.42 + 0.16 * $0, 0.16) }
+    }
+
+    /// **Nacht**: a near-black tinted base, then the photo's hues glowing at mid
+    /// lightness + high chroma — the one dark, moody mood.
+    private static func nightStops(count: Int, hues seed: [Double]) -> [(Double, Double, Double)] {
+        var stops = [oklchToRGB(lightness: 0.10, chroma: 0.03, hue: seed.first ?? 0.66)]
+        stops += hueRamp(count: max(count - 1, 1), hues: fillHues(seed, to: max(count - 1, 1))) {
+            (0.40 + 0.20 * $0, 0.155)
+        }
+        while stops.count < count, let last = stops.last { stops.append(last) }
+        return Array(stops.prefix(count))
+    }
+
+    /// **Duoton**: two hues mapped across a dark→light ramp — shadows in the
+    /// dominant hue, highlights in its complement (or the photo's second hue).
+    private static func duotoneStops(count: Int, hues seed: [Double]) -> [(Double, Double, Double)] {
+        let base = seed.first ?? 0.62
+        let hi = seed.count > 1 ? seed[1] : (base + 0.5).truncatingRemainder(dividingBy: 1)
+        var stops: [(Double, Double, Double)] = []
+        for i in 0..<count {
+            let t = count > 1 ? Double(i) / Double(count - 1) : 0.5
+            let C = 0.11 * (1.0 - 0.35 * abs(2 * t - 1))       // ease chroma at the extremes
+            stops.append(oklchToRGB(lightness: 0.28 + 0.62 * t, chroma: C, hue: t < 0.5 ? base : hi))
+        }
+        return stops
+    }
+
+    /// **Sepia**: warm monochrome — brown shadows to cream highlights, image-independent.
+    private static func sepiaStops(count: Int) -> [(Double, Double, Double)] {
+        var stops: [(Double, Double, Double)] = []
+        for i in 0..<count {
+            let t = count > 1 ? Double(i) / Double(count - 1) : 0.5
+            stops.append(oklchToRGB(lightness: 0.32 + 0.60 * pow(t, 0.95),
+                                    chroma: 0.055 * (1.0 - 0.5 * t), hue: 0.08))
+        }
+        return stops
+    }
+
+    /// **Mono**: a pure neutral greyscale ramp, no tint.
+    private static func monoStops(count: Int) -> [(Double, Double, Double)] {
+        (0..<count).map { i in
+            let t = count > 1 ? Double(i) / Double(count - 1) : 0.5
+            return oklchToRGB(lightness: 0.20 + 0.75 * t, chroma: 0, hue: 0)
+        }
+    }
+
+    /// The **metallic** mood: a near-grey ramp with a wide dark→bright span and a
+    /// bright specular top, faintly tinted by the photo's dominant hue (a warm
+    /// scene reads champagne/brass, a cool one steel/titanium). Low chroma keeps it
+    /// reading as brushed metal rather than colour.
+    private static func metallicStops(count: Int, tint: Double) -> [(Double, Double, Double)] {
+        var stops: [(Double, Double, Double)] = []
+        for i in 0..<count {
+            let t = count > 1 ? Double(i) / Double(count - 1) : 0.5
+            let L = 0.30 + 0.64 * pow(t, 0.92)          // deep base → bright specular
+            let C = 0.014 * (1.0 - 0.5 * t)             // a touch warmer/tarnished in the shadows
+            stops.append(oklchToRGB(lightness: L, chroma: C, hue: tint))
+        }
+        return stops
+    }
+
+    /// A photo-derived (background, light) pair for the Glow style, in the chosen
+    /// mood: a soft tinted field + an airy near-white for `.playful`; a mid steel
+    /// field + a bright specular for `.metallic`.
+    private static func glowPalette(from cg: CGImage, mode: PaletteStyle) -> (bg: Color, light: Color) {
+        let pixels = downsampledPixels(from: cg, maxDim: 64)
+        let hs = dominantHues(pixels)
+        let hue = hs.first ?? 0.62
+        let bg: (Double, Double, Double), light: (Double, Double, Double)
+        switch mode {
+        case .playful:
+            bg = oklchToRGB(lightness: 0.74, chroma: 0.030, hue: hue)
+            light = oklchToRGB(lightness: 0.975, chroma: 0.020, hue: hue)
+        case .pastel:
+            bg = oklchToRGB(lightness: 0.90, chroma: 0.028, hue: hue)
+            light = oklchToRGB(lightness: 0.985, chroma: 0.018, hue: hue)
+        case .jewel:
+            bg = oklchToRGB(lightness: 0.26, chroma: 0.130, hue: hue)
+            light = oklchToRGB(lightness: 0.90, chroma: 0.060, hue: hue)
+        case .duotone:
+            let hi = hs.count > 1 ? hs[1] : (hue + 0.5).truncatingRemainder(dividingBy: 1)
+            bg = oklchToRGB(lightness: 0.30, chroma: 0.100, hue: hue)
+            light = oklchToRGB(lightness: 0.92, chroma: 0.060, hue: hi)
+        case .night:
+            bg = oklchToRGB(lightness: 0.13, chroma: 0.035, hue: hue)
+            light = oklchToRGB(lightness: 0.86, chroma: 0.120, hue: hue)
+        case .sepia:
+            bg = oklchToRGB(lightness: 0.42, chroma: 0.050, hue: 0.08)
+            light = oklchToRGB(lightness: 0.92, chroma: 0.035, hue: 0.08)
+        case .metallic:
+            bg = oklchToRGB(lightness: 0.52, chroma: 0.012, hue: hue)
+            light = oklchToRGB(lightness: 0.93, chroma: 0.008, hue: hue)
+        case .mono:
+            bg = oklchToRGB(lightness: 0.55, chroma: 0, hue: 0)
+            light = oklchToRGB(lightness: 0.97, chroma: 0, hue: 0)
+        }
+        return (Color(red: bg.0, green: bg.1, blue: bg.2),
+                Color(red: light.0, green: light.1, blue: light.2))
     }
 
     /// Draws the source into a small RGB bitmap and returns its opaque pixels as
@@ -799,6 +1048,8 @@ final class AppModel: ObservableObject {
             return LiquidProcessor.render(size: size, settings: look.liquidSettings, deepColor: deep)
         case .dune:
             return DuneProcessor.render(size: size, settings: look.duneSettings, deepColor: deep)
+        case .glow:
+            return GlowProcessor.render(size: size, settings: look.glowSettings, deepColor: deep)
         case .mirror:
             guard let src = look.source,
                   let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)
