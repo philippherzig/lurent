@@ -287,34 +287,10 @@ private struct EffectSection: View {
             slider("Blur", model.bind(\.blur), 0...100)
             slider("Spiegel-Linie", model.bind(\.mirrorLine), 0.15...0.85)
             slider("Amplitude", model.bind(\.mirrorAmplitude), 0...0.15)
-            slider("Frequenz", model.bind(\.mirrorFrequency), 0.3...3)
-            slider("Kantenschärfe", model.bind(\.mirrorHardness), 0...1)
+            slider("Wellenlänge", wavelengthBinding, 0...1)
+            slider("Unregelmässigkeit", model.bind(\.mirrorIrregularity), 0...1)
             slider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
             slider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
-
-        case .flow:
-            Picker("Farben", selection: model.bind(\.flowBands)) {
-                Text("2 Farben").tag(2)
-                Text("3 Farben").tag(3)
-            }
-            .pickerStyle(.segmented)
-
-            paletteEditor {
-                HStack {
-                    ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
-                    ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
-                    if model.currentLook.flowBands >= 3 {
-                        ColorPicker("Farbe 3", selection: model.bind(\.flowColor2), supportsOpacity: false)
-                    }
-                }
-                .labelsHidden()
-            }
-
-            slider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
-            slider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
-            slider("Kantenschärfe", model.bind(\.flowSharpness), 0...1)
-            slider("Rand-Weichheit", model.bind(\.flowEdgeSoftness), 0...1)
-            slider("Variante", model.bind(\.flowPhase), 0...6.283)
 
         case .liquid:
             Picker("Farben", selection: model.bind(\.liquidCount)) {
@@ -340,78 +316,15 @@ private struct EffectSection: View {
 
             slider("Frame", model.bind(\.liquidTime), 0...30)
             slider("Variante", model.bind(\.liquidSeed), 0...12)
-            slider("Skalierung", model.bind(\.liquidScale), 0...2.5)
-            slider("Turbulenz", model.bind(\.liquidTurb), 0...1.6)
+            slider("Skalierung", model.bind(\.liquidScale), 0...1.0)
+            slider("Turbulenz", model.bind(\.liquidTurb), 0...0.32)
             slider("Wellen", model.bind(\.liquidWave), 0.3...3)
-            slider("Tonwert", model.bind(\.liquidBias), -1...1)
-
-        case .dune:
-            Picker("Farben", selection: model.bind(\.duneCount)) {
-                Text("3").tag(3); Text("4").tag(4); Text("5").tag(5)
-            }
-            .pickerStyle(.segmented)
-
-            paletteEditor {
-                HStack {
-                    // Shown dark → bright; reducing the count drops the darker stops (left).
-                    if model.currentLook.duneCount >= 5 {
-                        ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
-                    }
-                    if model.currentLook.duneCount >= 4 {
-                        ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
-                    }
-                    ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
-                    ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
-                    ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
-                }
-                .labelsHidden()
-            }
-
-            slider("Neigung", model.bind(\.duneTilt), -0.8...0.8)
-            slider("Amplitude", model.bind(\.duneAmplitude), 0...0.3)
-            slider("Frequenz", model.bind(\.duneFrequency), 0.3...3)
-            slider("Kantenschärfe", model.bind(\.duneSharpness), 0...1)
-            slider("Faltenlicht", model.bind(\.duneShading), 0...1)
-            slider("Weichheit", model.bind(\.duneSoftness), 0...0.04)
-            slider("Variante", model.bind(\.dunePhase), 0...6.283)
-
-        case .glow:
-            Picker("Form", selection: model.bind(\.glowForm)) {
-                ForEach(GlowProcessor.Form.allCases) { Text($0.label).tag($0.rawValue) }
-            }
-
-            paletteEditor {
-                HStack {
-                    ColorPicker("Hintergrund", selection: model.bind(\.glowBackground), supportsOpacity: false)
-                    ColorPicker("Licht", selection: model.bind(\.glowLight), supportsOpacity: false)
-                }
-                .labelsHidden()
-            }
-
-            slider("Größe", model.bind(\.glowScale), 0.4...2.0)
-            slider("Verlauf", model.bind(\.glowTilt), 0...1)
-            slider("Richtung", model.bind(\.glowTiltDir), 0...6.283)
-            slider("Schärfe", model.bind(\.glowSharpness), 0...1)
-            slider("Weichheit", model.bind(\.glowSoftness), 0.05...0.6)
-            slider("Dehnung", model.bind(\.glowStretch), -1...1)
-            slider("Drehung", model.bind(\.glowRotation), 0...6.283)
-            slider("Verzerrung", model.bind(\.glowWarp), 0...0.6)
-            slider("Halo", model.bind(\.glowHalo), 0...1)
-            slider("Stärke", model.bind(\.glowIntensity), 0.2...1.5)
-
-            if model.currentLook.glowForm == GlowProcessor.Form.blobs.rawValue {
-                slider("Anzahl", model.bindInt(\.glowCount), 1...8)
-                slider("Verschmelzung", model.bind(\.glowMerge), 0.02...0.6)
-                slider("Variante", model.bind(\.glowSeed), 0...12)
-            } else if model.currentLook.glowForm != GlowProcessor.Form.orb.rawValue {
-                slider("Ringstärke", model.bind(\.glowThickness), 0.002...0.15)
-            }
+            slider("Tonwert", model.bind(\.liquidBias), 0...0.8)
         }
 
         // Colour grade + grain — shared by every style.
         slider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
         slider("Sättigung", model.bind(\.saturation), 0...2)
-        slider("Farbton", model.bind(\.hue), -Double.pi...Double.pi)
         slider("Kontrast", model.bind(\.contrast), 0.8...1.3)
         slider("Körnung", model.bind(\.dither), 0...1)
     }
@@ -420,6 +333,16 @@ private struct EffectSection: View {
         LabeledContent(title) {
             Slider(value: value, in: range)
         }
+    }
+
+    /// "Wellenlänge" (0…1, right = longer) mapped onto the mirror's base frequency:
+    /// L=0 → freq 1.5 (short waves), L=1 → freq 0.25 (long waves). Default freq 0.75 → L≈0.6.
+    private var wavelengthBinding: Binding<Double> {
+        let f = model.bind(\.mirrorFrequency)
+        return Binding(
+            get: { max(0, min(1, (1.5 - f.wrappedValue) / 1.25)) },
+            set: { f.wrappedValue = 1.5 - $0 * 1.25 }
+        )
     }
 
     /// Palette colour editor: the source photo with a draggable pointer per stop

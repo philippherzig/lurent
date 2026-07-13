@@ -95,7 +95,7 @@ enum BlurProcessor {
     }
 
     /// Brightness / saturation / contrast / hue grade — shared by every style so the
-    /// controls behave identically across Blur, Flow, Liquid, Dune, Glow and Spiegel.
+    /// controls behave identically across Blur, Liquid and Spiegel.
     static func colorGrade(_ image: CIImage, brightness: Double,
                            saturation: Double, contrast: Double, hue: Double = 0) -> CIImage {
         let color = CIFilter.colorControls()

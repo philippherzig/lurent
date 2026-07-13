@@ -58,21 +58,18 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, flow, liquid, dune, glow, mirror
+    case blur, liquid, mirror
     var id: String { rawValue }
     var label: String {
         switch self {
         case .blur:   return L("Blur")
-        case .flow:   return L("Flow")
         case .liquid: return L("Liquid")
-        case .dune:   return L("Dune")
-        case .glow:   return L("Glow")
         case .mirror: return L("Spiegel")
         }
     }
 
     /// Styles that synthesize the image from parameters alone (no source photo).
-    var isSynthetic: Bool { self == .flow || self == .liquid || self == .dune || self == .glow }
+    var isSynthetic: Bool { self == .liquid }
 }
 
 /// One draggable palette stop shown on the source photo: where it samples from,
@@ -105,17 +102,6 @@ struct Look {
     var hue: Double = 0           // global hue rotation (radians); 0 = neutral
     var dither: Double = 0        // shared grain; off by default (16-bit export avoids banding)
 
-    // Flow style
-    var flowColor0: Color = Color(red: 0.98, green: 0.55, blue: 0.10)
-    var flowColor1: Color = Color(red: 1.00, green: 0.13, blue: 0.55)
-    var flowColor2: Color = Color(red: 0.55, green: 0.12, blue: 0.92)
-    var flowBands: Int = 3
-    var flowAmplitude: Double = 0.11
-    var flowFrequency: Double = 1.0
-    var flowSharpness: Double = 0.8
-    var flowEdgeSoftness: Double = 0.7
-    var flowPhase: Double = 1.0
-
     // Liquid style (domain-warped turbulence gradient — heart.zuerich look)
     var liquidColor0: Color = Color(red: 0.00, green: 0.04, blue: 0.08) // deep navy  #000a14
     var liquidColor1: Color = Color(red: 0.78, green: 0.25, blue: 1.00) // purple     #c841ff
@@ -130,45 +116,12 @@ struct Look {
     var liquidWave: Double = 1.0
     var liquidBias: Double = 0.0
 
-    // Dune style (Big Sur–style flowing gradient: warped multi-stop ramp)
-    var duneColor0: Color = Color(red: 0.45, green: 0.16, blue: 0.62) // purple
-    var duneColor1: Color = Color(red: 1.00, green: 0.15, blue: 0.45) // magenta/pink
-    var duneColor2: Color = Color(red: 1.00, green: 0.42, blue: 0.20) // orange-red
-    var duneColor3: Color = Color(red: 1.00, green: 0.80, blue: 0.30) // golden yellow
-    var duneColor4: Color = Color(red: 0.20, green: 0.62, blue: 0.95) // sky blue
-    var duneCount: Int = 5
-    var duneTilt: Double = 0.42
-    var duneAmplitude: Double = 0.12
-    var duneFrequency: Double = 1.05
-    var duneSharpness: Double = 1.0
-    var duneShading: Double = 1.0
-    var duneSoftness: Double = 0
-    var dunePhase: Double = 0.5
-
-    // Glow style (soft light shapes dissolving into blur; SDF glow field)
-    var glowBackground: Color = Color(red: 0.72, green: 0.72, blue: 0.73)
-    var glowLight: Color = Color(red: 0.99, green: 0.99, blue: 1.00)
-    var glowForm: Int = GlowProcessor.Form.ring.rawValue
-    var glowSeed: Double = 3.0
-    var glowCount: Int = 4
-    var glowScale: Double = 1.0
-    var glowMerge: Double = 0.35
-    var glowThickness: Double = 0.01
-    var glowSharpness: Double = 0.85   // crisp-side edge; higher = harder edge
-    var glowSoftness: Double = 0.25    // how far the fading side dissolves
-    var glowHalo: Double = 0.5
-    var glowTilt: Double = 1.0         // the sharp↔dissolve gradient (the key knob)
-    var glowTiltDir: Double = 5.2
-    var glowIntensity: Double = 1.0
-    var glowWarp: Double = 0.0         // organic distortion of the subject
-    var glowStretch: Double = 0.0      // anisotropic stretch (−wide … +tall)
-    var glowRotation: Double = 0.0     // rotate the subject (rad)
-
     // Mirror style (builds on the blur controls)
     var mirrorLine: Double = 0.52
     var mirrorAmplitude: Double = 0.05
-    var mirrorFrequency: Double = 1.0
+    var mirrorFrequency: Double = 0.75      // lower default → longer waves
     var mirrorPhase: Double = 1.0
+    var mirrorIrregularity: Double = 0.6    // 0 = pure sine, 1 = organic curve
     var mirrorHardness: Double = 1.0
     var mirrorDepth: Double = 0.35
     var mirrorSideFade: Double = 0.5
@@ -177,35 +130,17 @@ struct Look {
     // that each colour stop is sampled from. One point per stop, aligned 1:1 with the
     // colour slots above; dragged directly on the photo in the inspector. Photo-less
     // styles keep the stored colours instead.
-    var flowPoints:   [CGPoint] = [CGPoint(x: 0.28, y: 0.34), CGPoint(x: 0.50, y: 0.60), CGPoint(x: 0.72, y: 0.40)]
     var liquidPoints: [CGPoint] = [CGPoint(x: 0.12, y: 0.74), CGPoint(x: 0.32, y: 0.52), CGPoint(x: 0.50, y: 0.34), CGPoint(x: 0.70, y: 0.52), CGPoint(x: 0.88, y: 0.70)]
-    var dunePoints:   [CGPoint] = [CGPoint(x: 0.12, y: 0.74), CGPoint(x: 0.32, y: 0.52), CGPoint(x: 0.50, y: 0.34), CGPoint(x: 0.70, y: 0.52), CGPoint(x: 0.88, y: 0.70)]
-    var glowPoints:   [CGPoint] = [CGPoint(x: 0.40, y: 0.58), CGPoint(x: 0.62, y: 0.40)]
 
     // Colour-slot setters (write a stop by index into the flat stored properties).
-    mutating func setFlowColor(_ i: Int, _ c: Color) {
-        switch i { case 0: flowColor0 = c; case 1: flowColor1 = c; default: flowColor2 = c }
-    }
     mutating func setLiquidColor(_ i: Int, _ c: Color) {
         switch i { case 0: liquidColor0 = c; case 1: liquidColor1 = c; case 2: liquidColor2 = c
                    case 3: liquidColor3 = c; default: liquidColor4 = c }
-    }
-    mutating func setDuneColor(_ i: Int, _ c: Color) {
-        switch i { case 0: duneColor0 = c; case 1: duneColor1 = c; case 2: duneColor2 = c
-                   case 3: duneColor3 = c; default: duneColor4 = c }
     }
 
     var settings: BlurProcessor.Settings {
         .init(blur: blur, brightness: brightness, saturation: saturation,
               contrast: contrast, dither: dither, hue: hue, offset: blurOffset)
-    }
-
-    var flowSettings: FlowProcessor.Settings {
-        .init(colors: [flowColor0.asCIColor, flowColor1.asCIColor, flowColor2.asCIColor],
-              bands: flowBands, amplitude: flowAmplitude, frequency: flowFrequency,
-              sharpness: flowSharpness, edgeSoftness: flowEdgeSoftness,
-              phase: flowPhase, brightness: brightness, saturation: saturation,
-              contrast: contrast, dither: dither, hue: hue)
     }
 
     var liquidSettings: LiquidProcessor.Settings {
@@ -220,35 +155,10 @@ struct Look {
               contrast: contrast, dither: dither, hue: hue)
     }
 
-    var duneSettings: DuneProcessor.Settings {
-        // Keep the brightest `count` stops when fewer than 5 are active (see Liquid).
-        let all = [duneColor0, duneColor1, duneColor2, duneColor3, duneColor4]
-        return .init(colors: all.suffix(duneCount).map(\.asCIColor),
-              count: duneCount, tilt: duneTilt, amplitude: duneAmplitude,
-              frequency: duneFrequency, sharpness: duneSharpness, shading: duneShading,
-              softness: duneSoftness, phase: dunePhase,
-              brightness: brightness, saturation: saturation,
-              contrast: contrast, dither: dither, hue: hue)
-    }
-
-    var glowSettings: GlowProcessor.Settings {
-        // Map the 0…1 "Schärfe" slider to a crisp-side edge width (higher = harder).
-        let edge = 0.05 - glowSharpness * 0.048
-        return .init(background: glowBackground.asCIColor, light: glowLight.asCIColor,
-                     form: GlowProcessor.Form(rawValue: glowForm) ?? .ring,
-                     seed: glowSeed, count: glowCount, scale: glowScale,
-                     merge: glowMerge, thickness: glowThickness, edge: edge,
-                     softness: glowSoftness, halo: glowHalo, tilt: glowTilt,
-                     tiltDir: glowTiltDir, intensity: glowIntensity, warp: glowWarp,
-                     stretch: glowStretch, rotation: glowRotation,
-                     brightness: brightness, saturation: saturation,
-                     contrast: contrast, dither: dither, hue: hue)
-    }
-
     var mirrorSettings: MirrorProcessor.Settings {
         .init(line: mirrorLine, amplitude: mirrorAmplitude, frequency: mirrorFrequency,
-              phase: mirrorPhase, hardness: mirrorHardness, depth: mirrorDepth,
-              sideFade: mirrorSideFade)
+              phase: mirrorPhase, irregular: mirrorIrregularity, hardness: mirrorHardness,
+              depth: mirrorDepth, sideFade: mirrorSideFade)
     }
 }
 
@@ -421,34 +331,16 @@ final class AppModel: ObservableObject {
             switch $0.style {
             case .blur:
                 $0.blur = d.blur
-            case .flow:
-                $0.flowBands = d.flowBands; $0.flowAmplitude = d.flowAmplitude
-                $0.flowFrequency = d.flowFrequency; $0.flowSharpness = d.flowSharpness
-                $0.flowEdgeSoftness = d.flowEdgeSoftness; $0.flowPhase = d.flowPhase
             case .liquid:
                 $0.liquidCount = d.liquidCount; $0.liquidTime = d.liquidTime
                 $0.liquidSeed = d.liquidSeed; $0.liquidScale = d.liquidScale
                 $0.liquidTurb = d.liquidTurb; $0.liquidWave = d.liquidWave
                 $0.liquidBias = d.liquidBias
-            case .dune:
-                $0.duneCount = d.duneCount; $0.duneTilt = d.duneTilt
-                $0.duneAmplitude = d.duneAmplitude; $0.duneFrequency = d.duneFrequency
-                $0.duneSharpness = d.duneSharpness; $0.duneShading = d.duneShading
-                $0.duneSoftness = d.duneSoftness; $0.dunePhase = d.dunePhase
-            case .glow:
-                $0.glowBackground = d.glowBackground; $0.glowLight = d.glowLight
-                $0.glowForm = d.glowForm; $0.glowSeed = d.glowSeed
-                $0.glowCount = d.glowCount; $0.glowScale = d.glowScale
-                $0.glowMerge = d.glowMerge; $0.glowThickness = d.glowThickness
-                $0.glowSharpness = d.glowSharpness; $0.glowSoftness = d.glowSoftness
-                $0.glowHalo = d.glowHalo
-                $0.glowTilt = d.glowTilt; $0.glowTiltDir = d.glowTiltDir
-                $0.glowIntensity = d.glowIntensity; $0.glowWarp = d.glowWarp
-                $0.glowStretch = d.glowStretch; $0.glowRotation = d.glowRotation
             case .mirror:
                 $0.blur = d.blur
                 $0.mirrorLine = d.mirrorLine; $0.mirrorAmplitude = d.mirrorAmplitude
                 $0.mirrorFrequency = d.mirrorFrequency; $0.mirrorPhase = d.mirrorPhase
+                $0.mirrorIrregularity = d.mirrorIrregularity
                 $0.mirrorHardness = d.mirrorHardness; $0.mirrorDepth = d.mirrorDepth
                 $0.mirrorSideFade = d.mirrorSideFade
             }
@@ -505,12 +397,15 @@ final class AppModel: ObservableObject {
         Task {
             defer { isSearching = false }
             do {
-                let photos = try await service.topicPhotos()
+                // Pull a RANDOM shallow page of the curated "wallpapers" topic so the
+                // picker isn't the identical top-12 on every launch. Staying within the
+                // first few popular pages keeps quality high while rotating the set.
+                let photos = try await service.topicPhotos(page: Int.random(in: 1...10))
                 // Bail if the user started interacting while the request was in flight.
                 guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil,
-                      let first = photos.first else { return }
+                      let pick = photos.randomElement() else { return }
                 results = photos
-                select(first)
+                select(pick)
             } catch {
                 // Startup convenience — stay silent so a missing key or offline
                 // launch just falls back to the empty state, no error alert.
@@ -624,26 +519,12 @@ final class AppModel: ObservableObject {
     var activePaletteStops: [PaletteStop] {
         let l = currentLook
         switch l.style {
-        case .flow:
-            let cols = [l.flowColor0, l.flowColor1, l.flowColor2]
-            return (0..<max(0, min(l.flowBands, 3))).map {
-                PaletteStop(id: $0, point: l.flowPoints[$0], color: cols[$0], label: "\($0 + 1)")
-            }
         case .liquid:
             let cols = [l.liquidColor0, l.liquidColor1, l.liquidColor2, l.liquidColor3, l.liquidColor4]
             let start = 5 - min(max(l.liquidCount, 0), 5)
             return Array(start..<5).enumerated().map { (k, idx) in
                 PaletteStop(id: idx, point: l.liquidPoints[idx], color: cols[idx], label: "\(k + 1)")
             }
-        case .dune:
-            let cols = [l.duneColor0, l.duneColor1, l.duneColor2, l.duneColor3, l.duneColor4]
-            let start = 5 - min(max(l.duneCount, 0), 5)
-            return Array(start..<5).enumerated().map { (k, idx) in
-                PaletteStop(id: idx, point: l.dunePoints[idx], color: cols[idx], label: "\(k + 1)")
-            }
-        case .glow:
-            return [PaletteStop(id: 0, point: l.glowPoints[0], color: l.glowBackground, label: "H"),
-                    PaletteStop(id: 1, point: l.glowPoints[1], color: l.glowLight, label: "L")]
         case .blur, .mirror:
             return []
         }
@@ -657,19 +538,9 @@ final class AppModel: ObservableObject {
         let color = Self.sampleColor(from: src, at: p)
         mutateCurrentLook { look in
             switch look.style {
-            case .flow:
-                guard look.flowPoints.indices.contains(slot) else { return }
-                look.flowPoints[slot] = p; look.setFlowColor(slot, color)
             case .liquid:
                 guard look.liquidPoints.indices.contains(slot) else { return }
                 look.liquidPoints[slot] = p; look.setLiquidColor(slot, color)
-            case .dune:
-                guard look.dunePoints.indices.contains(slot) else { return }
-                look.dunePoints[slot] = p; look.setDuneColor(slot, color)
-            case .glow:
-                guard look.glowPoints.indices.contains(slot) else { return }
-                look.glowPoints[slot] = p
-                if slot == 0 { look.glowBackground = color } else { look.glowLight = color }
             case .blur, .mirror:
                 break
             }
@@ -679,11 +550,7 @@ final class AppModel: ObservableObject {
     /// Fills every palette colour from the look's sample points against `cg` — the
     /// "straight from the photo" derivation used when a new source loads.
     private static func resampleColors(_ look: inout Look, from cg: CGImage) {
-        for i in 0..<3 { look.setFlowColor(i, sampleColor(from: cg, at: look.flowPoints[i])) }
         for i in 0..<5 { look.setLiquidColor(i, sampleColor(from: cg, at: look.liquidPoints[i])) }
-        for i in 0..<5 { look.setDuneColor(i, sampleColor(from: cg, at: look.dunePoints[i])) }
-        look.glowBackground = sampleColor(from: cg, at: look.glowPoints[0])
-        look.glowLight      = sampleColor(from: cg, at: look.glowPoints[1])
     }
 
     /// Average sRGB colour of a small patch of `cg` around a normalised point
@@ -744,14 +611,8 @@ final class AppModel: ObservableObject {
         case .blur:
             guard let src = look.source else { return nil }
             return BlurProcessor.render(source: src, targetSize: size, settings: look.settings, deepColor: deep)
-        case .flow:
-            return FlowProcessor.render(size: size, settings: look.flowSettings, deepColor: deep)
         case .liquid:
             return LiquidProcessor.render(size: size, settings: look.liquidSettings, deepColor: deep)
-        case .dune:
-            return DuneProcessor.render(size: size, settings: look.duneSettings, deepColor: deep)
-        case .glow:
-            return GlowProcessor.render(size: size, settings: look.glowSettings, deepColor: deep)
         case .mirror:
             guard let src = look.source,
                   let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)
