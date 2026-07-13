@@ -151,7 +151,6 @@ private struct InspectorPane: View {
             Form {
                 BaseImageSection()
                 EffectSection()
-                OutputSection()
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
@@ -282,6 +281,7 @@ private struct EffectSection: View {
         switch model.currentLook.style {
         case .blur:
             slider("Blur", model.bind(\.blur), 0...100)
+            slider("Ausschnitt", model.bind(\.blurOffset), -1...1)
 
         case .mirror:
             slider("Blur", model.bind(\.blur), 0...100)
@@ -500,30 +500,6 @@ private struct SourceColorPicker: View {
                                                 y: (g.location.y - rect.minY) / rect.height))
                     }
             )
-    }
-}
-
-// MARK: - Output section (resolution)
-
-private struct OutputSection: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        Section("Ausgabe") {
-            Picker("Auflösung", selection: $model.preset) {
-                ForEach(ResolutionPreset.all) { Text($0.displayName).tag($0) }
-            }
-
-            if model.preset.isCustom {
-                HStack {
-                    TextField("Breite", value: $model.customWidth, format: .number)
-                    Text("×").foregroundStyle(.secondary)
-                    TextField("Höhe", value: $model.customHeight, format: .number)
-                    Text("px").foregroundStyle(.secondary)
-                }
-                .textFieldStyle(.roundedBorder)
-            }
-        }
     }
 }
 

@@ -20,6 +20,11 @@ enum BlurProcessor {
         var dither: Double = 0.1
         /// Global hue rotation in radians (0 = neutral); rotates every colour.
         var hue: Double = 0
+        /// Crop position along the axis that overflows the (square) target, −1…1
+        /// (0 = centred). Lets a 16:9 photo choose which square slice is used:
+        /// −1 = left / bottom edge, +1 = right / top edge. No effect when the source
+        /// already matches the target aspect (nothing overflows).
+        var offset: Double = 0
     }
 
     static let context: CIContext = {
@@ -69,10 +74,17 @@ enum BlurProcessor {
         let scale = max(targetSize.width / ext.width, targetSize.height / ext.height)
         image = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
 
+        // Centre the crop, then slide it along whichever axis overflows the target
+        // by `offset` (−1…1). Aspect-fill leaves exactly one axis with overflow, so a
+        // single control moves left/right for a landscape source and up/down for a
+        // portrait one; ±1 lands the window flush against an edge.
         let scaled = image.extent
+        let t = max(-1, min(1, settings.offset))
+        let overflowX = scaled.width - targetSize.width
+        let overflowY = scaled.height - targetSize.height
         let cropRect = CGRect(
-            x: scaled.midX - targetSize.width / 2,
-            y: scaled.midY - targetSize.height / 2,
+            x: scaled.midX - targetSize.width / 2 + t * overflowX / 2,
+            y: scaled.midY - targetSize.height / 2 + t * overflowY / 2,
             width: targetSize.width,
             height: targetSize.height
         )

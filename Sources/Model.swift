@@ -38,30 +38,15 @@ extension Color {
 
 // MARK: - Resolution presets
 
-struct ResolutionPreset: Identifiable, Hashable {
-    let name: String
-    let width: Int
-    let height: Int
-    var id: String { name }
-    var isCustom: Bool { width == 0 && height == 0 }
-    /// Localized name for display; product-size presets stay verbatim, only the
-    /// "custom size" entry is translated. (`name` remains the stable identity.)
-    var displayName: String { isCustom ? L("Eigene Größe…") : name }
-
-    static let all: [ResolutionPreset] = [
-        .init(name: "Pro Display XDR — 6016 × 3384", width: 6016, height: 3384),
-        .init(name: "Studio Display 5K — 5120 × 2880", width: 5120, height: 2880),
-        .init(name: "iMac 24\" 4.5K — 4480 × 2520", width: 4480, height: 2520),
-        .init(name: "MacBook Pro 16\" — 3456 × 2234", width: 3456, height: 2234),
-        .init(name: "MacBook Pro 14\" — 3024 × 1964", width: 3024, height: 1964),
-        .init(name: "MacBook Air 13\" — 2560 × 1664", width: 2560, height: 1664),
-        .init(name: "4K UHD — 3840 × 2160", width: 3840, height: 2160),
-        .init(name: "Full HD — 1920 × 1080", width: 1920, height: 1080),
-        .init(name: "Eigene Größe…", width: 0, height: 0),
-    ]
-
-    static var proDisplayXDR: ResolutionPreset { all[0] }
-}
+/// The wallpaper is rendered as one oversized **square** master and applied to every
+/// display with aspect-fill center-cropping (see `setAsDesktop`). macOS scales that
+/// single file down per screen, so it yields native resolution in *any* orientation —
+/// landscape and portrait alike — on every display whose longest edge is ≤ this value.
+/// 6016 is Apple's largest current panel dimension (Pro Display XDR), so this covers
+/// the whole lineup. Going bigger only wastes pixels macOS discards; smaller would
+/// upscale on the largest displays. This is why there is no resolution picker: one
+/// universal size is correct for all screens.
+let wallpaperMasterSide = 6016
 
 // MARK: - Appearance
 
@@ -113,6 +98,7 @@ struct Look {
 
     // Blur style
     var blur: Double = 55
+    var blurOffset: Double = 0    // −1…1: which square slice of the source to use (0 = centre)
     var brightness: Double = 0
     var saturation: Double = 1.0
     var contrast: Double = 1.0
@@ -211,7 +197,7 @@ struct Look {
 
     var settings: BlurProcessor.Settings {
         .init(blur: blur, brightness: brightness, saturation: saturation,
-              contrast: contrast, dither: dither, hue: hue)
+              contrast: contrast, dither: dither, hue: hue, offset: blurOffset)
     }
 
     var flowSettings: FlowProcessor.Settings {
@@ -318,11 +304,6 @@ final class AppModel: ObservableObject {
     // Looks
     @Published var lightLook = Look()
     @Published var darkLook = Look(brightness: -0.15, saturation: 1.0, contrast: 1.05)
-
-    // Output size
-    @Published var preset: ResolutionPreset = .proDisplayXDR { didSet { renderPreview() } }
-    @Published var customWidth: Int = 6016 { didSet { renderPreview() } }
-    @Published var customHeight: Int = 3384 { didSet { renderPreview() } }
 
     // Output preview
     @Published private(set) var preview: NSImage?
@@ -504,7 +485,7 @@ final class AppModel: ObservableObject {
     // MARK: Output size
 
     var pixelSize: (width: Int, height: Int) {
-        preset.isCustom ? (max(1, customWidth), max(1, customHeight)) : (preset.width, preset.height)
+        (wallpaperMasterSide, wallpaperMasterSide)
     }
 
     // MARK: Initial load
@@ -869,8 +850,16 @@ final class AppModel: ObservableObject {
                 try FileManager.default.moveItem(at: tmp, to: target)
             }
 
+            // The master is square and matches no display exactly, so force aspect-fill
+            // with clipping: macOS center-crops it to each screen's own aspect (the wide
+            // middle strip on landscape, the tall middle strip on portrait) at native
+            // resolution, instead of letterboxing.
+            let options: [NSWorkspace.DesktopImageOptionKey: Any] = [
+                .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
+                .allowClipping: true,
+            ]
             for screen in NSScreen.screens {
-                try NSWorkspace.shared.setDesktopImageURL(target, for: screen, options: [:])
+                try NSWorkspace.shared.setDesktopImageURL(target, for: screen, options: options)
             }
             statusMessage = L("Als dynamisches Wallpaper gesetzt.")
         } catch {
