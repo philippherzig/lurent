@@ -18,6 +18,8 @@ enum BlurProcessor {
         /// Dither intensity applied at output resolution. 16-bit output already
         /// removes banding; this adds a subtle grain on top (kept low by default).
         var dither: Double = 0.1
+        /// Global hue rotation in radians (0 = neutral); rotates every colour.
+        var hue: Double = 0
     }
 
     static let context: CIContext = {
@@ -58,7 +60,8 @@ enum BlurProcessor {
 
         // Colour grading (shared with the synthetic styles).
         image = colorGrade(image, brightness: settings.brightness,
-                           saturation: settings.saturation, contrast: settings.contrast)
+                           saturation: settings.saturation, contrast: settings.contrast,
+                           hue: settings.hue)
 
         // Aspect-fill into the target canvas, centred.
         let ext = image.extent
@@ -79,16 +82,23 @@ enum BlurProcessor {
                                                y: -cropRect.origin.y))
     }
 
-    /// Brightness / saturation / contrast grade — shared by every style so the
-    /// three controls behave identically across Blur, Flow, Liquid and Spiegel.
+    /// Brightness / saturation / contrast / hue grade — shared by every style so the
+    /// controls behave identically across Blur, Flow, Liquid, Dune, Glow and Spiegel.
     static func colorGrade(_ image: CIImage, brightness: Double,
-                           saturation: Double, contrast: Double) -> CIImage {
+                           saturation: Double, contrast: Double, hue: Double = 0) -> CIImage {
         let color = CIFilter.colorControls()
         color.inputImage = image
         color.brightness = Float(brightness)
         color.saturation = Float(saturation)
         color.contrast = Float(contrast)
-        return color.outputImage ?? image
+        var out = color.outputImage ?? image
+        if hue != 0 {
+            let h = CIFilter.hueAdjust()
+            h.inputImage = out
+            h.angle = Float(hue)
+            out = h.outputImage ?? out
+        }
+        return out
     }
 
     /// Applies dithering and renders to a CGImage of exactly `size` pixels.

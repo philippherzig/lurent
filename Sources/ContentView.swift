@@ -299,16 +299,16 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
-            paletteModePicker
-
-            HStack {
-                ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
-                ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
-                if model.currentLook.flowBands >= 3 {
-                    ColorPicker("Farbe 3", selection: model.bind(\.flowColor2), supportsOpacity: false)
+            paletteEditor {
+                HStack {
+                    ColorPicker("Farbe 1", selection: model.bind(\.flowColor0), supportsOpacity: false)
+                    ColorPicker("Farbe 2", selection: model.bind(\.flowColor1), supportsOpacity: false)
+                    if model.currentLook.flowBands >= 3 {
+                        ColorPicker("Farbe 3", selection: model.bind(\.flowColor2), supportsOpacity: false)
+                    }
                 }
+                .labelsHidden()
             }
-            .labelsHidden()
 
             slider("Amplitude", model.bind(\.flowAmplitude), 0...0.25)
             slider("Frequenz", model.bind(\.flowFrequency), 0.3...3)
@@ -322,21 +322,21 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
-            paletteModePicker
-
-            HStack {
-                // Shown dark → bright; reducing the count drops the darker stops (left).
-                if model.currentLook.liquidCount >= 5 {
-                    ColorPicker("Farbe 1", selection: model.bind(\.liquidColor0), supportsOpacity: false)
+            paletteEditor {
+                HStack {
+                    // Shown dark → bright; reducing the count drops the darker stops (left).
+                    if model.currentLook.liquidCount >= 5 {
+                        ColorPicker("Farbe 1", selection: model.bind(\.liquidColor0), supportsOpacity: false)
+                    }
+                    if model.currentLook.liquidCount >= 4 {
+                        ColorPicker("Farbe 2", selection: model.bind(\.liquidColor1), supportsOpacity: false)
+                    }
+                    ColorPicker("Farbe 3", selection: model.bind(\.liquidColor2), supportsOpacity: false)
+                    ColorPicker("Farbe 4", selection: model.bind(\.liquidColor3), supportsOpacity: false)
+                    ColorPicker("Farbe 5", selection: model.bind(\.liquidColor4), supportsOpacity: false)
                 }
-                if model.currentLook.liquidCount >= 4 {
-                    ColorPicker("Farbe 2", selection: model.bind(\.liquidColor1), supportsOpacity: false)
-                }
-                ColorPicker("Farbe 3", selection: model.bind(\.liquidColor2), supportsOpacity: false)
-                ColorPicker("Farbe 4", selection: model.bind(\.liquidColor3), supportsOpacity: false)
-                ColorPicker("Farbe 5", selection: model.bind(\.liquidColor4), supportsOpacity: false)
+                .labelsHidden()
             }
-            .labelsHidden()
 
             slider("Frame", model.bind(\.liquidTime), 0...30)
             slider("Variante", model.bind(\.liquidSeed), 0...12)
@@ -351,21 +351,21 @@ private struct EffectSection: View {
             }
             .pickerStyle(.segmented)
 
-            paletteModePicker
-
-            HStack {
-                // Shown dark → bright; reducing the count drops the darker stops (left).
-                if model.currentLook.duneCount >= 5 {
-                    ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
+            paletteEditor {
+                HStack {
+                    // Shown dark → bright; reducing the count drops the darker stops (left).
+                    if model.currentLook.duneCount >= 5 {
+                        ColorPicker("Farbe 1", selection: model.bind(\.duneColor0), supportsOpacity: false)
+                    }
+                    if model.currentLook.duneCount >= 4 {
+                        ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
+                    }
+                    ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
+                    ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
+                    ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
                 }
-                if model.currentLook.duneCount >= 4 {
-                    ColorPicker("Farbe 2", selection: model.bind(\.duneColor1), supportsOpacity: false)
-                }
-                ColorPicker("Farbe 3", selection: model.bind(\.duneColor2), supportsOpacity: false)
-                ColorPicker("Farbe 4", selection: model.bind(\.duneColor3), supportsOpacity: false)
-                ColorPicker("Farbe 5", selection: model.bind(\.duneColor4), supportsOpacity: false)
+                .labelsHidden()
             }
-            .labelsHidden()
 
             slider("Neigung", model.bind(\.duneTilt), -0.8...0.8)
             slider("Amplitude", model.bind(\.duneAmplitude), 0...0.3)
@@ -380,13 +380,13 @@ private struct EffectSection: View {
                 ForEach(GlowProcessor.Form.allCases) { Text($0.label).tag($0.rawValue) }
             }
 
-            paletteModePicker
-
-            HStack {
-                ColorPicker("Hintergrund", selection: model.bind(\.glowBackground), supportsOpacity: false)
-                ColorPicker("Licht", selection: model.bind(\.glowLight), supportsOpacity: false)
+            paletteEditor {
+                HStack {
+                    ColorPicker("Hintergrund", selection: model.bind(\.glowBackground), supportsOpacity: false)
+                    ColorPicker("Licht", selection: model.bind(\.glowLight), supportsOpacity: false)
+                }
+                .labelsHidden()
             }
-            .labelsHidden()
 
             slider("Größe", model.bind(\.glowScale), 0.4...2.0)
             slider("Verlauf", model.bind(\.glowTilt), 0...1)
@@ -411,6 +411,7 @@ private struct EffectSection: View {
         // Colour grade + grain — shared by every style.
         slider("Helligkeit", model.bind(\.brightness), -0.3...0.3)
         slider("Sättigung", model.bind(\.saturation), 0...2)
+        slider("Farbton", model.bind(\.hue), -Double.pi...Double.pi)
         slider("Kontrast", model.bind(\.contrast), 0.8...1.3)
         slider("Körnung", model.bind(\.dither), 0...1)
     }
@@ -421,12 +422,84 @@ private struct EffectSection: View {
         }
     }
 
-    /// Palette-mood picker, shared by every photo-driven style. Changing it
-    /// re-derives that style's colours automatically (see `paletteStyleBinding`).
-    @ViewBuilder private var paletteModePicker: some View {
-        Picker("Farbmodus", selection: model.paletteStyleBinding) {
-            ForEach(PaletteStyle.allCases) { Text($0.label).tag($0) }
+    /// Palette colour editor: the source photo with a draggable pointer per stop
+    /// when a photo is loaded, otherwise the manual colour swatches (`fallback`).
+    @ViewBuilder private func paletteEditor<Fallback: View>(
+        @ViewBuilder fallback: () -> Fallback) -> some View {
+        if let src = model.currentLook.source {
+            VStack(alignment: .leading, spacing: 5) {
+                SourceColorPicker(image: src, stops: model.activePaletteStops) { slot, point in
+                    model.movePalettePoint(slot: slot, to: point)
+                }
+                Text("Ziehe die Punkte aufs Foto — jeder nimmt die Farbe an seiner Stelle.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            fallback()
         }
+    }
+}
+
+/// The source photo with one draggable pointer per active palette stop. Drag a
+/// pointer onto the region whose colour you want — that stop then samples straight
+/// from the photo. Replaces the abstract colour swatches for photo-driven styles.
+private struct SourceColorPicker: View {
+    let image: CGImage
+    let stops: [PaletteStop]
+    let onMove: (Int, CGPoint) -> Void
+
+    private static let space = "sourceColorPicker"
+    private var aspect: CGFloat { CGFloat(image.width) / CGFloat(max(1, image.height)) }
+
+    var body: some View {
+        GeometryReader { geo in
+            let rect = fittedRect(in: geo.size)
+            ZStack(alignment: .topLeading) {
+                Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
+                    .resizable()
+                    .frame(width: rect.width, height: rect.height)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.white.opacity(0.12)))
+                    .position(x: rect.midX, y: rect.midY)
+                ForEach(stops) { stop in
+                    handle(stop, in: rect)
+                }
+            }
+            .coordinateSpace(name: Self.space)
+        }
+        .frame(height: 168)
+    }
+
+    /// The photo's aspect-fit rectangle within the available box (letterboxed).
+    private func fittedRect(in size: CGSize) -> CGRect {
+        var w = size.width, h = size.width / aspect
+        if h > size.height { h = size.height; w = size.height * aspect }
+        return CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
+    }
+
+    private func handle(_ stop: PaletteStop, in rect: CGRect) -> some View {
+        let pos = CGPoint(x: rect.minX + stop.point.x * rect.width,
+                          y: rect.minY + stop.point.y * rect.height)
+        return Circle()
+            .fill(stop.color)
+            .frame(width: 28, height: 28)
+            .overlay(Circle().strokeBorder(.white, lineWidth: 2.5))
+            .overlay(Circle().stroke(.black.opacity(0.25), lineWidth: 0.5))
+            .overlay(Text(stop.label)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.6), radius: 1))
+            .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+            .contentShape(Circle())
+            .position(pos)
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
+                    .onChanged { g in
+                        onMove(stop.id, CGPoint(x: (g.location.x - rect.minX) / rect.width,
+                                                y: (g.location.y - rect.minY) / rect.height))
+                    }
+            )
     }
 }
 

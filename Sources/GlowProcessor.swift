@@ -53,6 +53,7 @@ enum GlowProcessor {
         var saturation: Double = 1.0
         var contrast: Double = 1.0
         var dither: Double = 0.1
+        var hue: Double = 0
     }
 
     private static let ctx = BlurProcessor.context
@@ -176,7 +177,8 @@ enum GlowProcessor {
         ]) else { return nil }
 
         img = BlurProcessor.colorGrade(img, brightness: s.brightness,
-                                       saturation: s.saturation, contrast: s.contrast)
+                                       saturation: s.saturation, contrast: s.contrast,
+                                       hue: s.hue)
 
         return BlurProcessor.finalize(img, size: size, dither: s.dither, deepColor: deepColor)
     }

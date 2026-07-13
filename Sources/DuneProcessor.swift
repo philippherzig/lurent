@@ -32,6 +32,7 @@ enum DuneProcessor {
         var saturation: Double = 1.15
         var contrast: Double = 1.0
         var dither: Double = 0.1
+        var hue: Double = 0
     }
 
     private static let ctx = BlurProcessor.context
@@ -123,7 +124,8 @@ enum DuneProcessor {
         }
 
         img = BlurProcessor.colorGrade(img, brightness: settings.brightness,
-                                       saturation: settings.saturation, contrast: settings.contrast)
+                                       saturation: settings.saturation, contrast: settings.contrast,
+                                       hue: settings.hue)
 
         if settings.dither > 0 {
             let d = CIFilter.dither()
