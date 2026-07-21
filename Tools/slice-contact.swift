@@ -15,6 +15,7 @@ import CoreGraphics
 //
 //   mode = "cs" → rows: count, cols: shift   (default)
 //   mode = "ca" → rows: angle, cols: count
+//   mode = "fc" → rows: fan,   cols: count
 
 let args = CommandLine.arguments
 guard args.count >= 3 else { fputs("usage: slice-contact <in> <out> [cs|ca]\n", stderr); exit(2) }
@@ -39,7 +40,10 @@ func tile(_ s: SliceProcessor.Settings) -> CGImage? {
 }
 
 let rows: [Double], cols: [Double], rowLabel: String, colLabel: String
-if mode == "ca" {
+if mode == "fc" {
+    rows = [0, 0.25, 0.6, 1.0]; cols = [6, 12, 20, 32]
+    rowLabel = "fan"; colLabel = "count"
+} else if mode == "ca" {
     rows = [0, 0.35, 0.9, 1.571]; cols = [6, 12, 20, 32]
     rowLabel = "angle"; colLabel = "count"
 } else {
@@ -71,8 +75,9 @@ for (ri, r) in rows.enumerated() {
     for (ci, c) in cols.enumerated() {
         let x = padX + ci * (tileW + gap)
         var s = SliceProcessor.Settings()
-        if mode == "ca" { s.angle = r; s.count = c; s.shift = 0.4 }
-        else            { s.count = r; s.shift = c }
+        if mode == "fc"      { s.fan = r; s.count = c; s.shift = 0.4; s.angle = 0 }
+        else if mode == "ca" { s.angle = r; s.count = c; s.shift = 0.4 }
+        else                 { s.count = r; s.shift = c }
         if let cg = tile(s) {
             NSImage(cgImage: cg, size: NSSize(width: tileW, height: tileH))
                 .draw(in: NSRect(x: x, y: y, width: tileW, height: tileH))

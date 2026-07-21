@@ -134,6 +134,7 @@ struct Look {
     var sliceCount: Double = 14
     var sliceAngle: Double = 0.35     // 0 = vertical bands
     var sliceShift: Double = 0.4
+    var sliceFan: Double = 0          // 0 = parallel, 1 = fanned out like a bouquet
     var sliceSeed: Double = 1
 
     // Palette sample points — normalised (0…1, y from top) positions on `source`
@@ -172,7 +173,8 @@ struct Look {
     }
 
     var sliceSettings: SliceProcessor.Settings {
-        .init(count: sliceCount, angle: sliceAngle, shift: sliceShift, seed: sliceSeed)
+        .init(count: sliceCount, angle: sliceAngle, shift: sliceShift,
+              fan: sliceFan, seed: sliceSeed)
     }
 }
 
@@ -360,7 +362,8 @@ final class AppModel: ObservableObject {
             case .slices:
                 $0.blur = d.blur
                 $0.sliceCount = d.sliceCount; $0.sliceAngle = d.sliceAngle
-                $0.sliceShift = d.sliceShift; $0.sliceSeed = d.sliceSeed
+                $0.sliceShift = d.sliceShift; $0.sliceFan = d.sliceFan
+                $0.sliceSeed = d.sliceSeed
             }
             // Colour grade + grain: shared across every style.
             $0.brightness = d.brightness; $0.saturation = d.saturation

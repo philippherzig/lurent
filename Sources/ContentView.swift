@@ -297,6 +297,7 @@ private struct EffectSection: View {
             slider("Lamellen", model.bind(\.sliceCount), 2...40)
             slider("Winkel", model.bind(\.sliceAngle), 0...3.14159265)
             slider("Versatz", model.bind(\.sliceShift), 0...1)
+            slider("Fächer", model.bind(\.sliceFan), 0...1)
             slider("Variante", model.bind(\.sliceSeed), 0...12)
 
         case .liquid:

@@ -15,7 +15,18 @@ enum SliceProcessor {
         var count: Double = 14       // bands across the frame (at angle 0)
         var angle: Double = 0.35     // radians; 0 = vertical bands
         var shift: Double = 0.4      // 0…1 max displacement along the band axis
+        var fan: Double = 0          // 0 = parallel bands, 1 = wedges fanning out
         var seed: Double = 1         // reshuffles which band gets which offset
+    }
+
+    /// Distance of the fan pivot from the frame centre, along the band axis.
+    ///
+    /// Parallel bands are just the limit case of a fan whose pivot sits infinitely far
+    /// away, so one radius covers the whole range: `fan` 0 pushes the pivot ~45 frames
+    /// away (indistinguishable from parallel), `fan` 1 brings it to just outside the
+    /// bottom edge, where the wedges converge into a bouquet.
+    static func pivotRadius(fan: Double, minSide: Double) -> Double {
+        minSide * 0.55 / max(fan, 0.012)
     }
 
     // Coordinates are rotated into "band space" (r.x runs across the bands, r.y along
@@ -30,15 +41,27 @@ enum SliceProcessor {
     float hash1(float n) { return fract(sin(n * 12.9898) * 43758.5453); }
 
     kernel vec4 slices(sampler img, float cx, float cy, float ca, float sa,
-                       float bandW, float shift, float seed) {
+                       float bandW, float shift, float seed, float pivotR) {
         vec2 dc = destCoord();
         vec2 ctr = vec2(cx, cy);
         vec2 c = dc - ctr;
         vec2 r = vec2(ca * c.x + sa * c.y, -sa * c.x + ca * c.y);
 
-        float i = floor(r.x / bandW);
+        // Bands are wedges radiating from a pivot `pivotR` below the centre. The
+        // ARC LENGTH at that radius is the across-bands coordinate, so band widths stay
+        // comparable and a large pivotR straightens the wedges back into parallel
+        // stripes — the parallel case needs no separate code path.
+        vec2 v = vec2(r.x, r.y + pivotR);
+        float i = floor(pivotR * atan(v.x, v.y) / bandW);
+
         float h = hash1(i + seed * 7.0);
-        vec2 rs = vec2(r.x, r.y + (h * 2.0 - 1.0) * shift);
+        float off = (h * 2.0 - 1.0) * shift;
+
+        // Slide each wedge along its OWN direction (radially away from the pivot);
+        // in the parallel limit that direction is the band axis, as before.
+        float len = max(length(v), 0.0001);
+        vec2 vs = v + (v / len) * off;
+        vec2 rs = vs - vec2(0.0, pivotR);
         vec2 p = vec2(ca * rs.x - sa * rs.y, sa * rs.x + ca * rs.y) + ctr;
         return sample(img, samplerTransform(img, p));
     }
@@ -50,10 +73,11 @@ enum SliceProcessor {
         let bandW = minSide / max(2, s.count)
         let shift = s.shift * 0.35 * minSide
         let ca = cos(s.angle), sa = sin(s.angle)
+        let pivotR = pivotRadius(fan: s.fan, minSide: minSide)
         let clamped = image.clampedToExtent()
         return kernel.apply(extent: rect,
                             roiCallback: { _, r in r.insetBy(dx: -shift - 1, dy: -shift - 1) },
                             arguments: [clamped, size.width / 2, size.height / 2, ca, sa,
-                                        bandW, shift, s.seed]) ?? image
+                                        bandW, shift, s.seed, pivotR]) ?? image
     }
 }
