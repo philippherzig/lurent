@@ -93,3 +93,14 @@
 "Neigung" = "倾斜";
 "Faltenlicht" = "褶皱光泽";
 "Weichheit" = "柔和度";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "百叶";
+"Winkel" = "角度";
+"Versatz" = "偏移";
+"Fächer" = "扇形";
+"Kurve" = "曲线";
+"Ausschnitt" = "裁剪";
+"Wellenlänge" = "波长";
+"Unregelmässigkeit" = "不规则度";

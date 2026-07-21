@@ -93,3 +93,14 @@
 "Neigung" = "기울기";
 "Faltenlicht" = "주름 광택";
 "Weichheit" = "부드러움";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "슬랫";
+"Winkel" = "각도";
+"Versatz" = "오프셋";
+"Fächer" = "부채꼴";
+"Kurve" = "곡선";
+"Ausschnitt" = "자르기";
+"Wellenlänge" = "파장";
+"Unregelmässigkeit" = "불규칙성";

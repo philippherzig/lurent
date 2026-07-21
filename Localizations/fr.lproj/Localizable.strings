@@ -93,3 +93,14 @@
 "Neigung" = "Inclinaison";
 "Faltenlicht" = "Lumière des plis";
 "Weichheit" = "Douceur";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Lamelles";
+"Winkel" = "Angle";
+"Versatz" = "Décalage";
+"Fächer" = "Éventail";
+"Kurve" = "Courbe";
+"Ausschnitt" = "Cadrage";
+"Wellenlänge" = "Longueur d’onde";
+"Unregelmässigkeit" = "Irrégularité";

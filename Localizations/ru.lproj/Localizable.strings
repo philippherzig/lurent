@@ -93,3 +93,14 @@
 "Neigung" = "Наклон";
 "Faltenlicht" = "Свет складок";
 "Weichheit" = "Мягкость";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Ламели";
+"Winkel" = "Угол";
+"Versatz" = "Смещение";
+"Fächer" = "Веер";
+"Kurve" = "Изгиб";
+"Ausschnitt" = "Кадрирование";
+"Wellenlänge" = "Длина волны";
+"Unregelmässigkeit" = "Нерегулярность";

@@ -127,8 +127,9 @@ struct Look {
     var mirrorDepth: Double = 0.35
     var mirrorSideFade: Double = 0.5
 
-    // Slices style ("Lamellen") — cuts the blur into bands, each offset and shaded
-    // differently, so a smooth gradient becomes a rhythmic sliced composition.
+    // Slices style ("Lamellen") — cuts the blur into bands and slides each by a
+    // different amount, so a smooth gradient becomes a rhythmic sliced composition.
+    // `fan` bends the bands into wedges (bouquet), `curve` bows them into arcs.
     // Defaults sit in the calibrated sweet spot: a gentle diagonal with slightly
     // softened seams reads like brushed satin; angle 0 + edge 0 gives hard slats.
     var sliceCount: Double = 14

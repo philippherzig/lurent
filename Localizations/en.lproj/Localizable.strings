@@ -103,3 +103,14 @@
 "Neigung" = "Tilt";
 "Faltenlicht" = "Fold Light";
 "Weichheit" = "Softness";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Slats";
+"Winkel" = "Angle";
+"Versatz" = "Offset";
+"Fächer" = "Fan";
+"Kurve" = "Curve";
+"Ausschnitt" = "Crop";
+"Wellenlänge" = "Wavelength";
+"Unregelmässigkeit" = "Irregularity";
