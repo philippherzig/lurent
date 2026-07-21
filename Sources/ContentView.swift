@@ -292,6 +292,13 @@ private struct EffectSection: View {
             slider("Tiefe", model.bind(\.mirrorDepth), 0...0.8)
             slider("Seiten-Fade", model.bind(\.mirrorSideFade), 0...1)
 
+        case .slices:
+            slider("Blur", model.bind(\.blur), 0...100)
+            slider("Lamellen", model.bind(\.sliceCount), 2...40)
+            slider("Winkel", model.bind(\.sliceAngle), 0...3.14159265)
+            slider("Versatz", model.bind(\.sliceShift), 0...1)
+            slider("Variante", model.bind(\.sliceSeed), 0...12)
+
         case .liquid:
             Picker("Farben", selection: model.bind(\.liquidCount)) {
                 Text("3").tag(3); Text("4").tag(4); Text("5").tag(5)

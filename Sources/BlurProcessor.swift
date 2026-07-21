@@ -27,8 +27,13 @@ enum BlurProcessor {
         var offset: Double = 0
     }
 
+    // Half-float working format. Core Image otherwise evaluates the filter graph at
+    // 8 bits per channel, so the big gaussian's output is re-quantised to 256 levels —
+    // which is exactly where a full-screen smooth gradient shows banding, and it makes
+    // the 16-bit export pointless (the precision is already gone before it is written).
+    // RGBAh keeps the intermediates smooth at half the memory of full float.
     static let context: CIContext = {
-        CIContext(options: [.cacheIntermediates: false])
+        CIContext(options: [.cacheIntermediates: false, .workingFormat: CIFormat.RGBAh])
     }()
 
     static let outputColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!

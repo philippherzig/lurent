@@ -58,13 +58,14 @@ enum Appearance: String, CaseIterable, Identifiable {
 }
 
 enum WallpaperStyle: String, CaseIterable, Identifiable {
-    case blur, liquid, mirror
+    case blur, liquid, mirror, slices
     var id: String { rawValue }
     var label: String {
         switch self {
         case .blur:   return L("Blur")
         case .liquid: return L("Liquid")
         case .mirror: return L("Spiegel")
+        case .slices: return L("Lamellen")
         }
     }
 
@@ -126,6 +127,15 @@ struct Look {
     var mirrorDepth: Double = 0.35
     var mirrorSideFade: Double = 0.5
 
+    // Slices style ("Lamellen") — cuts the blur into bands, each offset and shaded
+    // differently, so a smooth gradient becomes a rhythmic sliced composition.
+    // Defaults sit in the calibrated sweet spot: a gentle diagonal with slightly
+    // softened seams reads like brushed satin; angle 0 + edge 0 gives hard slats.
+    var sliceCount: Double = 14
+    var sliceAngle: Double = 0.35     // 0 = vertical bands
+    var sliceShift: Double = 0.4
+    var sliceSeed: Double = 1
+
     // Palette sample points — normalised (0…1, y from top) positions on `source`
     // that each colour stop is sampled from. One point per stop, aligned 1:1 with the
     // colour slots above; dragged directly on the photo in the inspector. Photo-less
@@ -159,6 +169,10 @@ struct Look {
         .init(line: mirrorLine, amplitude: mirrorAmplitude, frequency: mirrorFrequency,
               phase: mirrorPhase, irregular: mirrorIrregularity, hardness: mirrorHardness,
               depth: mirrorDepth, sideFade: mirrorSideFade)
+    }
+
+    var sliceSettings: SliceProcessor.Settings {
+        .init(count: sliceCount, angle: sliceAngle, shift: sliceShift, seed: sliceSeed)
     }
 }
 
@@ -343,6 +357,10 @@ final class AppModel: ObservableObject {
                 $0.mirrorIrregularity = d.mirrorIrregularity
                 $0.mirrorHardness = d.mirrorHardness; $0.mirrorDepth = d.mirrorDepth
                 $0.mirrorSideFade = d.mirrorSideFade
+            case .slices:
+                $0.blur = d.blur
+                $0.sliceCount = d.sliceCount; $0.sliceAngle = d.sliceAngle
+                $0.sliceShift = d.sliceShift; $0.sliceSeed = d.sliceSeed
             }
             // Colour grade + grain: shared across every style.
             $0.brightness = d.brightness; $0.saturation = d.saturation
@@ -525,7 +543,7 @@ final class AppModel: ObservableObject {
             return Array(start..<5).enumerated().map { (k, idx) in
                 PaletteStop(id: idx, point: l.liquidPoints[idx], color: cols[idx], label: "\(k + 1)")
             }
-        case .blur, .mirror:
+        case .blur, .mirror, .slices:
             return []
         }
     }
@@ -541,7 +559,7 @@ final class AppModel: ObservableObject {
             case .liquid:
                 guard look.liquidPoints.indices.contains(slot) else { return }
                 look.liquidPoints[slot] = p; look.setLiquidColor(slot, color)
-            case .blur, .mirror:
+            case .blur, .mirror, .slices:
                 break
             }
         }
@@ -619,6 +637,12 @@ final class AppModel: ObservableObject {
             else { return nil }
             let folded = MirrorProcessor.apply(to: base, size: size, settings: look.mirrorSettings)
             return BlurProcessor.finalize(folded, size: size, dither: look.dither, deepColor: deep)
+        case .slices:
+            guard let src = look.source,
+                  let base = BlurProcessor.processedImage(source: src, targetSize: size, settings: look.settings)
+            else { return nil }
+            let sliced = SliceProcessor.apply(to: base, size: size, settings: look.sliceSettings)
+            return BlurProcessor.finalize(sliced, size: size, dither: look.dither, deepColor: deep)
         }
     }
 
