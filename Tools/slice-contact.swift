@@ -16,6 +16,7 @@ import CoreGraphics
 //   mode = "cs" → rows: count, cols: shift   (default)
 //   mode = "ca" → rows: angle, cols: count
 //   mode = "fc" → rows: fan,   cols: count
+//   mode = "kf" → rows: curve, cols: fan
 
 let args = CommandLine.arguments
 guard args.count >= 3 else { fputs("usage: slice-contact <in> <out> [cs|ca]\n", stderr); exit(2) }
@@ -28,7 +29,7 @@ guard let nsimg = NSImage(contentsOfFile: srcPath),
 }
 
 let ctx = CIContext(options: [.cacheIntermediates: false, .workingFormat: CIFormat.RGBAh])
-let tileW = 300, tileH = 390
+let tileW = 330, tileH = 330   // square, like the app canvas
 let padX = 66, padTop = 34, gap = 10
 
 func tile(_ s: SliceProcessor.Settings) -> CGImage? {
@@ -40,7 +41,10 @@ func tile(_ s: SliceProcessor.Settings) -> CGImage? {
 }
 
 let rows: [Double], cols: [Double], rowLabel: String, colLabel: String
-if mode == "fc" {
+if mode == "kf" {
+    rows = [-1.0, -0.35, 0.35, 1.0]; cols = [0, 0.3, 0.65, 1.0]
+    rowLabel = "curve"; colLabel = "fan"
+} else if mode == "fc" {
     rows = [0, 0.25, 0.6, 1.0]; cols = [6, 12, 20, 32]
     rowLabel = "fan"; colLabel = "count"
 } else if mode == "ca" {
@@ -75,7 +79,8 @@ for (ri, r) in rows.enumerated() {
     for (ci, c) in cols.enumerated() {
         let x = padX + ci * (tileW + gap)
         var s = SliceProcessor.Settings()
-        if mode == "fc"      { s.fan = r; s.count = c; s.shift = 0.4; s.angle = 0 }
+        if mode == "kf"      { s.curve = r; s.fan = c; s.count = 14; s.shift = 0.4; s.angle = 0 }
+        else if mode == "fc" { s.fan = r; s.count = c; s.shift = 0.4; s.angle = 0 }
         else if mode == "ca" { s.angle = r; s.count = c; s.shift = 0.4 }
         else                 { s.count = r; s.shift = c }
         if let cg = tile(s) {
