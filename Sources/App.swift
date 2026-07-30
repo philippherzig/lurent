@@ -1,9 +1,17 @@
+import AppKit
 import SwiftUI
 
 @main
 struct LurentApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var updater = UpdaterViewModel()
+
+    init() {
+        // Single-window app: window tabbing buys nothing and the system tab bar
+        // stalls the UI. Turning it off here (before any window exists) also
+        // strips the "Show Tab Bar" / "Merge All Windows" menu items.
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
 
     var body: some Scene {
         WindowGroup {

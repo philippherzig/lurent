@@ -19,7 +19,6 @@ struct ContentView: View {
         HStack(spacing: 0) {
             PreviewPane()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
             InspectorPane()
                 .frame(width: 320)
         }
@@ -154,8 +153,6 @@ private struct InspectorPane: View {
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
-
-            Divider()
 
             ActionBar()
         }
@@ -708,6 +705,9 @@ private struct WindowAccessor: NSViewRepresentable {
             window.backgroundColor = .clear
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
+            // Belt and braces next to NSWindow.allowsAutomaticWindowTabbing:
+            // this window can never be tabbed or merged into another.
+            window.tabbingMode = .disallowed
             configured = true
         }
     }
