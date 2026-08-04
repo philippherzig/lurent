@@ -26,5 +26,10 @@
 	     wallpapers into an album). -->
 	<key>com.apple.security.personal-information.photos-library</key>
 	<true/>
+
+	<!-- The iCloud container entitlements are NOT here on purpose: they are
+	     restricted, and macOS refuses to launch a binary carrying them unless an
+	     embedded.provisionprofile authorizes them ("Launchd job spawn failed").
+	     See Lurent-appstore.entitlements. -->
 </dict>
 </plist>
