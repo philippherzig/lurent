@@ -906,6 +906,12 @@ private struct LocalFileThumbnail: View {
 /// the Light appearance — which is exactly the face we want to show.
 private func loadImageThumbnail(url: URL, maxPixelSize: Int) async -> NSImage? {
     await Task.detached(priority: .utility) {
+        // Recent files come back as security-scoped bookmarks and are only readable
+        // while their scope is open. A no-op for everything else, including the
+        // packages inside the app's own container.
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,

@@ -548,6 +548,11 @@ final class AppModel: ObservableObject {
 
     func openLocalImage(url: URL) {
         errorMessage = nil
+        // A remembered file only stays reachable after a relaunch while its bookmark
+        // is held open; outside a sandbox this is a no-op.
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
         guard let image = NSImage(contentsOf: url),
               let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             errorMessage = L("Bild konnte nicht geladen werden: %@", url.lastPathComponent)
@@ -562,17 +567,43 @@ final class AppModel: ObservableObject {
 
     // MARK: Recent local files ("Dateien" source)
 
-    private static let recentFilesKey = "recentLocalFiles"
+    /// Stored as **security-scoped bookmarks**, not paths. A sandboxed app loses
+    /// access to a user-picked file the moment it quits; a path in defaults survives
+    /// but is unreadable, so the row would silently vanish on every launch. Outside a
+    /// sandbox the bookmarks resolve just the same.
+    private static let recentFilesKey = "recentLocalFileBookmarks"
+    /// The pre-bookmark key. Read once so an existing list isn't simply dropped.
+    private static let legacyRecentFilesKey = "recentLocalFiles"
     private static let maxRecentFiles = 24
 
     private static func loadRecentFiles() -> [URL] {
-        let paths = UserDefaults.standard.stringArray(forKey: recentFilesKey) ?? []
-        return paths.map { URL(fileURLWithPath: $0) }
-            .filter { FileManager.default.isReadableFile(atPath: $0.path) }
+        let stored = UserDefaults.standard.array(forKey: recentFilesKey) as? [Data] ?? []
+        var urls = stored.compactMap(resolveBookmark)
+
+        if urls.isEmpty, let legacy = UserDefaults.standard.stringArray(forKey: legacyRecentFilesKey) {
+            urls = legacy.map { URL(fileURLWithPath: $0) }
+                .filter { FileManager.default.isReadableFile(atPath: $0.path) }
+        }
+        return urls
+    }
+
+    private static func resolveBookmark(_ data: Data) -> URL? {
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope,
+                                 relativeTo: nil, bookmarkDataIsStale: &stale),
+              !stale,
+              FileManager.default.fileExists(atPath: url.path)
+        else { return nil }
+        return url
     }
 
     private func saveRecentFiles() {
-        UserDefaults.standard.set(recentFiles.map(\.path), forKey: Self.recentFilesKey)
+        let data = recentFiles.compactMap { url -> Data? in
+            try? url.bookmarkData(options: .withSecurityScope,
+                                  includingResourceValuesForKeys: nil, relativeTo: nil)
+        }
+        UserDefaults.standard.set(data, forKey: Self.recentFilesKey)
+        UserDefaults.standard.removeObject(forKey: Self.legacyRecentFilesKey)
     }
 
     private func recordRecent(_ url: URL) {
