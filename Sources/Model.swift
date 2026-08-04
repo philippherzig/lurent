@@ -531,8 +531,11 @@ final class AppModel: ObservableObject {
             defer { isLoadingSource = false }
             do {
                 let cg = try await service.loadImage(from: photo.urls.regular)
+                // The bare photographer name, not a pre-baked sentence: the credit is
+                // assembled in the view so the name can be a link and the wording can
+                // be localized.
                 applySource(cg, photoID: photo.id, baseName: baseName(for: photo),
-                            attribution: "Foto: \(photo.user.name) · Unsplash",
+                            attribution: photo.user.name,
                             attributionURL: photo.user.links?.html, to: target)
                 if let dl = photo.links?.download_location {
                     Task { await service.trackDownload(dl) }

@@ -129,3 +129,7 @@
 "Projekt importieren…" = "导入项目…";
 "Projekt importiert: %@" = "已导入项目：%@";
 "Das ist kein Lurent-Projekt." = "这不是 Lurent 项目。";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "照片由 [%@](%@) 提供，来自 [Unsplash](%@)";

@@ -129,3 +129,7 @@
 "Projekt importieren…" = "プロジェクトを読み込む…";
 "Projekt importiert: %@" = "プロジェクトを読み込みました: %@";
 "Das ist kein Lurent-Projekt." = "これは Lurent プロジェクトではありません。";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "[%@](%@) による [Unsplash](%@) の写真";

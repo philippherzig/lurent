@@ -37,6 +37,44 @@ struct UnsplashPhoto: Identifiable, Decodable {
     }
 }
 
+// MARK: - Attribution
+
+/// Unsplash requires every displayed photo to credit Unsplash *and* the
+/// photographer, with a link back to their profile, and every such link to carry
+/// `utm_source`/`utm_medium`. Building the URLs in one place keeps the parameters
+/// from being forgotten on one of them.
+///
+/// See https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines
+enum UnsplashAttribution {
+    static let appName = "Lurent"
+    static let host = "unsplash.com"
+
+    /// `https://unsplash.com/?utm_source=Lurent&utm_medium=referral`
+    static var homeURL: URL { referral(URL(string: "https://unsplash.com")!) }
+
+    /// The photographer's profile, with the same parameters appended.
+    static func profileURL(_ raw: String?) -> URL? {
+        guard let raw, let url = URL(string: raw) else { return nil }
+        return referral(url)
+    }
+
+    /// Does this stored attribution URL point at Unsplash? That is how a look knows
+    /// whether it owes a credit — local files and Photos assets carry no URL.
+    static func isUnsplash(_ raw: String?) -> Bool {
+        guard let raw, let host = URL(string: raw)?.host() else { return false }
+        return host == Self.host || host.hasSuffix(".\(Self.host)")
+    }
+
+    private static func referral(_ url: URL) -> URL {
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var items = comps?.queryItems ?? []
+        items.append(.init(name: "utm_source", value: appName))
+        items.append(.init(name: "utm_medium", value: "referral"))
+        comps?.queryItems = items
+        return comps?.url ?? url
+    }
+}
+
 private struct SearchResponse: Decodable {
     let total: Int
     let total_pages: Int

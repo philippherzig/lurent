@@ -129,3 +129,7 @@
 "Projekt importieren…" = "프로젝트 가져오기…";
 "Projekt importiert: %@" = "프로젝트를 가져왔습니다: %@";
 "Das ist kein Lurent-Projekt." = "Lurent 프로젝트가 아닙니다.";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "[%@](%@)의 사진, 출처 [Unsplash](%@)";
