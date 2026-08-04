@@ -87,7 +87,29 @@ else
 fi
 
 echo "▸ Code signing"
-ENTITLEMENTS="$ROOT/Lurent.entitlements"
+
+# PROVISION_PROFILE switches the build to a provisioned, sandboxed variant.
+#
+# The iCloud entitlements are *restricted*: macOS refuses to launch a binary that
+# carries them unless the bundle embeds a provisioning profile authorising them —
+# a Developer ID build signed with them dies at spawn. Point this at a
+# `.provisionprofile` and the build embeds it, signs with
+# Lurent-appstore.entitlements and picks an "Apple Development" identity, which is
+# what a Mac Development profile expects.
+#
+#   PROVISION_PROFILE=~/Downloads/Lurent_Development.provisionprofile ./build.sh
+#
+# The result only runs on Macs registered in that profile — it is for testing the
+# iCloud container, not for distribution.
+PROVISION_PROFILE="${PROVISION_PROFILE-}"
+if [ -n "$PROVISION_PROFILE" ]; then
+  [ -f "$PROVISION_PROFILE" ] || { echo "  ✗ profile not found: $PROVISION_PROFILE"; exit 1; }
+  ENTITLEMENTS="$ROOT/Lurent-appstore.entitlements"
+  cp "$PROVISION_PROFILE" "$APP/Contents/embedded.provisionprofile"
+  echo "  embedded $(basename "$PROVISION_PROFILE") → sandboxed build with iCloud container"
+else
+  ENTITLEMENTS="$ROOT/Lurent.entitlements"
+fi
 SPARKLE_V="$SPARKLE_FW/Versions/Current"
 # Nested Sparkle executables/bundles, signed inside-out (deepest first) *before*
 # the framework and the app. Re-signing with *your* Developer ID is mandatory:
@@ -127,7 +149,14 @@ if [ "$SIGN_IDENTITY" = "auto" ]; then
   # Capture first, then parse: `security … | awk …exit` can SIGPIPE-fail security
   # under `set -o pipefail` (the hazard notarize.sh/release.sh already avoid).
   IDENTITIES="$(security find-identity -v -p codesigning || true)"
-  SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
+  # A provisioned build has to be signed by the identity the profile was issued
+  # for; Developer ID and a Development profile don't match.
+  if [ -n "$PROVISION_PROFILE" ]; then
+    SIGN_IDENTITY="$(awk -F'"' '/Apple Development/ {print $2; exit}' <<<"$IDENTITIES")"
+    [ -n "$SIGN_IDENTITY" ] || { echo "  ✗ no \"Apple Development\" identity in the keychain"; exit 1; }
+  else
+    SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
+  fi
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
   echo "  signing Sparkle.framework inside-out with $SIGN_IDENTITY"
