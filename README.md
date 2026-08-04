@@ -78,6 +78,26 @@ gitignorte `vendor/` geladen (macht `build.sh` automatisch) und beim Bauen
 inside-out mit deiner Developer ID neu signiert — nötig, weil der Hardened
 Runtime nur gleich-signierte Frameworks lädt.
 
+## Website (lurent.app)
+
+Die Seite liegt in `site/` und läuft auf **Cloudflare Pages**, Projekt `lurent`.
+Das Projekt ist **Direct Upload** — es hängt *nicht* am Git-Repo, ein Push oder
+Merge deployt also nichts:
+
+```bash
+./deploy-site.sh              # veröffentlicht site/
+./deploy-site.sh --dry-run    # zeigt nur, was hochginge
+```
+
+Credentials kommen aus `.env` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`),
+derselben Datei wie bei `release.sh`.
+
+**Achtung beim Prüfen:** Pages hat keine 404-Seite und liefert für *jeden* Pfad
+die Startseite mit HTTP 200. Ein `curl -I` auf `/privacy.html` sieht also auch
+dann gut aus, wenn die Seite fehlt — `deploy-site.sh` prüft deshalb den `<title>`
+statt den Statuscode. `privacy.html` und `support.html` sind Pflichtfelder im
+App Store und müssen echten Inhalt liefern.
+
 ### Einmalig: R2 einrichten
 
 Trage die Cloudflare-R2-Zugangsdaten in `.env` ein (siehe `.env.example`), dann:
