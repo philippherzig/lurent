@@ -114,3 +114,20 @@
 "Ausschnitt" = "Crop";
 "Wellenlänge" = "Wavelength";
 "Unregelmässigkeit" = "Irregularity";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Saved Wallpaper";
+"Erstellt" = "Created";
+"Im Finder zeigen" = "Show in Finder";
+"Löschen" = "Delete";
+"Weitere Aktionen" = "More Actions";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "The wallpaper folder could not be created.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "The wallpaper file is no longer available (not downloaded from iCloud yet?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Duplicate Project";
+"Neues Projekt" = "New Project";
+"Aktives Wallpaper" = "Active wallpaper";
+"Das Projekt konnte nicht gesichert werden." = "The project could not be saved.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "This wallpaper predates projects and can no longer be edited.";

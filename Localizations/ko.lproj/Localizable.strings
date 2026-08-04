@@ -104,3 +104,20 @@
 "Ausschnitt" = "자르기";
 "Wellenlänge" = "파장";
 "Unregelmässigkeit" = "불규칙성";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "저장된 배경화면";
+"Erstellt" = "생성일";
+"Im Finder zeigen" = "Finder에서 보기";
+"Löschen" = "삭제";
+"Weitere Aktionen" = "추가 작업";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "배경화면 폴더를 생성할 수 없습니다.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "배경화면 파일을 사용할 수 없습니다(iCloud에서 아직 다운로드되지 않았나요?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "프로젝트 복제";
+"Neues Projekt" = "새 프로젝트";
+"Aktives Wallpaper" = "현재 배경화면";
+"Das Projekt konnte nicht gesichert werden." = "프로젝트를 저장할 수 없습니다.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "이 배경화면은 프로젝트 도입 이전에 만들어져 편집할 수 없습니다.";

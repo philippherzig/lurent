@@ -165,6 +165,21 @@ extension AppModel {
         }
     }
 
+    /// Same, for a saved project — its rendered wallpaper is reused rather than
+    /// rendered a second time.
+    func saveProjectToPhotosLibrary(_ project: Project) {
+        errorMessage = nil
+        Task {
+            guard let ready = await ensureRendered(project) else { return }
+            do {
+                try await Self.addHEIC(at: ready.wallpaperURL, toAlbumNamed: Self.albumName)
+                statusMessage = L("In Fotos gesichert (Album „Lurent“).")
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private static func addHEIC(at url: URL, toAlbumNamed name: String) async throws {
         // .readWrite (not .addOnly): fetching and creating the album requires read access.
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)

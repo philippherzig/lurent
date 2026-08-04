@@ -104,3 +104,20 @@
 "Ausschnitt" = "裁剪";
 "Wellenlänge" = "波长";
 "Unregelmässigkeit" = "不规则度";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "已保存的墙纸";
+"Erstellt" = "创建时间";
+"Im Finder zeigen" = "在访达中显示";
+"Löschen" = "删除";
+"Weitere Aktionen" = "更多操作";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "无法创建墙纸文件夹。";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "墙纸文件不再可用（可能尚未从 iCloud 下载）。";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "复制项目";
+"Neues Projekt" = "新建项目";
+"Aktives Wallpaper" = "当前墙纸";
+"Das Projekt konnte nicht gesichert werden." = "无法保存项目。";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "此墙纸创建于项目功能之前，无法再编辑。";
