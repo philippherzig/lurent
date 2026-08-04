@@ -281,7 +281,7 @@ final class AppModel: ObservableObject {
     /// The collection is empty (first run, or the user deleted everything) — there is
     /// always exactly one project open, so make one.
     private func createFirstProject() throws {
-        let project = try WallpaperLibrary.create(slug: nil)
+        let project = try WallpaperLibrary.create(name: nil)
         refreshProjects()
         selectedProjectID = project.id
         UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
@@ -968,7 +968,7 @@ final class AppModel: ObservableObject {
     func newProject() {
         flushAutosave()
         do {
-            let project = try WallpaperLibrary.create(slug: nil)
+            let project = try WallpaperLibrary.create(name: nil)
             refreshProjects()
             selectedProjectID = project.id
             UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
@@ -999,12 +999,73 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([project.url])
     }
 
+    // MARK: Project documents (.lurent)
+
+    /// Copies a project package out of the collection. This is what the format buys:
+    /// handing someone the whole editable project rather than a finished image.
+    func exportProjectPackage(_ project: Project) {
+        flushAutosave()
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [WallpaperLibrary.contentType]
+        panel.nameFieldStringValue = project.url.lastPathComponent
+        panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                do {
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        try FileManager.default.removeItem(at: url)
+                    }
+                    try FileManager.default.copyItem(at: project.url, to: url)
+                    self.statusMessage = L("Exportiert: %@", url.lastPathComponent)
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func importProjectWithPanel() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [WallpaperLibrary.contentType]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK, let url = panel.url {
+            importProject(at: url)
+        }
+    }
+
+    /// Opens a `.lurent` — from the Finder, a double-click, or the import panel.
+    /// Something already in the collection is just selected; anything else is copied
+    /// in first, so the collection stays the one place projects live.
+    func importProject(at url: URL) {
+        errorMessage = nil
+        if WallpaperLibrary.isInCollection(url) {
+            refreshProjects()
+            if let existing = projects.first(where: { $0.url.standardizedFileURL == url.standardizedFileURL }) {
+                selectedProjectID = nil
+                open(existing)
+            }
+            return
+        }
+        flushAutosave()
+        do {
+            let imported = try WallpaperLibrary.importPackage(at: url)
+            refreshProjects()
+            selectedProjectID = nil
+            open(imported)
+            statusMessage = L("Projekt importiert: %@", imported.displayName)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Copies a project's finished wallpaper out to a location the user picks,
     /// rendering it first if it isn't current.
     func exportProject(_ project: Project) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.heic]
-        panel.nameFieldStringValue = "\(project.id).heic"
+        panel.nameFieldStringValue = "\(project.displayName).heic"
         panel.canCreateDirectories = true
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
@@ -1055,17 +1116,32 @@ final class AppModel: ObservableObject {
     private func saveOpenProject() {
         guard var project = selectedProject, project.isEditable else { return }
         let recipe = ProjectRecipe(light: lightLook.recipe, dark: darkLook.recipe)
-        let name = lightLook.baseName ?? darkLook.baseName
+
+        // The name looks after itself: it follows the source photo, so the user never
+        // has to invent one. The single exception is a package renamed in the Finder —
+        // that is a deliberate choice and outranks the derived title from then on.
+        //
+        // Compared against the *base* title, so a copy called "Wasserfall 2" isn't
+        // dragged back to "Wasserfall" on every single save.
+        let derived = WallpaperLibrary.readableTitle(from: lightLook.baseName ?? darkLook.baseName)
+        let needsRename = !project.nameIsCustom && derived != nil
+            && WallpaperLibrary.baseTitle(of: project.displayName) != derived
 
         // Nothing changed but the timestamp — skip the write so an idle app stays
         // idle and iCloud isn't handed pointless revisions.
-        if project.recipe == recipe, project.name == name { return }
+        if project.recipe == recipe, !needsRename { return }
 
         let previous = project.recipe
         do {
-            try WallpaperLibrary.save(&project, recipe: recipe, name: name,
+            try WallpaperLibrary.save(&project, recipe: recipe, name: project.name,
+                                      nameIsCustom: project.nameIsCustom,
                                       attribution: lightLook.attribution,
                                       attributionURL: lightLook.attributionURL)
+            // A new photo means a new title, and the package moves with it so the
+            // Finder keeps showing what the app shows.
+            if needsRename, let title = derived {
+                project = try WallpaperLibrary.rename(project, to: title, isCustom: false)
+            }
             writeSourceImages(for: project, previous: previous)
             writeThumbnail(for: project)
             refreshProjects()

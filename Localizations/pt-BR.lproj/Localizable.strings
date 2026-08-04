@@ -121,3 +121,11 @@
 "Aktives Wallpaper" = "Papel de parede ativo";
 "Das Projekt konnte nicht gesichert werden." = "Não foi possível salvar o projeto.";
 "Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Este papel de parede é anterior aos projetos e não pode mais ser editado.";
+
+// Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
+// Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
+"Ohne Titel" = "Sem título";
+"Projekt exportieren…" = "Exportar projeto…";
+"Projekt importieren…" = "Importar projeto…";
+"Projekt importiert: %@" = "Projeto importado: %@";
+"Das ist kein Lurent-Projekt." = "Isto não é um projeto do Lurent.";

@@ -87,7 +87,7 @@ private struct ProjectTile: View {
 
     private var tooltip: String {
         let date = project.createdAt.formatted(date: .abbreviated, time: .shortened)
-        return [project.style?.label, project.name, date].compactMap { $0 }.joined(separator: " · ")
+        return [project.displayName, project.style?.label, date].compactMap { $0 }.joined(separator: " · ")
     }
 
     var body: some View {
@@ -323,6 +323,9 @@ private struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             Form {
+                // No project-name row: the title derives itself from the photo and
+                // shows where it is useful — on the rail tile and as the file name in
+                // the Finder. Repeating it here is a line the user never acts on.
                 if let legacy = model.selectedProject, !legacy.isEditable {
                     LegacyProjectSection(project: legacy)
                 } else {
@@ -337,7 +340,14 @@ private struct InspectorPane: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dropDestination(for: URL.self) { urls, _ in
-            for url in urls where isImageFile(url) { model.openLocalImage(url: url) }
+            // A dropped .lurent is a project to open; anything else is a source photo.
+            for url in urls {
+                if url.pathExtension.lowercased() == WallpaperLibrary.packageExtension {
+                    model.importProject(at: url)
+                } else if isImageFile(url) {
+                    model.openLocalImage(url: url)
+                }
+            }
             return true
         }
     }
@@ -352,9 +362,6 @@ private struct LegacyProjectSection: View {
         Section("Gesichertes Wallpaper") {
             LabeledContent(L("Erstellt"),
                            value: project.createdAt.formatted(date: .abbreviated, time: .shortened))
-            if let name = project.name {
-                LabeledContent(L("Bild"), value: name)
-            }
             Text("Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -400,8 +407,10 @@ private struct BaseImageSection: View {
             if !model.results.isEmpty {
                 ThumbGrid {
                     ForEach(model.results) { photo in
-                        Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
-                            .onTapGesture { model.select(photo) }
+                        Button { model.select(photo) } label: {
+                            Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -415,8 +424,11 @@ private struct BaseImageSection: View {
             if !model.recentFiles.isEmpty {
                 ThumbGrid {
                     ForEach(model.recentFiles, id: \.path) { url in
-                        LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
-                            .onTapGesture { model.openLocalImage(url: url) }
+                        Button { model.openLocalImage(url: url) } label: {
+                            LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(url.lastPathComponent)
                     }
                 }
             }
@@ -442,8 +454,10 @@ private struct BaseImageSection: View {
                     if !model.albumAssets.isEmpty {
                         ThumbGrid {
                             ForEach(model.albumAssets, id: \.localIdentifier) { asset in
-                                PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
-                                    .onTapGesture { model.selectAlbumAsset(asset) }
+                                Button { model.selectAlbumAsset(asset) } label: {
+                                    PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -667,6 +681,19 @@ private struct ActionBar: View {
                     Label("Als HEIC exportieren…", systemImage: "square.and.arrow.up")
                 }
                 .keyboardShortcut("s", modifiers: .command)
+
+                if let project = model.selectedProject {
+                    Button {
+                        model.exportProjectPackage(project)
+                    } label: {
+                        Label("Projekt exportieren…", systemImage: "shippingbox")
+                    }
+                }
+                Button {
+                    model.importProjectWithPanel()
+                } label: {
+                    Label("Projekt importieren…", systemImage: "tray.and.arrow.down")
+                }
 
                 Divider()
 
@@ -904,7 +931,12 @@ private struct Thumbnail: View {
             }
         }
         .thumbnailChrome(isSelected: isSelected)
-        .help(photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)")
+        .help(label)
+        .accessibilityLabel(label)
+    }
+
+    private var label: String {
+        photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)"
     }
 }
 
