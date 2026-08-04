@@ -39,7 +39,7 @@ struct Project: Identifiable, Hashable {
 
     var isEditable: Bool { recipe != nil }
 
-    /// What the rail and the name field show. Falls back to the file name so a
+    /// What the rail and the inspector show. Falls back to the file name so a
     /// manifest without a name never renders blank.
     var displayName: String {
         if let name, !name.isEmpty { return name }
@@ -84,8 +84,9 @@ private struct Manifest: Codable {
     var createdAt: Date
     var updatedAt: Date?
     var name: String?
-    /// Set once the user has typed a name. From then on picking a different photo
-    /// must not quietly rewrite the title back to the photo's description.
+    /// Set once the user renamed the package in the Finder. From then on picking a
+    /// different photo must not quietly rewrite the title back to the photo's
+    /// description.
     var nameIsCustom: Bool?
     var attribution: String?
     var attributionURL: String?
@@ -206,11 +207,21 @@ enum WallpaperLibrary {
         let title = name ?? L("Ohne Titel")
         let url = try makePackage(in: dir, name: title)
         var project = Project(id: UUID().uuidString, url: url, createdAt: now, updatedAt: now,
-                              name: title, nameIsCustom: false,
+                              name: storedName(for: url), nameIsCustom: false,
                               attribution: nil, attributionURL: nil,
                               recipe: ProjectRecipe(light: LookRecipe(), dark: LookRecipe()))
         try writeManifest(&project)
         return project
+    }
+
+    /// The name to record in the manifest for a package the app just placed.
+    ///
+    /// Always taken from the file that actually ended up on disk, never from the
+    /// requested title: collisions get a `" 2"` suffix, and storing the unsuffixed
+    /// title would leave name and file name disagreeing — which `project(at:)` reads
+    /// as a Finder rename and would then freeze the name forever.
+    private static func storedName(for package: URL) -> String {
+        package.deletingPathExtension().lastPathComponent
     }
 
     private static func makePackage(in dir: URL, name: String) throws -> URL {
@@ -239,17 +250,15 @@ enum WallpaperLibrary {
     }
 
     /// Renames the document: the package on disk moves, the id stays. Returns the
-    /// project pointing at its new location. `isCustom` marks a name the user typed,
-    /// which then survives any later photo change.
+    /// project pointing at its new location. `isCustom` marks a name the user chose,
+    /// which then survives any later photo change; the derived-title path passes false.
     static func rename(_ project: Project, to name: String, isCustom: Bool = true) throws -> Project {
-        var renamed = project
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        renamed.name = trimmed.isEmpty ? L("Ohne Titel") : trimmed
-        renamed.nameIsCustom = isCustom || project.nameIsCustom
+        let wanted = trimmed.isEmpty ? L("Ohne Titel") : trimmed
 
         let dir = project.url.deletingLastPathComponent()
         let target = dir.appendingPathComponent(
-            uniqueFilename(in: dir, name: renamed.displayName, excluding: project.url),
+            uniqueFilename(in: dir, name: wanted, excluding: project.url),
             isDirectory: true)
         if target != project.url {
             do {
@@ -257,12 +266,15 @@ enum WallpaperLibrary {
             } catch {
                 throw LibraryError.storeFailed
             }
-            renamed = Project(id: renamed.id, url: target, createdAt: renamed.createdAt,
-                              updatedAt: renamed.updatedAt, name: renamed.name,
-                              nameIsCustom: renamed.nameIsCustom,
-                              attribution: renamed.attribution,
-                              attributionURL: renamed.attributionURL, recipe: renamed.recipe)
         }
+        // The stored name is whatever the file ended up being called — including any
+        // collision suffix. Storing `wanted` instead would leave name and file name
+        // disagreeing, which `project(at:)` reads as a Finder rename.
+        var renamed = Project(id: project.id, url: target, createdAt: project.createdAt,
+                              updatedAt: project.updatedAt, name: storedName(for: target),
+                              nameIsCustom: isCustom || project.nameIsCustom,
+                              attribution: project.attribution,
+                              attributionURL: project.attributionURL, recipe: project.recipe)
         try writeManifest(&renamed)
         return renamed
     }
@@ -285,21 +297,30 @@ enum WallpaperLibrary {
     /// Copies a whole project package under a fresh id. Everything comes along —
     /// recipe, source images, renders — so the copy is immediately usable offline.
     static func duplicate(_ project: Project, now: Date = Date()) throws -> Project {
-        try adopt(project.url, name: project.displayName, createdAt: now, copying: true)
+        try adopt(project.url, createdAt: now, copying: true)
     }
 
     /// Brings a `.lurent` from outside the collection in. It gets a **new** id, so
     /// importing the same file twice yields two independent projects instead of two
     /// entries fighting over one identity.
     static func importPackage(at source: URL, now: Date = Date()) throws -> Project {
-        guard let incoming = project(at: source) else { throw LibraryError.notAProject }
-        return try adopt(source, name: incoming.displayName, createdAt: now, copying: true)
+        guard project(at: source) != nil else { throw LibraryError.notAProject }
+        return try adopt(source, createdAt: now, copying: true)
     }
 
-    private static func adopt(_ source: URL, name: String, createdAt: Date,
-                              copying: Bool) throws -> Project {
+    /// Takes a package into the collection under a fresh identity.
+    ///
+    /// The copy's title is derived from its own source photo rather than inherited,
+    /// and `nameIsCustom` resets: a duplicate is a new document that nobody has named
+    /// yet, so it should behave like one — `Wasserfall` duplicated is `Wasserfall 2`,
+    /// and pointing it at another photo renames it along.
+    private static func adopt(_ source: URL, createdAt: Date, copying: Bool) throws -> Project {
+        guard let incoming = project(at: source) else { throw LibraryError.notAProject }
+        let title = readableTitle(from: incoming.recipe?.light.baseName)
+            ?? incoming.displayName
+
         let dir = try directory()
-        let target = dir.appendingPathComponent(uniqueFilename(in: dir, name: name),
+        let target = dir.appendingPathComponent(uniqueFilename(in: dir, name: title),
                                                 isDirectory: true)
         do {
             if copying {
@@ -312,8 +333,8 @@ enum WallpaperLibrary {
         }
         guard var adopted = project(at: target) else { throw LibraryError.notAProject }
         adopted = Project(id: UUID().uuidString, url: target, createdAt: createdAt,
-                          updatedAt: createdAt, name: adopted.name,
-                          nameIsCustom: adopted.nameIsCustom,
+                          updatedAt: createdAt, name: storedName(for: target),
+                          nameIsCustom: false,
                           attribution: adopted.attribution,
                           attributionURL: adopted.attributionURL, recipe: adopted.recipe)
         try writeManifest(&adopted)
@@ -445,7 +466,7 @@ enum WallpaperLibrary {
 
             project = Project(id: UUID().uuidString, url: target,
                               createdAt: project.createdAt, updatedAt: project.updatedAt,
-                              name: title, nameIsCustom: false,
+                              name: storedName(for: target), nameIsCustom: false,
                               attribution: project.attribution,
                               attributionURL: project.attributionURL, recipe: project.recipe)
             try? writeManifest(&project)
@@ -528,7 +549,7 @@ enum WallpaperLibrary {
         }
 
         var project = Project(id: UUID().uuidString, url: package, createdAt: date,
-                              updatedAt: date, name: name, nameIsCustom: false,
+                              updatedAt: date, name: storedName(for: package), nameIsCustom: false,
                               attribution: nil, attributionURL: nil, recipe: nil)
         try? writeManifest(&project)
         return true
@@ -548,20 +569,44 @@ enum WallpaperLibrary {
         UTType(typeIdentifier) ?? .package
     }
 
-    /// `Wasserfall.lurent`, or `Wasserfall 2.lurent` when taken — the Finder's own
-    /// suffix style. `excluding` lets a rename keep its current name when only the
-    /// capitalisation changed.
+    /// `Wasserfall.lurent`, or `Wasserfall 2.lurent` when taken.
+    ///
+    /// A name that already ends in a number keeps counting instead of stacking:
+    /// duplicating `Wasserfall 2` gives `Wasserfall 3`, not `Wasserfall 2 2`.
+    /// `excluding` lets a rename keep its current name when nothing really changed.
     private static func uniqueFilename(in dir: URL, name: String, excluding: URL? = nil) -> String {
-        let base = filesystemSafe(name)
-        var candidate = "\(base).\(packageExtension)"
-        var n = 2
+        let (base, start) = splitTrailingNumber(filesystemSafe(name))
+
+        func isFree(_ filename: String) -> Bool {
+            let url = dir.appendingPathComponent(filename)
+            if !FileManager.default.fileExists(atPath: url.path) { return true }
+            return url.standardizedFileURL == excluding?.standardizedFileURL
+        }
+
+        let plain = "\(base).\(packageExtension)"
+        if start == nil, isFree(plain) { return plain }
+
+        var n = start ?? 2
         while true {
-            let url = dir.appendingPathComponent(candidate)
-            if !FileManager.default.fileExists(atPath: url.path) { return candidate }
-            if let excluding, url.standardizedFileURL == excluding.standardizedFileURL { return candidate }
-            candidate = "\(base) \(n).\(packageExtension)"
+            let candidate = "\(base) \(n).\(packageExtension)"
+            if isFree(candidate) { return candidate }
             n += 1
         }
+    }
+
+    /// The title without any collision suffix: `"Wasserfall 2"` → `"Wasserfall"`.
+    /// Used to tell "same title, different copy" from a genuinely new title.
+    static func baseTitle(of name: String) -> String {
+        splitTrailingNumber(name).0
+    }
+
+    /// `"Wasserfall 2"` → `("Wasserfall", 2)`; `"Wasserfall"` → `("Wasserfall", nil)`.
+    private static func splitTrailingNumber(_ name: String) -> (String, Int?) {
+        guard let space = name.lastIndex(of: " ") else { return (name, nil) }
+        let tail = name[name.index(after: space)...]
+        guard let n = Int(tail), n >= 2, !tail.isEmpty else { return (name, nil) }
+        let base = String(name[..<space]).trimmingCharacters(in: .whitespaces)
+        return base.isEmpty ? (name, nil) : (base, n)
     }
 
     /// A file name can't hold `/` (or `:`, which the Finder shows as `/`), and a

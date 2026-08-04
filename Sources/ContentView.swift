@@ -353,26 +353,16 @@ private struct InspectorPane: View {
     }
 }
 
-/// The document's name — it is also the file name of the `.lurent` package, so
-/// renaming here moves the package in the Finder.
+/// The document's name, shown but not edited. It is derived from the source photo
+/// and kept in sync with the `.lurent` file name — one less thing to fill in. Users
+/// who want their own title rename the package in the Finder, which the app adopts.
 private struct ProjectNameSection: View {
-    @EnvironmentObject var model: AppModel
     let project: Project
-    @State private var draft: String = ""
 
     var body: some View {
         Section("Projekt") {
-            TextField(L("Name"), text: $draft)
-                .textFieldStyle(.roundedBorder)
-                .onChange(of: draft) { _, new in
-                    guard new != project.displayName else { return }
-                    model.renameSelected(to: new)
-                }
-                .onSubmit { model.commitPendingRename() }
+            LabeledContent(L("Name"), value: project.displayName)
         }
-        // Keyed on the id so switching projects reloads the field, but a rename of the
-        // *same* project doesn't yank the cursor while the user is still typing.
-        .task(id: project.id) { draft = project.displayName }
     }
 }
 
@@ -430,8 +420,10 @@ private struct BaseImageSection: View {
             if !model.results.isEmpty {
                 ThumbGrid {
                     ForEach(model.results) { photo in
-                        Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
-                            .onTapGesture { model.select(photo) }
+                        Button { model.select(photo) } label: {
+                            Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -445,8 +437,11 @@ private struct BaseImageSection: View {
             if !model.recentFiles.isEmpty {
                 ThumbGrid {
                     ForEach(model.recentFiles, id: \.path) { url in
-                        LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
-                            .onTapGesture { model.openLocalImage(url: url) }
+                        Button { model.openLocalImage(url: url) } label: {
+                            LocalFileThumbnail(url: url, isSelected: model.currentLook.photoID == url.path)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(url.lastPathComponent)
                     }
                 }
             }
@@ -472,8 +467,10 @@ private struct BaseImageSection: View {
                     if !model.albumAssets.isEmpty {
                         ThumbGrid {
                             ForEach(model.albumAssets, id: \.localIdentifier) { asset in
-                                PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
-                                    .onTapGesture { model.selectAlbumAsset(asset) }
+                                Button { model.selectAlbumAsset(asset) } label: {
+                                    PhotoAssetThumbnail(asset: asset, isSelected: model.currentLook.photoID == asset.localIdentifier)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -947,7 +944,12 @@ private struct Thumbnail: View {
             }
         }
         .thumbnailChrome(isSelected: isSelected)
-        .help(photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)")
+        .help(label)
+        .accessibilityLabel(label)
+    }
+
+    private var label: String {
+        photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)"
     }
 }
 

@@ -255,8 +255,6 @@ final class AppModel: ObservableObject {
     private var renderTask: Task<Void, Never>?
     private var statusDismissTask: Task<Void, Never>?
     private var autosaveTask: Task<Void, Never>?
-    private var renameTask: Task<Void, Never>?
-    private var pendingName: String?
 
     /// Set while a project is being read into the looks. Without it the assignments
     /// below would trip `didSet` and immediately write the project back over itself.
@@ -1119,64 +1117,33 @@ final class AppModel: ObservableObject {
         guard var project = selectedProject, project.isEditable else { return }
         let recipe = ProjectRecipe(light: lightLook.recipe, dark: darkLook.recipe)
 
-        // A project the user has named keeps that name — picking a different photo
-        // must never rewrite the title out from under them. Untouched projects still
-        // follow the photo, so a fresh one gets a sensible title on its own.
-        let name = project.nameIsCustom
-            ? project.name
-            : (WallpaperLibrary.readableTitle(from: lightLook.baseName ?? darkLook.baseName)
-               ?? project.name)
+        // The name looks after itself: it follows the source photo, so the user never
+        // has to invent one. The single exception is a package renamed in the Finder —
+        // that is a deliberate choice and outranks the derived title from then on.
+        //
+        // Compared against the *base* title, so a copy called "Wasserfall 2" isn't
+        // dragged back to "Wasserfall" on every single save.
+        let derived = WallpaperLibrary.readableTitle(from: lightLook.baseName ?? darkLook.baseName)
+        let needsRename = !project.nameIsCustom && derived != nil
+            && WallpaperLibrary.baseTitle(of: project.displayName) != derived
 
         // Nothing changed but the timestamp — skip the write so an idle app stays
         // idle and iCloud isn't handed pointless revisions.
-        if project.recipe == recipe, project.name == name { return }
+        if project.recipe == recipe, !needsRename { return }
 
         let previous = project.recipe
-        let renamed = name != project.name && !project.nameIsCustom
         do {
-            try WallpaperLibrary.save(&project, recipe: recipe, name: name,
+            try WallpaperLibrary.save(&project, recipe: recipe, name: project.name,
                                       nameIsCustom: project.nameIsCustom,
                                       attribution: lightLook.attribution,
                                       attributionURL: lightLook.attributionURL)
-            // A derived title change should move the package too, so the file name in
-            // the Finder keeps matching what the app shows.
-            if renamed, let title = name {
+            // A new photo means a new title, and the package moves with it so the
+            // Finder keeps showing what the app shows.
+            if needsRename, let title = derived {
                 project = try WallpaperLibrary.rename(project, to: title, isCustom: false)
             }
             writeSourceImages(for: project, previous: previous)
             writeThumbnail(for: project)
-            refreshProjects()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// The user typed a new name. Debounced like the autosave — every keystroke must
-    /// not move a folder around on disk (and in iCloud).
-    func renameSelected(to name: String) {
-        pendingName = name
-        renameTask?.cancel()
-        renameTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            if Task.isCancelled { return }
-            commitRename()
-        }
-    }
-
-    /// Forces a pending rename out now — on Return, and before anything that depends
-    /// on the package's location.
-    func commitPendingRename() {
-        commitRename()
-    }
-
-    private func commitRename() {
-        renameTask?.cancel()
-        renameTask = nil
-        guard let name = pendingName, let project = selectedProject else { return }
-        pendingName = nil
-        guard name.trimmingCharacters(in: .whitespacesAndNewlines) != project.name else { return }
-        do {
-            _ = try WallpaperLibrary.rename(project, to: name, isCustom: true)
             refreshProjects()
         } catch {
             errorMessage = error.localizedDescription
