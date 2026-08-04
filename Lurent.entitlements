@@ -2,10 +2,28 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Hardened Runtime resource access: read/write the Photos library via
-	     PhotoKit (load templates, save finished wallpapers into an album).
-	     Not sandboxed — the app sets the system desktop and restarts the
-	     WallpaperAgent, which the App Sandbox would forbid. -->
+	<!-- App Sandbox. Setting the desktop from inside the container was measured to
+	     work on macOS 26: WallpaperAgent reads another app's container fine, and
+	     `setDesktopImageURL` needs no entitlement of its own. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Unsplash search and photo downloads. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- Files the user picks in an open/save panel: source images, exported
+	     wallpapers, imported .lurent projects, and the collection folder. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- Re-open those picks after a relaunch (recent files, the collection folder)
+	     without asking again. Without this every path is forgotten on quit. -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
+
+	<!-- Read/write the Photos library via PhotoKit (load templates, save finished
+	     wallpapers into an album). -->
 	<key>com.apple.security.personal-information.photos-library</key>
 	<true/>
 </dict>
