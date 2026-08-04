@@ -405,6 +405,12 @@ private struct BaseImageSection: View {
                 .frame(height: 24)
                 if model.isSearching { ProgressView().controlSize(.small) }
             }
+            if let note = model.browserNote, model.results.isEmpty, !model.isSearching {
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !model.results.isEmpty {
                 ThumbGrid {
                     ForEach(model.results) { photo in

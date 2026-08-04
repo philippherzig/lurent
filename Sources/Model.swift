@@ -204,6 +204,11 @@ final class AppModel: ObservableObject {
     @Published var query: String = ""
     @Published var results: [UnsplashPhoto] = []
     @Published var isSearching = false
+    /// Why the picker is empty, when there is a reason worth showing. The launch
+    /// fetch stays silent about failures — an alert on startup would be rude — but
+    /// an empty grid with no explanation reads as a broken app, which matters most
+    /// when the shared demo key is exhausted.
+    @Published var browserNote: String?
     @Published var isLoadingSource = false
     @Published var errorMessage: String?
     @Published var statusMessage: String? {
@@ -472,6 +477,7 @@ final class AppModel: ObservableObject {
 
     private func loadStarterPhotos(select shouldSelect: Bool) {
         isSearching = true
+        browserNote = nil
         let projectID = selectedProjectID
         Task {
             defer { isSearching = false }
@@ -487,8 +493,9 @@ final class AppModel: ObservableObject {
                       lightLook.source == nil, let pick = photos.randomElement() else { return }
                 select(pick)
             } catch {
-                // Startup convenience — stay silent so a missing key or offline
-                // launch just falls back to the empty state, no error alert.
+                // No alert on startup — that would be rude. But an empty grid with no
+                // explanation reads as a broken app, so say why inline instead.
+                browserNote = error.localizedDescription
             }
         }
     }
