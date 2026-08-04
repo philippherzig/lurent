@@ -129,3 +129,7 @@
 "Projekt importieren…" = "Importar proyecto…";
 "Projekt importiert: %@" = "Proyecto importado: %@";
 "Das ist kein Lurent-Projekt." = "Esto no es un proyecto de Lurent.";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "Foto de [%@](%@) en [Unsplash](%@)";

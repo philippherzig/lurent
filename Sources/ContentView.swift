@@ -381,6 +381,7 @@ private struct BaseImageSection: View {
             }
 
             sourceBrowser
+            UnsplashCredit(look: model.currentLook)
         }
         .task(id: model.selectedAlbumID) {
             let id = model.selectedAlbumID
@@ -466,6 +467,46 @@ private struct BaseImageSection: View {
                 EmptyView()
             }
         }
+    }
+}
+
+/// The credit Unsplash's API guidelines require: the photographer and Unsplash
+/// itself, both linking back with referral parameters. Shown for whichever
+/// appearance is being edited — sources from Files or Photos carry no URL and get
+/// no row.
+private struct UnsplashCredit: View {
+    let look: Look
+
+    var body: some View {
+        if let credit {
+            Text(credit)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        }
+    }
+
+    private var credit: AttributedString? {
+        guard UnsplashAttribution.isUnsplash(look.attributionURL),
+              let profile = UnsplashAttribution.profileURL(look.attributionURL),
+              let name = photographer, !name.isEmpty
+        else { return nil }
+
+        let markdown = L("Foto von [%@](%@) auf [Unsplash](%@)",
+                         name, profile.absoluteString,
+                         UnsplashAttribution.homeURL.absoluteString)
+        return try? AttributedString(markdown: markdown)
+    }
+
+    /// Builds before the credit existed stored a whole sentence ("Foto: Jane · Unsplash")
+    /// where only the name belongs. Strip that shape so old projects read right.
+    private var photographer: String? {
+        guard var name = look.attribution else { return nil }
+        if name.hasPrefix("Foto: ") { name.removeFirst("Foto: ".count) }
+        if let range = name.range(of: " · Unsplash", options: .backwards) {
+            name.removeSubrange(range)
+        }
+        return name.trimmingCharacters(in: .whitespaces)
     }
 }
 

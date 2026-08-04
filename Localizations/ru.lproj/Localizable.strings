@@ -129,3 +129,7 @@
 "Projekt importieren…" = "Импортировать проект…";
 "Projekt importiert: %@" = "Проект импортирован: %@";
 "Das ist kein Lurent-Projekt." = "Это не проект Lurent.";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "Фото [%@](%@) на [Unsplash](%@)";

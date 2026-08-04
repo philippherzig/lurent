@@ -129,3 +129,7 @@
 "Projekt importieren…" = "Importa progetto…";
 "Projekt importiert: %@" = "Progetto importato: %@";
 "Das ist kein Lurent-Projekt." = "Questo non è un progetto Lurent.";
+
+// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
+// Unsplash, beide mit Rücklink und utm-Parametern.
+"Foto von [%@](%@) auf [Unsplash](%@)" = "Foto di [%@](%@) su [Unsplash](%@)";
