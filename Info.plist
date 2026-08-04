@@ -47,6 +47,49 @@
 	<string>Lurent sichert fertige Wallpaper in deiner Fotos-Mediathek.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.graphics-design</string>
+	<!-- A Lurent project is a *package*: a folder holding project.json, the source
+	     photo and the renders, which the Finder shows as one document once this
+	     declaration is registered with LaunchServices. Declaring it here is what
+	     turns the on-disk layout into something users can move, copy, AirDrop and
+	     back up without it falling apart. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>app.lurent.project</string>
+			<key>UTTypeDescription</key>
+			<string>Lurent-Projekt</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>com.apple.package</string>
+				<string>public.composite-content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>lurent</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Lurent-Projekt</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<true/>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>app.lurent.project</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

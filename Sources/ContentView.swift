@@ -87,7 +87,7 @@ private struct ProjectTile: View {
 
     private var tooltip: String {
         let date = project.createdAt.formatted(date: .abbreviated, time: .shortened)
-        return [project.style?.label, project.name, date].compactMap { $0 }.joined(separator: " · ")
+        return [project.displayName, project.style?.label, date].compactMap { $0 }.joined(separator: " · ")
     }
 
     var body: some View {
@@ -323,6 +323,9 @@ private struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             Form {
+                if let project = model.selectedProject {
+                    ProjectNameSection(project: project)
+                }
                 if let legacy = model.selectedProject, !legacy.isEditable {
                     LegacyProjectSection(project: legacy)
                 } else {
@@ -337,9 +340,39 @@ private struct InspectorPane: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dropDestination(for: URL.self) { urls, _ in
-            for url in urls where isImageFile(url) { model.openLocalImage(url: url) }
+            // A dropped .lurent is a project to open; anything else is a source photo.
+            for url in urls {
+                if url.pathExtension.lowercased() == WallpaperLibrary.packageExtension {
+                    model.importProject(at: url)
+                } else if isImageFile(url) {
+                    model.openLocalImage(url: url)
+                }
+            }
             return true
         }
+    }
+}
+
+/// The document's name — it is also the file name of the `.lurent` package, so
+/// renaming here moves the package in the Finder.
+private struct ProjectNameSection: View {
+    @EnvironmentObject var model: AppModel
+    let project: Project
+    @State private var draft: String = ""
+
+    var body: some View {
+        Section("Projekt") {
+            TextField(L("Name"), text: $draft)
+                .textFieldStyle(.roundedBorder)
+                .onChange(of: draft) { _, new in
+                    guard new != project.displayName else { return }
+                    model.renameSelected(to: new)
+                }
+                .onSubmit { model.commitPendingRename() }
+        }
+        // Keyed on the id so switching projects reloads the field, but a rename of the
+        // *same* project doesn't yank the cursor while the user is still typing.
+        .task(id: project.id) { draft = project.displayName }
     }
 }
 
@@ -352,9 +385,6 @@ private struct LegacyProjectSection: View {
         Section("Gesichertes Wallpaper") {
             LabeledContent(L("Erstellt"),
                            value: project.createdAt.formatted(date: .abbreviated, time: .shortened))
-            if let name = project.name {
-                LabeledContent(L("Bild"), value: name)
-            }
             Text("Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -667,6 +697,19 @@ private struct ActionBar: View {
                     Label("Als HEIC exportieren…", systemImage: "square.and.arrow.up")
                 }
                 .keyboardShortcut("s", modifiers: .command)
+
+                if let project = model.selectedProject {
+                    Button {
+                        model.exportProjectPackage(project)
+                    } label: {
+                        Label("Projekt exportieren…", systemImage: "shippingbox")
+                    }
+                }
+                Button {
+                    model.importProjectWithPanel()
+                } label: {
+                    Label("Projekt importieren…", systemImage: "tray.and.arrow.down")
+                }
 
                 Divider()
 

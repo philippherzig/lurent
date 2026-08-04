@@ -255,6 +255,8 @@ final class AppModel: ObservableObject {
     private var renderTask: Task<Void, Never>?
     private var statusDismissTask: Task<Void, Never>?
     private var autosaveTask: Task<Void, Never>?
+    private var renameTask: Task<Void, Never>?
+    private var pendingName: String?
 
     /// Set while a project is being read into the looks. Without it the assignments
     /// below would trip `didSet` and immediately write the project back over itself.
@@ -281,7 +283,7 @@ final class AppModel: ObservableObject {
     /// The collection is empty (first run, or the user deleted everything) — there is
     /// always exactly one project open, so make one.
     private func createFirstProject() throws {
-        let project = try WallpaperLibrary.create(slug: nil)
+        let project = try WallpaperLibrary.create(name: nil)
         refreshProjects()
         selectedProjectID = project.id
         UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
@@ -968,7 +970,7 @@ final class AppModel: ObservableObject {
     func newProject() {
         flushAutosave()
         do {
-            let project = try WallpaperLibrary.create(slug: nil)
+            let project = try WallpaperLibrary.create(name: nil)
             refreshProjects()
             selectedProjectID = project.id
             UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
@@ -999,12 +1001,73 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([project.url])
     }
 
+    // MARK: Project documents (.lurent)
+
+    /// Copies a project package out of the collection. This is what the format buys:
+    /// handing someone the whole editable project rather than a finished image.
+    func exportProjectPackage(_ project: Project) {
+        flushAutosave()
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [WallpaperLibrary.contentType]
+        panel.nameFieldStringValue = project.url.lastPathComponent
+        panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                do {
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        try FileManager.default.removeItem(at: url)
+                    }
+                    try FileManager.default.copyItem(at: project.url, to: url)
+                    self.statusMessage = L("Exportiert: %@", url.lastPathComponent)
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func importProjectWithPanel() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [WallpaperLibrary.contentType]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK, let url = panel.url {
+            importProject(at: url)
+        }
+    }
+
+    /// Opens a `.lurent` — from the Finder, a double-click, or the import panel.
+    /// Something already in the collection is just selected; anything else is copied
+    /// in first, so the collection stays the one place projects live.
+    func importProject(at url: URL) {
+        errorMessage = nil
+        if WallpaperLibrary.isInCollection(url) {
+            refreshProjects()
+            if let existing = projects.first(where: { $0.url.standardizedFileURL == url.standardizedFileURL }) {
+                selectedProjectID = nil
+                open(existing)
+            }
+            return
+        }
+        flushAutosave()
+        do {
+            let imported = try WallpaperLibrary.importPackage(at: url)
+            refreshProjects()
+            selectedProjectID = nil
+            open(imported)
+            statusMessage = L("Projekt importiert: %@", imported.displayName)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Copies a project's finished wallpaper out to a location the user picks,
     /// rendering it first if it isn't current.
     func exportProject(_ project: Project) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.heic]
-        panel.nameFieldStringValue = "\(project.id).heic"
+        panel.nameFieldStringValue = "\(project.displayName).heic"
         panel.canCreateDirectories = true
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
@@ -1055,19 +1118,65 @@ final class AppModel: ObservableObject {
     private func saveOpenProject() {
         guard var project = selectedProject, project.isEditable else { return }
         let recipe = ProjectRecipe(light: lightLook.recipe, dark: darkLook.recipe)
-        let name = lightLook.baseName ?? darkLook.baseName
+
+        // A project the user has named keeps that name — picking a different photo
+        // must never rewrite the title out from under them. Untouched projects still
+        // follow the photo, so a fresh one gets a sensible title on its own.
+        let name = project.nameIsCustom
+            ? project.name
+            : (WallpaperLibrary.readableTitle(from: lightLook.baseName ?? darkLook.baseName)
+               ?? project.name)
 
         // Nothing changed but the timestamp — skip the write so an idle app stays
         // idle and iCloud isn't handed pointless revisions.
         if project.recipe == recipe, project.name == name { return }
 
         let previous = project.recipe
+        let renamed = name != project.name && !project.nameIsCustom
         do {
             try WallpaperLibrary.save(&project, recipe: recipe, name: name,
+                                      nameIsCustom: project.nameIsCustom,
                                       attribution: lightLook.attribution,
                                       attributionURL: lightLook.attributionURL)
+            // A derived title change should move the package too, so the file name in
+            // the Finder keeps matching what the app shows.
+            if renamed, let title = name {
+                project = try WallpaperLibrary.rename(project, to: title, isCustom: false)
+            }
             writeSourceImages(for: project, previous: previous)
             writeThumbnail(for: project)
+            refreshProjects()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// The user typed a new name. Debounced like the autosave — every keystroke must
+    /// not move a folder around on disk (and in iCloud).
+    func renameSelected(to name: String) {
+        pendingName = name
+        renameTask?.cancel()
+        renameTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            if Task.isCancelled { return }
+            commitRename()
+        }
+    }
+
+    /// Forces a pending rename out now — on Return, and before anything that depends
+    /// on the package's location.
+    func commitPendingRename() {
+        commitRename()
+    }
+
+    private func commitRename() {
+        renameTask?.cancel()
+        renameTask = nil
+        guard let name = pendingName, let project = selectedProject else { return }
+        pendingName = nil
+        guard name.trimmingCharacters(in: .whitespacesAndNewlines) != project.name else { return }
+        do {
+            _ = try WallpaperLibrary.rename(project, to: name, isCustom: true)
             refreshProjects()
         } catch {
             errorMessage = error.localizedDescription
