@@ -2,34 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- App Sandbox. Setting the desktop from inside the container was measured to
-	     work on macOS 26: WallpaperAgent reads another app's container fine, and
-	     `setDesktopImageURL` needs no entitlement of its own. -->
-	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<!-- Hardened Runtime resource access: read/write the Photos library via
+	     PhotoKit (load templates, save finished wallpapers into an album).
 
-	<!-- Unsplash search and photo downloads. -->
-	<key>com.apple.security.network.client</key>
-	<true/>
-
-	<!-- Files the user picks in an open/save panel: source images, exported
-	     wallpapers, imported .lurent projects, and the collection folder. -->
-	<key>com.apple.security.files.user-selected.read-write</key>
-	<true/>
-
-	<!-- Re-open those picks after a relaunch (recent files, the collection folder)
-	     without asking again. Without this every path is forgotten on quit. -->
-	<key>com.apple.security.files.bookmarks.app-scope</key>
-	<true/>
-
-	<!-- Read/write the Photos library via PhotoKit (load templates, save finished
-	     wallpapers into an album). -->
+	     Deliberately NOT sandboxed. The App Sandbox itself works — measured on
+	     macOS 26, including setting the desktop from inside the container — but a
+	     sandboxed build cannot reach `iCloud Drive/Lurent/`, so it would quietly
+	     start an empty collection and existing users would find their wallpapers
+	     gone. Sandboxing only pays off together with the app's own iCloud
+	     container, and that needs a provisioning profile, i.e. the App Store.
+	     Those entitlements live in Lurent-appstore.entitlements, which
+	     `PROVISION_PROFILE=… ./build.sh` selects. -->
 	<key>com.apple.security.personal-information.photos-library</key>
 	<true/>
-
-	<!-- The iCloud container entitlements are NOT here on purpose: they are
-	     restricted, and macOS refuses to launch a binary carrying them unless an
-	     embedded.provisionprofile authorizes them ("Launchd job spawn failed").
-	     See Lurent-appstore.entitlements. -->
 </dict>
 </plist>
