@@ -5,7 +5,6 @@ import SwiftUI
 struct LurentApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var updater = UpdaterViewModel()
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     init() {
         // Single-window app: window tabbing buys nothing and the system tab bar
@@ -19,8 +18,23 @@ struct LurentApp: App {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 1090, minHeight: 660)
-                .onAppear { delegate.model = model }
+                // `.lurent` documents arriving from the Finder — double-click, drop on
+                // the Dock icon, "Open With".
+                //
+                // Deliberately not an NSApplicationDelegateAdaptor: attaching a
+                // delegate to a WindowGroup app makes it open a second, empty window
+                // at launch, and `applicationShouldOpenUntitledFile` does not suppress
+                // it. `onOpenURL` receives the same file URLs and costs no delegate.
+                .onOpenURL { url in
+                    guard url.pathExtension.lowercased() == WallpaperLibrary.packageExtension else { return }
+                    model.importProject(at: url)
+                }
+                // Without this the existing window declines the document event and
+                // SwiftUI opens a second one for it. Lurent has exactly one window and
+                // the opened project lands in its rail.
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
+        .handlesExternalEvents(matching: ["*"])
         // The preview renders a square master, so the centre pane wants to be roughly
         // square too: height 840 − 2×40 padding ≈ 760 image side, + padding ≈ 840 pane
         // width, + 108 library rail + 320 inspector ≈ 1270 total. Sized so the square
@@ -33,30 +47,5 @@ struct LurentApp: App {
                 CheckForUpdatesCommand(updater: updater)
             }
         }
-    }
-}
-
-/// Handles `.lurent` documents arriving from the Finder — double-click, drop on the
-/// Dock icon, "Open With". Files can land before the window exists, so they queue up
-/// until the model is available.
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    var model: AppModel? {
-        didSet {
-            guard model != nil, !queued.isEmpty else { return }
-            let urls = queued
-            queued = []
-            urls.forEach(deliver)
-        }
-    }
-    private var queued: [URL] = []
-
-    func application(_ application: NSApplication, open urls: [URL]) {
-        urls.forEach(deliver)
-    }
-
-    private func deliver(_ url: URL) {
-        guard url.pathExtension.lowercased() == WallpaperLibrary.packageExtension else { return }
-        guard let model else { queued.append(url); return }
-        Task { @MainActor in model.importProject(at: url) }
     }
 }

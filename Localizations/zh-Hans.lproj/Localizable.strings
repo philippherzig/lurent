@@ -124,8 +124,6 @@
 
 // Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
 // Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
-"Projekt" = "项目";
-"Name" = "名称";
 "Ohne Titel" = "未命名";
 "Projekt exportieren…" = "导出项目…";
 "Projekt importieren…" = "导入项目…";

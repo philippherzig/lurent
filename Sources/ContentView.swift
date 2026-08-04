@@ -323,9 +323,9 @@ private struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             Form {
-                if let project = model.selectedProject {
-                    ProjectNameSection(project: project)
-                }
+                // No project-name row: the title derives itself from the photo and
+                // shows where it is useful — on the rail tile and as the file name in
+                // the Finder. Repeating it here is a line the user never acts on.
                 if let legacy = model.selectedProject, !legacy.isEditable {
                     LegacyProjectSection(project: legacy)
                 } else {
@@ -349,19 +349,6 @@ private struct InspectorPane: View {
                 }
             }
             return true
-        }
-    }
-}
-
-/// The document's name, shown but not edited. It is derived from the source photo
-/// and kept in sync with the `.lurent` file name — one less thing to fill in. Users
-/// who want their own title rename the package in the Finder, which the app adopts.
-private struct ProjectNameSection: View {
-    let project: Project
-
-    var body: some View {
-        Section("Projekt") {
-            LabeledContent(L("Name"), value: project.displayName)
         }
     }
 }
