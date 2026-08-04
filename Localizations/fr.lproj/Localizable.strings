@@ -104,3 +104,20 @@
 "Ausschnitt" = "Cadrage";
 "Wellenlänge" = "Longueur d’onde";
 "Unregelmässigkeit" = "Irrégularité";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Fond d’écran enregistré";
+"Erstellt" = "Créé";
+"Im Finder zeigen" = "Afficher dans le Finder";
+"Löschen" = "Supprimer";
+"Weitere Aktionen" = "Plus d’actions";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "Le dossier des fonds d’écran n’a pas pu être créé.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Le fichier du fond d’écran n’est plus disponible (pas encore téléchargé depuis iCloud ?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Dupliquer le projet";
+"Neues Projekt" = "Nouveau projet";
+"Aktives Wallpaper" = "Fond d’écran actif";
+"Das Projekt konnte nicht gesichert werden." = "Le projet n’a pas pu être enregistré.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Ce fond d’écran est antérieur aux projets et ne peut plus être modifié.";

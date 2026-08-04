@@ -5,8 +5,10 @@ import ImageIO
 import UniformTypeIdentifiers
 
 private let thumbSize: CGFloat = 52
+private let railThumbSize: CGFloat = 76
+private let railWidth: CGFloat = 108
 
-// MARK: - Root (two-pane: preview | scrollable inspector, on one blurred surface)
+// MARK: - Root (three-pane: library rail | preview | scrollable inspector, on one blurred surface)
 
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
@@ -17,6 +19,8 @@ struct ContentView: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            LibraryRail()
+                .frame(width: railWidth)
             PreviewPane()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             InspectorPane()
@@ -34,7 +38,138 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Preview pane (left)
+// MARK: - Library rail (far left): every project, newest first
+
+/// Every creation is a project that keeps its recipe, so the rail is both the history
+/// and the way back into a piece of work. The selected tile *is* what the editor is
+/// showing; edits autosave into it, and "+" branches off a copy.
+private struct LibraryRail: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 10) {
+                    ForEach(model.projects) { project in
+                        ProjectTile(project: project)
+                    }
+                }
+                .padding(.vertical, 14)
+            }
+
+            Button {
+                model.duplicateSelected()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.body)
+                    .frame(width: 20, height: 20)
+                    .padding(9)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: Circle())
+            .help("Projekt duplizieren")
+            .accessibilityLabel(L("Projekt duplizieren"))
+            .padding(.bottom, 14)
+        }
+        .frame(maxHeight: .infinity)
+        .onAppear { model.refreshProjects() }
+    }
+}
+
+private struct ProjectTile: View {
+    @EnvironmentObject var model: AppModel
+    let project: Project
+    @State private var thumbnail: NSImage?
+
+    private var isSelected: Bool { model.selectedProjectID == project.id }
+    private var isActive: Bool { model.activeProjectID == project.id }
+
+    private var tooltip: String {
+        let date = project.createdAt.formatted(date: .abbreviated, time: .shortened)
+        return [project.style?.label, project.name, date].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    var body: some View {
+        Button {
+            model.open(project)
+        } label: {
+            Group {
+                if let thumbnail {
+                    Image(nsImage: thumbnail).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Color.gray.opacity(0.2).overlay(ProgressView().controlSize(.small))
+                }
+            }
+            .railChrome(isSelected: isSelected)
+            .overlay(alignment: .bottomTrailing) {
+                // Applying and editing are separate now, so mark which project is
+                // actually on the desktop.
+                if isActive {
+                    Image(systemName: "macwindow")
+                        .font(.system(size: 9, weight: .semibold))
+                        .padding(3)
+                        .background(.thinMaterial, in: Circle())
+                        .padding(4)
+                        .help("Aktives Wallpaper")
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tooltip)
+        .help(tooltip)
+        .contextMenu {
+            Button("Als Schreibtisch setzen") { model.applyProject(project) }
+            Button("Projekt duplizieren") { model.open(project); model.duplicateSelected() }
+            Divider()
+            Button("Als HEIC exportieren…") { model.exportProject(project) }
+            Button("In Fotos sichern") { model.saveProjectToPhotosLibrary(project) }
+            Button("Im Finder zeigen") { model.revealInFinder(project) }
+            Divider()
+            Button("Neues Projekt") { model.newProject() }
+            Button("Löschen", role: .destructive) { model.deleteProject(project) }
+        }
+        // The live editor preview is fresher than the file on disk, so the selected
+        // tile follows the editor instead of waiting for the next autosave.
+        .task(id: thumbnailKey) {
+            if isSelected, let preview = model.preview {
+                thumbnail = preview
+                return
+            }
+            let url = project.thumbnailURL
+            // The collection may live in iCloud Drive, where the local copy can be
+            // evicted — pull it back before asking ImageIO for a thumbnail.
+            guard await WallpaperLibrary.ensureDownloaded(url) else { return }
+            thumbnail = await loadImageThumbnail(url: url, maxPixelSize: 320)
+        }
+    }
+
+    /// Re-runs the thumbnail task when the project changes, when it becomes the
+    /// selected one, and on every editor re-render while it is selected.
+    private var thumbnailKey: String {
+        "\(project.id)|\(project.updatedAt.timeIntervalSince1970)|\(isSelected)|\(model.previewGeneration)"
+    }
+}
+
+private extension View {
+    /// Square framing + rounded clip + selection ring for the rail's larger tiles.
+    ///
+    /// Heavier than a hairline on purpose: the system draws its own focus ring in the
+    /// same accent colour, and focus and selection can sit on different tiles (pressing
+    /// "+" moves the selection but not the focus). The glow is what tells them apart.
+    func railChrome(isSelected: Bool) -> some View {
+        self
+            .frame(width: railThumbSize, height: railThumbSize)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+            )
+            .shadow(color: isSelected ? Color.accentColor.opacity(0.45) : .clear, radius: 6)
+    }
+}
+
+// MARK: - Preview pane (centre)
 
 private struct PreviewPane: View {
     @EnvironmentObject var model: AppModel
@@ -44,9 +179,18 @@ private struct PreviewPane: View {
         return CGFloat(s.width) / CGFloat(max(1, s.height))
     }
 
+    /// A project from before the project format has no recipe to edit — it can only
+    /// be shown as the finished file it is.
+    private var legacyProject: Project? {
+        guard let p = model.selectedProject, !p.isEditable else { return nil }
+        return p
+    }
+
     var body: some View {
         ZStack {
-            if let preview = model.preview {
+            if let legacy = legacyProject {
+                RenderedPreview(project: legacy, aspect: aspect)
+            } else if let preview = model.preview {
                 Image(nsImage: preview)
                     .resizable()
                     .aspectRatio(aspect, contentMode: .fit)
@@ -66,8 +210,10 @@ private struct PreviewPane: View {
             if model.isLoadingSource { ProgressView().controlSize(.large) }
 
             VStack {
-                AppearanceSwitcher()
-                    .padding(.top, 18)
+                if legacyProject == nil {
+                    AppearanceSwitcher()
+                        .padding(.top, 18)
+                }
                 Spacer()
                 if model.statusMessage != nil {
                     StatusCapsule()
@@ -77,6 +223,35 @@ private struct PreviewPane: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.spring(duration: 0.3), value: model.statusMessage)
+    }
+}
+
+/// A finished wallpaper straight off disk. Only the Light frame of the dynamic HEIC
+/// is shown — this is a finished file, not something being edited.
+private struct RenderedPreview: View {
+    let project: Project
+    let aspect: CGFloat
+    @State private var image: NSImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(aspect, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(radius: 20, y: 10)
+                    .padding(40)
+            } else {
+                ProgressView().controlSize(.large)
+            }
+        }
+        .task(id: project.id) {
+            image = nil
+            let url = project.wallpaperURL
+            guard await WallpaperLibrary.ensureDownloaded(url) else { return }
+            image = await loadImageThumbnail(url: url, maxPixelSize: 1600)
+        }
     }
 }
 
@@ -148,8 +323,12 @@ private struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             Form {
-                BaseImageSection()
-                EffectSection()
+                if let legacy = model.selectedProject, !legacy.isEditable {
+                    LegacyProjectSection(project: legacy)
+                } else {
+                    BaseImageSection()
+                    EffectSection()
+                }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
@@ -160,6 +339,25 @@ private struct InspectorPane: View {
         .dropDestination(for: URL.self) { urls, _ in
             for url in urls where isImageFile(url) { model.openLocalImage(url: url) }
             return true
+        }
+    }
+}
+
+/// Inspector for a wallpaper made before projects existed: there is a finished file
+/// but no recipe behind it, so there is nothing to put sliders on.
+private struct LegacyProjectSection: View {
+    let project: Project
+
+    var body: some View {
+        Section("Gesichertes Wallpaper") {
+            LabeledContent(L("Erstellt"),
+                           value: project.createdAt.formatted(date: .abbreviated, time: .shortened))
+            if let name = project.name {
+                LabeledContent(L("Bild"), value: name)
+            }
+            Text("Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
@@ -432,45 +630,90 @@ private struct SourceColorPicker: View {
     }
 }
 
-// MARK: - Action bar (pinned bottom): export menu + set-as-desktop
+// MARK: - Action bar (pinned bottom): project actions + set-as-desktop
 
+/// There is no save button: edits persist on their own. Setting the desktop is the
+/// only deliberate action left, which is why it gets the whole prominent button.
 private struct ActionBar: View {
     @EnvironmentObject var model: AppModel
+
+    /// Legacy projects have a finished file but no live looks, so the editor-based
+    /// exports don't apply to them — the project-based ones do.
+    private var isLegacy: Bool {
+        model.selectedProject.map { !$0.isEditable } ?? false
+    }
+
+    private var canAct: Bool { isLegacy || model.canExport }
 
     var body: some View {
         HStack(spacing: 10) {
             Menu {
                 Button {
-                    model.saveToPhotosLibrary()
+                    if let p = model.selectedProject, isLegacy {
+                        model.saveProjectToPhotosLibrary(p)
+                    } else {
+                        model.saveToPhotosLibrary()
+                    }
                 } label: {
                     Label("In Fotos sichern", systemImage: "photo.stack")
                 }
                 Button {
-                    model.exportWithPanel()
+                    if let p = model.selectedProject, isLegacy {
+                        model.exportProject(p)
+                    } else {
+                        model.exportWithPanel()
+                    }
                 } label: {
                     Label("Als HEIC exportieren…", systemImage: "square.and.arrow.up")
                 }
                 .keyboardShortcut("s", modifiers: .command)
+
+                Divider()
+
+                Button {
+                    model.duplicateSelected()
+                } label: {
+                    Label("Projekt duplizieren", systemImage: "plus.square.on.square")
+                }
+                Button {
+                    model.newProject()
+                } label: {
+                    Label("Neues Projekt", systemImage: "square.dashed")
+                }
+
+                Divider()
+
+                if let project = model.selectedProject {
+                    Button {
+                        model.revealInFinder(project)
+                    } label: {
+                        Label("Im Finder zeigen", systemImage: "folder")
+                    }
+                    Button(role: .destructive) {
+                        model.deleteProject(project)
+                    } label: {
+                        Label("Löschen", systemImage: "trash")
+                    }
+                }
             } label: {
-                Image(systemName: "square.and.arrow.up")
+                Image(systemName: "ellipsis")
             }
             .menuStyle(.button)
             .menuIndicator(.hidden)
             .buttonStyle(.glass)
             .controlSize(.large)
             .fixedSize()
-            .help("Exportieren")
-            .disabled(!model.canExport)
+            .help("Weitere Aktionen")
 
             Button {
-                model.setAsDesktop()
+                model.applySelected()
             } label: {
                 Label("Als Schreibtisch setzen", systemImage: "macwindow.on.rectangle")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
             .controlSize(.large)
-            .disabled(!model.canExport)
+            .disabled(!canAct)
         }
         .padding(14)
     }
@@ -586,24 +829,26 @@ private struct LocalFileThumbnail: View {
         .thumbnailChrome(isSelected: isSelected)
         .help(url.lastPathComponent)
         .task(id: url) {
-            thumbnail = await Self.loadThumbnail(url: url)
+            thumbnail = await loadImageThumbnail(url: url, maxPixelSize: 240)
         }
     }
+}
 
-    private static func loadThumbnail(url: URL) async -> NSImage? {
-        await Task.detached(priority: .utility) {
-            let options: [CFString: Any] = [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 240,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-            ]
-            guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
-                  let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary) else {
-                return nil
-            }
-            return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
-        }.value
-    }
+/// Thumbnail for any image file on disk. For a dynamic wallpaper HEIC, index 0 is
+/// the Light appearance — which is exactly the face we want to show.
+private func loadImageThumbnail(url: URL, maxPixelSize: Int) async -> NSImage? {
+    await Task.detached(priority: .utility) {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+        ]
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary) else {
+            return nil
+        }
+        return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    }.value
 }
 
 private struct PhotoAssetThumbnail: View {
@@ -713,17 +958,5 @@ private struct WindowAccessor: NSViewRepresentable {
     }
 }
 
-// MARK: - Helpers
-
-extension Color {
-    init?(hex: String?) {
-        guard var hex else { return nil }
-        hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        guard hex.count == 6, let v = Int(hex, radix: 16) else { return nil }
-        self = Color(
-            red: Double((v >> 16) & 0xFF) / 255,
-            green: Double((v >> 8) & 0xFF) / 255,
-            blue: Double(v & 0xFF) / 255
-        )
-    }
-}
+// `Color(hex:)` — used above for Unsplash placeholder tints — lives in
+// LookRecipe.swift next to its `hexRGB` counterpart.

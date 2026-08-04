@@ -104,3 +104,20 @@
 "Ausschnitt" = "Inquadratura";
 "Wellenlänge" = "Lunghezza d’onda";
 "Unregelmässigkeit" = "Irregolarità";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Sfondo salvato";
+"Erstellt" = "Creato";
+"Im Finder zeigen" = "Mostra nel Finder";
+"Löschen" = "Elimina";
+"Weitere Aktionen" = "Altre azioni";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "Non è stato possibile creare la cartella degli sfondi.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Il file dello sfondo non è più disponibile (non ancora scaricato da iCloud?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Duplica progetto";
+"Neues Projekt" = "Nuovo progetto";
+"Aktives Wallpaper" = "Sfondo attivo";
+"Das Projekt konnte nicht gesichert werden." = "Non è stato possibile salvare il progetto.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Questo sfondo è precedente ai progetti e non può più essere modificato.";

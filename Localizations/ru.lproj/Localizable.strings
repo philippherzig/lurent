@@ -104,3 +104,20 @@
 "Ausschnitt" = "Кадрирование";
 "Wellenlänge" = "Длина волны";
 "Unregelmässigkeit" = "Нерегулярность";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Сохранённые обои";
+"Erstellt" = "Создано";
+"Im Finder zeigen" = "Показать в Finder";
+"Löschen" = "Удалить";
+"Weitere Aktionen" = "Другие действия";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "Не удалось создать папку для обоев.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Файл обоев недоступен (возможно, ещё не загружен из iCloud).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Дублировать проект";
+"Neues Projekt" = "Новый проект";
+"Aktives Wallpaper" = "Активные обои";
+"Das Projekt konnte nicht gesichert werden." = "Не удалось сохранить проект.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Эти обои созданы до появления проектов и больше не редактируются.";

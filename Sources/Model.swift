@@ -229,19 +229,62 @@ final class AppModel: ObservableObject {
 
     @Published var editing: Appearance = .light { didSet { renderPreview() } }
 
-    // Looks
-    @Published var lightLook = Look()
-    @Published var darkLook = Look(brightness: -0.15, saturation: 1.0, contrast: 1.05)
+    // Looks. Any write here is a change to the open project, so it schedules a save.
+    @Published var lightLook = Look() { didSet { scheduleAutosave() } }
+    @Published var darkLook = Look(brightness: -0.15, saturation: 1.0, contrast: 1.05) {
+        didSet { scheduleAutosave() }
+    }
 
-    // Output preview
+    // Output preview. `previewGeneration` ticks on every render so views that want to
+    // follow the live editor (the selected rail tile) have something to key off.
     @Published private(set) var preview: NSImage?
+    @Published private(set) var previewGeneration = 0
+
+    // The collection (left rail) and the project currently open in the editor.
+    @Published private(set) var projects: [Project] = []
+    @Published private(set) var selectedProjectID: String?
+
+    /// Which project's render is on the desktop right now. Only meaningful within a
+    /// session — the desktop can be changed from anywhere.
+    @Published private(set) var activeProjectID: String?
+
+    var selectedProject: Project? {
+        projects.first { $0.id == selectedProjectID }
+    }
 
     private var renderTask: Task<Void, Never>?
     private var statusDismissTask: Task<Void, Never>?
+    private var autosaveTask: Task<Void, Never>?
+
+    /// Set while a project is being read into the looks. Without it the assignments
+    /// below would trip `didSet` and immediately write the project back over itself.
+    private var isLoadingProject = false
+
+    private static let lastOpenProjectKey = "lastOpenProjectID"
 
     init() {
         recentFiles = Self.loadRecentFiles()
         refreshPhotosAuthStatus()
+        WallpaperLibrary.migrate()
+        projects = WallpaperLibrary.load()
+
+        // Reopen where the user left off; fall back to the newest project, or start
+        // the collection off with one if this is a first run.
+        let remembered = UserDefaults.standard.string(forKey: Self.lastOpenProjectKey)
+        if let project = projects.first(where: { $0.id == remembered }) ?? projects.first {
+            open(project)
+        } else {
+            try? createFirstProject()
+        }
+    }
+
+    /// The collection is empty (first run, or the user deleted everything) — there is
+    /// always exactly one project open, so make one.
+    private func createFirstProject() throws {
+        let project = try WallpaperLibrary.create(slug: nil)
+        refreshProjects()
+        selectedProjectID = project.id
+        UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
     }
 
     private func scheduleStatusDismiss() {
@@ -407,16 +450,29 @@ final class AppModel: ObservableObject {
 
     private var didLoadInitial = false
 
-    /// On first launch, fill the Unsplash picker with a few popular wallpaper
-    /// photos and auto-select the first one (Blur style) so the app opens on a
-    /// real preview instead of the empty state. No-ops if the user already picked
-    /// an image, switched away from Unsplash, or if there's no bundled key / network.
+    /// Fills the Unsplash picker with a few popular wallpaper photos so the app opens
+    /// on something to click rather than an empty grid. No-ops if the user already
+    /// searched, switched away from Unsplash, or if there's no bundled key / network.
+    ///
+    /// Deliberately does **not** select a photo: with autosave, writing a random photo
+    /// into the reopened project on every launch would quietly rewrite the user's
+    /// work. Auto-selection now only happens for a freshly created empty project,
+    /// via `loadRandomStarterPhoto`.
     func loadInitialPhotosIfNeeded() {
         guard !didLoadInitial else { return }
         didLoadInitial = true
-        guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil else { return }
+        guard selectedSource == .unsplash, results.isEmpty else { return }
+        loadStarterPhotos(select: lightLook.source == nil && selectedProject?.recipe != nil)
+    }
 
+    /// Gives a brand-new project a picture to start from.
+    func loadRandomStarterPhoto() {
+        loadStarterPhotos(select: true)
+    }
+
+    private func loadStarterPhotos(select shouldSelect: Bool) {
         isSearching = true
+        let projectID = selectedProjectID
         Task {
             defer { isSearching = false }
             do {
@@ -424,10 +480,11 @@ final class AppModel: ObservableObject {
                 // picker isn't the identical top-12 on every launch. Staying within the
                 // first few popular pages keeps quality high while rotating the set.
                 let photos = try await service.topicPhotos(page: Int.random(in: 1...10))
-                // Bail if the user started interacting while the request was in flight.
-                guard selectedSource == .unsplash, results.isEmpty, lightLook.source == nil,
-                      let pick = photos.randomElement() else { return }
-                results = photos
+                if results.isEmpty, selectedSource == .unsplash { results = photos }
+                // Bail if the user started interacting, or switched project, while the
+                // request was in flight — otherwise this lands in the wrong project.
+                guard shouldSelect, selectedProjectID == projectID,
+                      lightLook.source == nil, let pick = photos.randomElement() else { return }
                 select(pick)
             } catch {
                 // Startup convenience — stay silent so a missing key or offline
@@ -461,7 +518,7 @@ final class AppModel: ObservableObject {
     private func baseName(for photo: UnsplashPhoto) -> String {
         if let slug = photo.slug, !slug.isEmpty { return slug }
         if let alt = photo.alt_description, !alt.isEmpty {
-            return Self.slugify(alt) + "-" + photo.id
+            return WallpaperLibrary.slugify(alt) + "-" + photo.id
         }
         return "unsplash-" + photo.id
     }
@@ -623,6 +680,7 @@ final class AppModel: ObservableObject {
     }
 
     func renderPreview() {
+        defer { previewGeneration &+= 1 }
         let size = previewTargetSize()
         guard let cg = renderCG(currentLook, size: size, deep: false) else { preview = nil; return }
         preview = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
@@ -712,49 +770,343 @@ final class AppModel: ObservableObject {
 
     // MARK: Set as desktop
 
-    func setAsDesktop() {
+    /// Puts the open project on the desktop. Nothing is filed away here — the project
+    /// is already saved; applying only changes what the desktop points at.
+    func applySelected() {
+        guard let project = selectedProject else { return }
+        applyProject(project)
+    }
+
+    /// Applies any project from the rail. Editable projects are opened first so the
+    /// full-size render comes from the recipe currently on screen.
+    func applyProject(_ project: Project) {
+        errorMessage = nil
+        if project.isEditable, project.id != selectedProjectID { open(project) }
+        Task { @MainActor in
+            guard let ready = await ensureRendered(project) else { return }
+            apply(ready, status: L("Als dynamisches Wallpaper gesetzt."))
+        }
+    }
+
+    /// Makes sure `wallpaper.heic` exists and is newer than the recipe, rendering the
+    /// 6016² master only when it actually has to. That render costs seconds, which is
+    /// why it never runs on a slider change — only when a file is genuinely needed.
+    @discardableResult
+    func ensureRendered(_ project: Project) async -> Project? {
+        let url = project.wallpaperURL
+        if FileManager.default.fileExists(atPath: url.path),
+           WallpaperLibrary.modificationDate(of: url) >= project.updatedAt,
+           await WallpaperLibrary.ensureDownloaded(url) {
+            return project
+        }
+        guard project.isEditable else {
+            // Legacy project: the render is all there is. If it isn't there, it's gone.
+            guard await WallpaperLibrary.ensureDownloaded(url) else {
+                errorMessage = LibraryError.missingFile.localizedDescription
+                return nil
+            }
+            return project
+        }
+        guard project.id == selectedProjectID else {
+            errorMessage = LibraryError.missingFile.localizedDescription
+            return nil
+        }
         do {
-            let dir = try Self.appSupportDir()
-            // macOS 26 keeps an *absolute path per Space and per Display* in the
-            // WallpaperAgent index, and the agent caches by path — setting the same
-            // URL again won't repaint. The previous approach forced a repaint by
-            // killing the WallpaperAgent, but `setDesktopImageURL` persists to the
-            // agent's store *asynchronously*: killing it right after races that write,
-            // so the agent respawns onto the previous wallpaper (flicker → snaps back,
-            // to the "all Spaces" system wallpaper when one is active).
-            //
-            // Instead alternate between two stable files. Each set presents a NEW path
-            // (so it repaints without a kill), while BOTH files always exist — so any
-            // other Space/Display keeps resolving its reference after a switch.
-            let slotA = dir.appendingPathComponent("wallpaper-a.heic")
-            let slotB = dir.appendingPathComponent("wallpaper-b.heic")
-            let shown = NSScreen.main.flatMap { NSWorkspace.shared.desktopImageURL(for: $0) }
-            let target = (shown?.lastPathComponent == slotA.lastPathComponent) ? slotB : slotA
+            try writeOutput(to: url)
+            return project
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
 
-            let tmp = target.appendingPathExtension("tmp")
-            try? FileManager.default.removeItem(at: tmp)
-            try writeOutput(to: tmp)
-            if FileManager.default.fileExists(atPath: target.path) {
-                _ = try FileManager.default.replaceItemAt(target, withItemAt: tmp)
-            } else {
-                try FileManager.default.moveItem(at: tmp, to: target)
+    /// The one place that talks to `NSWorkspace` about the desktop.
+    ///
+    /// macOS 26 keeps an *absolute path per Space and per Display* in the
+    /// WallpaperAgent index and the agent caches by path, so re-setting the same URL
+    /// won't repaint. An older build forced a repaint by killing the agent, but
+    /// `setDesktopImageURL` persists to the agent's store *asynchronously* — killing
+    /// it right after races that write and the agent respawns onto the previous
+    /// wallpaper. Copying to a fresh path on every apply sidesteps both: the path is
+    /// always new (repaint, no kill) and every previously referenced file still
+    /// exists, so other Spaces and displays keep resolving theirs.
+    ///
+    /// The copy is deliberately local (Application Support) even when the library
+    /// lives in iCloud Drive: Drive may evict a synced file and leave a `.icloud`
+    /// placeholder, and a desktop image pointing at a placeholder breaks.
+    private func apply(_ project: Project, status: String) {
+        Task { @MainActor in
+            let source = project.wallpaperURL
+            guard await WallpaperLibrary.ensureDownloaded(source) else {
+                errorMessage = LibraryError.missingFile.localizedDescription
+                return
             }
+            do {
+                let live = try WallpaperLibrary.appliedDirectory()
+                    .appendingPathComponent("\(UUID().uuidString).heic")
+                try FileManager.default.copyItem(at: source, to: live)
+                // `copyItem` carries the library file's date over, and re-applying an
+                // old wallpaper would then look stale to the pruner below. What matters
+                // here is when it was *applied*.
+                try? FileManager.default.setAttributes([.modificationDate: Date()],
+                                                       ofItemAtPath: live.path)
 
-            // The master is square and matches no display exactly, so force aspect-fill
-            // with clipping: macOS center-crops it to each screen's own aspect (the wide
-            // middle strip on landscape, the tall middle strip on portrait) at native
-            // resolution, instead of letterboxing.
-            let options: [NSWorkspace.DesktopImageOptionKey: Any] = [
-                .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
-                .allowClipping: true,
-            ]
-            for screen in NSScreen.screens {
-                try NSWorkspace.shared.setDesktopImageURL(target, for: screen, options: options)
+                // The master is square and matches no display exactly, so force
+                // aspect-fill with clipping: macOS center-crops it to each screen's own
+                // aspect (the wide middle strip on landscape, the tall middle strip on
+                // portrait) at native resolution, instead of letterboxing.
+                let options: [NSWorkspace.DesktopImageOptionKey: Any] = [
+                    .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
+                    .allowClipping: true,
+                ]
+                for screen in NSScreen.screens {
+                    try NSWorkspace.shared.setDesktopImageURL(live, for: screen, options: options)
+                }
+                statusMessage = status
+                activeProjectID = project.id
+                Self.pruneAppliedCopies(keeping: live)
+            } catch {
+                errorMessage = error.localizedDescription
             }
-            statusMessage = L("Als dynamisches Wallpaper gesetzt.")
+        }
+    }
+
+    /// Every file currently shown as a desktop image, across all screens of the
+    /// active Space. Used to keep pruning from yanking a wallpaper out from under
+    /// the user.
+    private static func currentDesktopURLs() -> Set<URL> {
+        Set(NSScreen.screens.compactMap { NSWorkspace.shared.desktopImageURL(for: $0) })
+    }
+
+    /// Drops stale live copies.
+    ///
+    /// `desktopImageURL` only reports the *active* Space, so inactive Spaces hold
+    /// references this code can't see. Deleting one of those blanks that Space, so
+    /// the newest `appliedCopyCushion` copies are kept regardless — matching the
+    /// library's own limit, which is the most creations that can be in play anyway.
+    /// At roughly 650 KB per file that ceiling costs a few dozen megabytes.
+    private static func pruneAppliedCopies(keeping live: URL) {
+        guard let dir = try? appliedDirectory(),
+              let files = try? FileManager.default.contentsOfDirectory(
+                  at: dir, includingPropertiesForKeys: [.contentModificationDateKey],
+                  options: [.skipsHiddenFiles])
+        else { return }
+
+        var keep = currentDesktopURLs().map(\.standardizedFileURL.path)
+        keep.append(live.standardizedFileURL.path)
+        keep.append(contentsOf: files
+            .sorted { modified($0) > modified($1) }
+            .prefix(appliedCopyCushion)
+            .map(\.standardizedFileURL.path))
+
+        let keepSet = Set(keep)
+        for file in files where !keepSet.contains(file.standardizedFileURL.path) {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
+    private static let appliedCopyCushion = 50
+
+    private static func modified(_ url: URL) -> Date {
+        (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            ?? Date(timeIntervalSince1970: 0)
+    }
+
+    private static func appliedDirectory() throws -> URL {
+        try WallpaperLibrary.appliedDirectory()
+    }
+
+    // MARK: Projects
+
+    func refreshProjects() {
+        projects = WallpaperLibrary.load()
+    }
+
+    /// Reads a project into the editor. Everything the user sees afterwards belongs
+    /// to this project, and every further edit autosaves back into it.
+    func open(_ project: Project) {
+        guard project.id != selectedProjectID || selectedProjectID == nil else { return }
+        selectedProjectID = project.id
+        UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
+
+        guard let recipe = project.recipe else {
+            // Legacy project — there is no recipe to load, so the editor keeps
+            // whatever it had; the inspector shows the read-only pane instead.
+            renderPreview()
+            return
+        }
+
+        let lightSource = WallpaperLibrary.readImage(at: project.lightSourceURL)
+        let darkSource = WallpaperLibrary.readImage(at: project.darkSourceURL) ?? lightSource
+
+        withAutosaveSuspended {
+            lightLook = Look(recipe: recipe.light, source: lightSource)
+            darkLook = Look(recipe: recipe.dark, source: darkSource)
+            editing = .light
+        }
+        renderPreview()
+    }
+
+    /// Full copy of the open project, opened straight away — the "+" button.
+    ///
+    /// A legacy project has no recipe, so a copy of it would be just as uneditable.
+    /// Branching off one starts a blank project instead.
+    func duplicateSelected() {
+        guard let project = selectedProject, project.isEditable else { newProject(); return }
+        flushAutosave()
+        do {
+            let copy = try WallpaperLibrary.duplicate(project)
+            refreshProjects()
+            selectedProjectID = nil          // force `open` to re-read
+            open(copy)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// A blank project. Only reachable from the ⋯ menu and on an empty collection.
+    func newProject() {
+        flushAutosave()
+        do {
+            let project = try WallpaperLibrary.create(slug: nil)
+            refreshProjects()
+            selectedProjectID = project.id
+            UserDefaults.standard.set(project.id, forKey: Self.lastOpenProjectKey)
+            withAutosaveSuspended {
+                lightLook = Look()
+                darkLook = Look(brightness: -0.15, saturation: 1.0, contrast: 1.05)
+                editing = .light
+            }
+            renderPreview()
+            // A fresh, empty project is the only place the launch photo still applies.
+            loadRandomStarterPhoto()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteProject(_ project: Project) {
+        WallpaperLibrary.delete(project)
+        refreshProjects()
+        if activeProjectID == project.id { activeProjectID = nil }
+        if selectedProjectID == project.id {
+            selectedProjectID = nil
+            if let next = projects.first { open(next) } else { newProject() }
+        }
+    }
+
+    func revealInFinder(_ project: Project) {
+        NSWorkspace.shared.activateFileViewerSelecting([project.url])
+    }
+
+    /// Copies a project's finished wallpaper out to a location the user picks,
+    /// rendering it first if it isn't current.
+    func exportProject(_ project: Project) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.heic]
+        panel.nameFieldStringValue = "\(project.id).heic"
+        panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                guard let ready = await self.ensureRendered(project) else { return }
+                do {
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        try FileManager.default.removeItem(at: url)
+                    }
+                    try FileManager.default.copyItem(at: ready.wallpaperURL, to: url)
+                    self.statusMessage = L("Exportiert: %@", url.lastPathComponent)
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    // MARK: Autosave
+
+    /// Saving is not a user action: every edit lands on disk on its own. The delay
+    /// coalesces a slider drag into one write; `flushAutosave` forces it out when
+    /// something is about to depend on the file (duplicating, quitting).
+    private func scheduleAutosave() {
+        guard !isLoadingProject else { return }
+        autosaveTask?.cancel()
+        autosaveTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            if Task.isCancelled { return }
+            saveOpenProject()
+        }
+    }
+
+    func flushAutosave() {
+        autosaveTask?.cancel()
+        autosaveTask = nil
+        saveOpenProject()
+    }
+
+    private func withAutosaveSuspended(_ body: () -> Void) {
+        isLoadingProject = true
+        body()
+        isLoadingProject = false
+        autosaveTask?.cancel()
+        autosaveTask = nil
+    }
+
+    private func saveOpenProject() {
+        guard var project = selectedProject, project.isEditable else { return }
+        let recipe = ProjectRecipe(light: lightLook.recipe, dark: darkLook.recipe)
+        let name = lightLook.baseName ?? darkLook.baseName
+
+        // Nothing changed but the timestamp — skip the write so an idle app stays
+        // idle and iCloud isn't handed pointless revisions.
+        if project.recipe == recipe, project.name == name { return }
+
+        let previous = project.recipe
+        do {
+            try WallpaperLibrary.save(&project, recipe: recipe, name: name,
+                                      attribution: lightLook.attribution,
+                                      attributionURL: lightLook.attributionURL)
+            writeSourceImages(for: project, previous: previous)
+            writeThumbnail(for: project)
+            refreshProjects()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Stores a copy of each look's source photo so the project survives the original
+    /// file being moved, the Photos asset being deleted, or opening on another Mac.
+    /// One file when both appearances share a photo, which is the common case.
+    ///
+    /// Only re-encoded when the photo actually changed: a slider drag saves several
+    /// times a second, and rewriting a megabyte of HEIC into iCloud each time would be
+    /// pure churn.
+    private func writeSourceImages(for project: Project, previous: ProjectRecipe?) {
+        let fm = FileManager.default
+        if let light = lightLook.source,
+           previous?.light.photoID != lightLook.photoID || !fm.fileExists(atPath: project.lightSourceURL.path) {
+            try? WallpaperLibrary.writeSource(light, to: project.lightSourceURL)
+        }
+
+        // A separate dark source is the exception; when both share a photo the extra
+        // file must go, or a stale one would win on the next open.
+        let needsDarkCopy = darkLook.source != nil && darkLook.photoID != lightLook.photoID
+        if needsDarkCopy {
+            if previous?.dark.photoID != darkLook.photoID || !fm.fileExists(atPath: project.darkSourceURL.path),
+               let dark = darkLook.source {
+                try? WallpaperLibrary.writeSource(dark, to: project.darkSourceURL)
+            }
+        } else if fm.fileExists(atPath: project.darkSourceURL.path) {
+            try? fm.removeItem(at: project.darkSourceURL)
+        }
+    }
+
+    /// The rail tile. Always the Light appearance so the collection reads
+    /// consistently, and small enough that writing it on every edit is free.
+    private func writeThumbnail(for project: Project) {
+        let side = Double(WallpaperLibrary.previewMaxPixels)
+        guard let cg = renderCG(lightLook, size: CGSize(width: side, height: side), deep: false) else { return }
+        try? WallpaperLibrary.writePreview(cg, to: project.previewURL)
     }
 
     // MARK: Drag & drop (reliable file-backed provider)
@@ -774,22 +1126,4 @@ final class AppModel: ObservableObject {
         }
     }
 
-    // MARK: Helpers
-
-    static func slugify(_ s: String) -> String {
-        let mapped = s.lowercased().map { ch -> Character in
-            (ch.isLetter || ch.isNumber) ? ch : "-"
-        }
-        var out = String(mapped)
-        while out.contains("--") { out = out.replacingOccurrences(of: "--", with: "-") }
-        out = out.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        return String(out.prefix(60))
-    }
-
-    static func appSupportDir() throws -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = base.appendingPathComponent("Lurent", isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }
 }
