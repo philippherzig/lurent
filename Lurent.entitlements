@@ -4,8 +4,15 @@
 <dict>
 	<!-- Hardened Runtime resource access: read/write the Photos library via
 	     PhotoKit (load templates, save finished wallpapers into an album).
-	     Not sandboxed — the app sets the system desktop and restarts the
-	     WallpaperAgent, which the App Sandbox would forbid. -->
+
+	     Deliberately NOT sandboxed. The App Sandbox itself works — measured on
+	     macOS 26, including setting the desktop from inside the container — but a
+	     sandboxed build cannot reach `iCloud Drive/Lurent/`, so it would quietly
+	     start an empty collection and existing users would find their wallpapers
+	     gone. Sandboxing only pays off together with the app's own iCloud
+	     container, and that needs a provisioning profile, i.e. the App Store.
+	     Those entitlements live in Lurent-appstore.entitlements, which
+	     `PROVISION_PROFILE=… ./build.sh` selects. -->
 	<key>com.apple.security.personal-information.photos-library</key>
 	<true/>
 </dict>

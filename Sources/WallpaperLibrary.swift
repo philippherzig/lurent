@@ -108,17 +108,23 @@ enum WallpaperLibrary {
 
     // MARK: Locations
 
-    /// Where projects live. Preferred: the user's plain iCloud Drive folder, so the
-    /// collection syncs across Macs and survives reinstalling the app.
+    /// The app's own iCloud container, e.g. `iCloud.app.lurent`. Must match the
+    /// `com.apple.developer.ubiquity-container-identifiers` entitlement.
+    static let ubiquityContainerID = "iCloud.app.lurent"
+
+    /// Where projects live, in order of preference:
     ///
-    /// This is an ordinary filesystem path, *not* a ubiquity container: real iCloud
-    /// entitlements need a provisioning profile, which Developer-ID distribution
-    /// outside the App Store can't have. Lurent isn't sandboxed, so the path works
-    /// as-is. With iCloud Drive turned off the folder doesn't exist — then the
-    /// collection stays local under Application Support.
+    /// 1. **The app's ubiquity container.** Syncs across Macs, shows up in iCloud
+    ///    Drive as a "Lurent" folder with the app icon, and needs no folder picking —
+    ///    it is the only option that works from inside a sandbox without asking the
+    ///    user anything. Requires the iCloud entitlements, which in turn require a
+    ///    provisioning profile, i.e. App Store distribution.
+    /// 2. **The plain iCloud Drive folder.** What Developer-ID builds use today: an
+    ///    ordinary path, no entitlement, but unreachable from a sandbox.
+    /// 3. **Application Support.** Local only; also where a sandboxed build without
+    ///    the iCloud entitlement lands.
     static func directory() throws -> URL {
-        let dir = iCloudRoot.map { $0.appendingPathComponent("Lurent", isDirectory: true) }
-            ?? localFallbackDirectory
+        let dir = resolvedRoot
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch {
@@ -127,7 +133,25 @@ enum WallpaperLibrary {
         return dir
     }
 
-    private static var iCloudRoot: URL? {
+    /// Resolved once: `url(forUbiquityContainerIdentifier:)` talks to the iCloud
+    /// daemon and may block, which must not happen on every save.
+    private static let resolvedRoot: URL = {
+        if let container = ubiquityDocuments {
+            return container
+        }
+        if let cloudDocs = plainCloudDocsRoot {
+            return cloudDocs.appendingPathComponent("Lurent", isDirectory: true)
+        }
+        return localFallbackDirectory
+    }()
+
+    private static var ubiquityDocuments: URL? {
+        guard let container = FileManager.default.url(forUbiquityContainerIdentifier: ubiquityContainerID)
+        else { return nil }
+        return container.appendingPathComponent("Documents", isDirectory: true)
+    }
+
+    private static var plainCloudDocsRoot: URL? {
         let url = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
         var isDir: ObjCBool = false
@@ -136,6 +160,7 @@ enum WallpaperLibrary {
         }
         return url
     }
+
 
     private static var localFallbackDirectory: URL {
         appSupportRoot.appendingPathComponent("Wallpapers", isDirectory: true)

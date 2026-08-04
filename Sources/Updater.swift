@@ -1,4 +1,24 @@
 import SwiftUI
+
+// The App Store forbids apps that update themselves, so the Store variant is built
+// with `-D APP_STORE` and ships without Sparkle at all — neither the framework nor
+// the code below. The Developer ID build is unaffected and keeps auto-updates.
+
+#if APP_STORE
+
+/// Stand-in for the Sparkle-backed updater. Updates arrive through the App Store in
+/// this build, so there is nothing to drive.
+@MainActor
+final class UpdaterViewModel: ObservableObject {}
+
+/// Renders nothing: a Store build has no "check for updates" item in its app menu.
+struct CheckForUpdatesCommand: View {
+    @ObservedObject var updater: UpdaterViewModel
+    var body: some View { EmptyView() }
+}
+
+#else
+
 import Sparkle
 
 /// Thin SwiftUI-facing wrapper around Sparkle's standard updater. The updater
@@ -37,3 +57,5 @@ struct CheckForUpdatesCommand: View {
             .disabled(!updater.canCheckForUpdates)
     }
 }
+
+#endif

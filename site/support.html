@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lurent — Support</title>
+<meta name="description" content="Help with Lurent: how it works, where your projects live, and how to get in touch.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --accent: #0071e3;
+    --rule: rgba(0,0,0,.1);
+    --code: rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161617; --text: #f5f5f7; --muted: #a1a1a6; --rule: rgba(255,255,255,.14); --code: rgba(255,255,255,.08); }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  main { max-width: 44rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+  h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-size: clamp(2rem, 5vw, 2.7rem); font-weight: 700; letter-spacing: -.02em;
+  }
+  h2 { font-size: 1.25rem; font-weight: 600; margin-top: 2.6rem; }
+  h3 { font-size: 1.02rem; font-weight: 600; margin-top: 1.8rem; }
+  p, ul { margin-top: .9rem; }
+  ul { padding-left: 1.3rem; }
+  li { margin-top: .4rem; }
+  a { color: var(--accent); }
+  .lede { font-size: 1.15rem; margin-top: 1.6rem; color: var(--muted); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .88em; background: var(--code);
+    padding: .12em .4em; border-radius: 5px;
+    overflow-wrap: anywhere;
+  }
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .95rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Support</h1>
+  <p class="lede">Lurent turns a photograph into an abstract wallpaper. Pick a
+  picture, shape it with the effect controls, set it as your desktop.</p>
+
+  <h2>Getting started</h2>
+  <h3>Choosing a picture</h3>
+  <p>Three sources, switched with the <em>Source</em> menu: search Unsplash, pick
+  from your Photos library, or open a file from your Mac. The <em>Liquid</em> style
+  needs no picture at all — it generates its image from the colour controls.</p>
+
+  <h3>Light and dark</h3>
+  <p>A wallpaper has two faces. Use the <em>Light</em> / <em>Dark</em> switch above
+  the preview to design each one, and the button next to it to copy one over to the
+  other as a starting point. macOS swaps between them with your system appearance.</p>
+
+  <h3>Setting the wallpaper</h3>
+  <p>“Set as Desktop” applies it to every display. Every creation stays in your
+  collection — the strip on the left — so you can go back to an earlier one at any
+  time and put it back.</p>
+
+  <h2>Projects</h2>
+  <p>Each creation is a <code>.lurent</code> document holding the source photo, the
+  settings and the render. There is no save button: changes are written as you make
+  them. The “+” button duplicates the open project so you can branch off a variation
+  without losing the original.</p>
+
+  <h3>Where they live</h3>
+  <p>In iCloud, so they follow you between Macs. Mac App Store version: in Lurent's
+  own iCloud Drive folder. Version downloaded from this site: in
+  <code>iCloud Drive/Lurent/</code>. With iCloud Drive turned off, projects stay
+  local in Application Support.</p>
+
+  <h3>Renaming</h3>
+  <p>Project names come from the photo, so there is nothing to fill in. If you want
+  your own name, rename the <code>.lurent</code> document in the Finder — Lurent
+  picks that up and stops renaming it for you.</p>
+
+  <h3>Sharing one</h3>
+  <p>“Export Project…” writes the whole editable document out; whoever opens it gets
+  your settings, not just a finished picture. “Export as HEIC…” gives you the plain
+  wallpaper file instead.</p>
+
+  <h2>Common questions</h2>
+
+  <h3>My wallpaper looks soft or cropped on one display</h3>
+  <p>Lurent renders one large square master and macOS centre-crops it per screen, so
+  the same wallpaper fits landscape and portrait displays at native resolution. Use
+  the <em>Crop</em> slider to choose which part of the photo ends up in the middle.</p>
+
+  <h3>Unsplash search returns nothing</h3>
+  <p>Search runs against Unsplash's API and shares a rate limit across everyone
+  using the app. If it is quiet for a while, wait an hour and try again — or use a
+  photo from Photos or Files, which have no limit.</p>
+
+  <h3>An older wallpaper disappeared</h3>
+  <p>Versions before 0.10 kept only the last two creations. From 0.10 on every
+  creation is kept, and the ones that survived the old behaviour were brought
+  forward automatically.</p>
+
+  <h2>Requirements</h2>
+  <p>macOS 26 or later, Apple silicon or Intel.</p>
+
+  <h2>Get in touch</h2>
+  <p>Bugs, requests, or something that just does not work:
+  <a href="mailto:hello@lurent.app">hello@lurent.app</a>. Telling us your macOS
+  version and what you were doing helps more than you would think.</p>
+
+  <footer><a href="/">← Lurent</a> · <a href="/privacy.html">Privacy</a></footer>
+</main>
+</body>
+</html>
