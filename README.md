@@ -1,8 +1,10 @@
 # Lurent
 
-Kleine native macOS-App (SwiftUI). Nimmt ein Unsplash-Foto (oder ein eigenes Bild)
-als Quelle und macht daraus per Gaussian-Blur ein weiches Gradient-Wallpaper in
-Display-Auflösung — Export per **Drag & Drop** oder Speichern-Dialog.
+Native macOS-App (SwiftUI). Lurent macht aus einem Foto ein weiches, abstraktes
+Wallpaper: Bild wählen, mit den Effektreglern formen — Blur, Spiegel, Lamellen,
+Liquid —, als Schreibtischhintergrund setzen. Gerendert wird ein quadratisches
+6016²-Master, das auf jedem Mac-Display bis zum Pro Display XDR in nativer Auflösung
+landet. Jedes Wallpaper bleibt als `.lurent`-Projekt erhalten.
 
 ## Bauen & starten
 
@@ -13,7 +15,7 @@ open "build/Lurent.app"
 ```
 
 Benötigt nur die **Command Line Tools** (`xcode-select --install`), kein volles Xcode.
-Gebaut für Apple Silicon / macOS 14+.
+Gebaut für Apple Silicon / macOS 26+ (`LSMinimumSystemVersion` 26.0).
 
 ## Signieren & Notarisieren
 
