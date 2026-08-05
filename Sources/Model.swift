@@ -625,6 +625,12 @@ final class AppModel: ObservableObject {
 
     func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
+        // Normalise once, here at the door. Everything downstream — this session's
+        // renders, the palette sampled below, the copy written to the project — then
+        // works from the same bitmap, so reopening a project cannot render it
+        // differently than the session that made it.
+        let cg = WallpaperLibrary.normalizedSource(cg)
+
         // Every palette colour is sampled straight from the photo at the look's
         // sample points (the "Farbtupfer" the user then drags in the inspector).
         let apply: (inout Look) -> Void = {
@@ -979,8 +985,13 @@ final class AppModel: ObservableObject {
             return
         }
 
+        // Normalised on the way in as well: projects written before this existed
+        // still hold a PQ source, and reading one back untouched would render it
+        // differently than a freshly picked copy of the same photo.
         let lightSource = WallpaperLibrary.readImage(at: project.lightSourceURL)
-        let darkSource = WallpaperLibrary.readImage(at: project.darkSourceURL) ?? lightSource
+            .map { WallpaperLibrary.normalizedSource($0) }
+        let darkSource = WallpaperLibrary.readImage(at: project.darkSourceURL)
+            .map { WallpaperLibrary.normalizedSource($0) } ?? lightSource
 
         withAutosaveSuspended {
             lightLook = Look(recipe: recipe.light, source: lightSource)
