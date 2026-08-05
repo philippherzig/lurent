@@ -60,24 +60,6 @@ wird:
 ./build.sh && ./package.sh    # → build/Lurent.pkg (notarisiert notfalls auch die App)
 ```
 
-## Auto-Updates (Sparkle)
-
-Die App bringt **[Sparkle](https://sparkle-project.org) 2.9.4** mit: sie prüft
-täglich im Hintergrund auf Updates, und im App-Menü gibt es **„Nach Updates
-suchen…"**. Kein öffentliches GitHub-Repo nötig — Sparkle lädt nur zwei
-statische Dateien über HTTPS von **`updates.lurent.app`** (Cloudflare R2):
-`appcast.xml` (der Update-Feed) und das jeweilige `Lurent-<version>.zip`.
-
-Jedes Update ist **EdDSA-signiert**; der öffentliche Schlüssel steht als
-`SUPublicEDKey` in der `Info.plist`, der private liegt in deinem Login-Keychain
-(einmalig via `vendor/Sparkle/bin/generate_keys` erzeugt — **unbedingt sichern**,
-z. B. `generate_keys -x sparkle_private_key.txt` und im Passwortmanager ablegen).
-
-Das Framework wird nicht committet, sondern per `Tools/fetch-sparkle.sh` in das
-gitignorte `vendor/` geladen (macht `build.sh` automatisch) und beim Bauen
-inside-out mit deiner Developer ID neu signiert — nötig, weil der Hardened
-Runtime nur gleich-signierte Frameworks lädt.
-
 ## Website (lurent.app)
 
 Die Seite liegt in `site/` und läuft auf **Cloudflare Pages**, Projekt `lurent`.
@@ -90,7 +72,6 @@ Merge deployt also nichts:
 ```
 
 Credentials kommen aus `.env` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`),
-derselben Datei wie bei `release.sh`.
 
 **Achtung beim Prüfen:** Pages hat keine 404-Seite und liefert für *jeden* Pfad
 die Startseite mit HTTP 200. Ein `curl -I` auf `/privacy.html` sieht also auch
@@ -114,12 +95,8 @@ Dashboard (R2 → Bucket → Settings → Custom Domains → Connect Domain).
 ```bash
 # 1) Version in Info.plist hochzählen (CFBundleShortVersionString + CFBundleVersion)
 ./build.sh          # baut + signiert (Developer ID)
-./release.sh        # notarisiert, zippt + signiert, appcast + .pkg → R2
 ```
 
-`release.sh` lädt bei jedem Release **zwei Artefakte** nach R2:
-
-- **`Lurent-<version>-<build>.zip`** + `appcast.xml` — der Sparkle-Update-Kanal.
   Bestehende Nutzer bekommen das automatisch (inkl. Delta-Updates).
 - **`Lurent.pkg`** (signierter, notarisierter Installer) — der **Erst-Download**
   für neue Nutzer (Doppelklick → `/Applications`). Immer erreichbar unter dem
@@ -228,17 +205,15 @@ Sources/
   App.swift            App-Einstieg + Settings-Szene + Update-Menüpunkt
   ContentView.swift    UI (Sidebar, Vorschau, Regler, Settings)
   Model.swift          Zustand, Looks (Hell/Dunkel), Export/Drag/Desktop
-  Updater.swift        Sparkle-Anbindung („Nach Updates suchen…")
+  Updater.swift        Leerer Platzhalter — Updates kommen aus dem App Store
   Unsplash.swift       Unsplash-API-Client
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
   DynamicWallpaper.swift  HEIC-Writer mit Light/Dark-Metadaten
-Info.plist             Bundle-Metadaten (+ SUFeedURL / SUPublicEDKey)
+Info.plist             Bundle-Metadaten (+ .lurent-Dokumenttyp)
 Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
-build.sh               swiftc → .app-Bundle (+ Sparkle einbetten & signieren)
+build.sh               swiftc → .app-Bundle (signiert; PROVISION_PROFILE=… → App-Store-Variante)
 notarize.sh            Notarisieren & Ticket stapeln für die Verteilung
 package.sh             Signiertes + notarisiertes .pkg für /Applications
-release.sh             Update veröffentlichen (zip, signieren, appcast → R2)
-Tools/fetch-sparkle.sh  Sparkle 2.9.4 nach vendor/ laden (gitignored)
 Tools/provision-r2.sh   Einmaliges R2-Setup (Bucket + Custom Domain)
 ```
 
