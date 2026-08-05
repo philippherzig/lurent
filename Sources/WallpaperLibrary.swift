@@ -411,18 +411,28 @@ enum WallpaperLibrary {
         // Redraw in the source's own colour space. A photo from the Photos library
         // is Display P3, and device RGB here would clip it back to sRGB before the
         // render ever sees the wide colours — which is the whole point of the P3
-        // output space (see `BlurProcessor.outputColorSpace`). Anything that isn't
-        // plain RGB (grey, CMYK, an extended-range space 8 bits can't hold) falls
-        // back to sRGB.
-        let sourceSpace = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil }
-        let bitmap = CGImageAlphaInfo.premultipliedLast.rawValue
-        let ctx = sourceSpace.flatMap {
-            CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
-                      bytesPerRow: 0, space: $0, bitmapInfo: bitmap)
-        } ?? CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
-                       bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                       bitmapInfo: bitmap)
-        guard let ctx else { return nil }
+        // output space (see `BlurProcessor.outputColorSpace`).
+        //
+        // Two kinds of source don't survive 8 bits in their own space, and both
+        // get redrawn as plain Display P3 instead — same wide gamut, usable steps:
+        //
+        //   * HDR. An iPhone photo is PQ, whose code values are spread over a
+        //     10,000-nit range; at 8 bits that leaves 131 distinct steps across
+        //     the SDR range where Display P3 leaves 141 (measured). The wallpaper
+        //     is SDR either way, so the PQ curve buys nothing here.
+        //   * Extended-range spaces, which 8 bits cannot represent at all.
+        //
+        // Anything that isn't RGB (grey, CMYK) lands there too; P3 holds it all.
+        let space = image.colorSpace.flatMap { s -> CGColorSpace? in
+            guard s.model == .rgb,
+                  !CGColorSpaceUsesITUR_2100TF(s),
+                  !CGColorSpaceUsesExtendedRange(s) else { return nil }
+            return s
+        } ?? BlurProcessor.outputColorSpace
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
+                                  bytesPerRow: 0, space: space,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
         ctx.interpolationQuality = .high
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
         return ctx.makeImage()
