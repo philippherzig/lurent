@@ -60,53 +60,31 @@ wird:
 ./build.sh && ./package.sh    # → build/Lurent.pkg (notarisiert notfalls auch die App)
 ```
 
-## Auto-Updates (Sparkle)
+## Website (lurent.app)
 
-Die App bringt **[Sparkle](https://sparkle-project.org) 2.9.4** mit: sie prüft
-täglich im Hintergrund auf Updates, und im App-Menü gibt es **„Nach Updates
-suchen…"**. Kein öffentliches GitHub-Repo nötig — Sparkle lädt nur zwei
-statische Dateien über HTTPS von **`updates.lurent.app`** (Cloudflare R2):
-`appcast.xml` (der Update-Feed) und das jeweilige `Lurent-<version>.zip`.
+Die Seite liegt in `site/` und läuft auf **Cloudflare Pages**, Projekt `lurent`.
+Das Projekt hängt am GitHub-Repo: **ein Merge nach `main` deployt sie**, es gibt
+kein Skript und keinen manuellen Upload.
 
-Jedes Update ist **EdDSA-signiert**; der öffentliche Schlüssel steht als
-`SUPublicEDKey` in der `Info.plist`, der private liegt in deinem Login-Keychain
-(einmalig via `vendor/Sparkle/bin/generate_keys` erzeugt — **unbedingt sichern**,
-z. B. `generate_keys -x sparkle_private_key.txt` und im Passwortmanager ablegen).
+| Einstellung | Wert |
+|---|---|
+| Build command | *(leer — reines HTML, kein Build)* |
+| Build output directory | `site` |
+| Production branch | `main` |
 
-Das Framework wird nicht committet, sondern per `Tools/fetch-sparkle.sh` in das
-gitignorte `vendor/` geladen (macht `build.sh` automatisch) und beim Bauen
-inside-out mit deiner Developer ID neu signiert — nötig, weil der Hardened
-Runtime nur gleich-signierte Frameworks lädt.
+Zwei Eigenheiten von Pages, die beim Prüfen täuschen:
 
-### Einmalig: R2 einrichten
+- **Keine 404-Seite.** Jeder Pfad antwortet mit HTTP 200 und der Startseite. Ein
+  `curl -I` auf `/privacy` sieht also auch dann gut aus, wenn die Seite fehlt —
+  immer den Inhalt prüfen, nicht den Statuscode.
+- **Clean URLs.** `/privacy.html` wird per **308** auf `/privacy` umgeleitet;
+  Prüfungen müssen der Weiterleitung folgen.
 
-Trage die Cloudflare-R2-Zugangsdaten in `.env` ein (siehe `.env.example`), dann:
+Dazu hinkt der Edge-Cache nach einem Deploy rund eine Minute nach. Wenn die alte
+Fassung erscheint: kurz warten, bevor du suchst.
 
-```bash
-./Tools/provision-r2.sh    # legt den Bucket an + bindet updates.lurent.app
-```
-
-Die Custom Domain lässt sich per API-Token binden oder mit 4 Klicks im
-Dashboard (R2 → Bucket → Settings → Custom Domains → Connect Domain).
-
-### Ein Update veröffentlichen
-
-```bash
-# 1) Version in Info.plist hochzählen (CFBundleShortVersionString + CFBundleVersion)
-./build.sh          # baut + signiert (Developer ID)
-./release.sh        # notarisiert, zippt + signiert, appcast + .pkg → R2
-```
-
-`release.sh` lädt bei jedem Release **zwei Artefakte** nach R2:
-
-- **`Lurent-<version>-<build>.zip`** + `appcast.xml` — der Sparkle-Update-Kanal.
-  Bestehende Nutzer bekommen das automatisch (inkl. Delta-Updates).
-- **`Lurent.pkg`** (signierter, notarisierter Installer) — der **Erst-Download**
-  für neue Nutzer (Doppelklick → `/Applications`). Immer erreichbar unter dem
-  stabilen Link `https://updates.lurent.app/Lurent.pkg`, plus eine versionierte
-  Kopie `Lurent-<version>-<build>.pkg`.
-
-Kurz: **Zip = Auto-Update, Pkg = Erstinstallation.**
+`privacy.html` und `support.html` sind Pflichtfelder im App Store und müssen
+echten Inhalt liefern.
 
 ## Unsplash Access-Key
 
@@ -208,17 +186,15 @@ Sources/
   App.swift            App-Einstieg + Settings-Szene + Update-Menüpunkt
   ContentView.swift    UI (Sidebar, Vorschau, Regler, Settings)
   Model.swift          Zustand, Looks (Hell/Dunkel), Export/Drag/Desktop
-  Updater.swift        Sparkle-Anbindung („Nach Updates suchen…")
+  Updater.swift        Leerer Platzhalter — Updates kommen aus dem App Store
   Unsplash.swift       Unsplash-API-Client
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
   DynamicWallpaper.swift  HEIC-Writer mit Light/Dark-Metadaten
-Info.plist             Bundle-Metadaten (+ SUFeedURL / SUPublicEDKey)
+Info.plist             Bundle-Metadaten (+ .lurent-Dokumenttyp)
 Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
-build.sh               swiftc → .app-Bundle (+ Sparkle einbetten & signieren)
+build.sh               swiftc → .app-Bundle (signiert; PROVISION_PROFILE=… → App-Store-Variante)
 notarize.sh            Notarisieren & Ticket stapeln für die Verteilung
 package.sh             Signiertes + notarisiertes .pkg für /Applications
-release.sh             Update veröffentlichen (zip, signieren, appcast → R2)
-Tools/fetch-sparkle.sh  Sparkle 2.9.4 nach vendor/ laden (gitignored)
 Tools/provision-r2.sh   Einmaliges R2-Setup (Bucket + Custom Domain)
 ```
 

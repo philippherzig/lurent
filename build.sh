@@ -29,49 +29,24 @@ enum Secrets {
 }
 EOF
 
-# PROVISION_PROFILE switches the whole build to the App Store variant: sandboxed,
-# provisioned, and **without Sparkle** — the Store forbids apps that update
-# themselves, so the framework is neither linked nor embedded and Updater.swift
-# compiles to a stub. Unset, everything below behaves exactly as before.
+# PROVISION_PROFILE builds the sandboxed, provisioned App Store variant. Unset, the
+# result is an unsandboxed Developer ID build — same code either way, since there is
+# no longer anything to compile conditionally.
 PROVISION_PROFILE="${PROVISION_PROFILE-}"
 if [ -n "$PROVISION_PROFILE" ]; then
   [ -f "$PROVISION_PROFILE" ] || { echo "  ✗ profile not found: $PROVISION_PROFILE"; exit 1; }
-  APP_STORE_BUILD=1
-else
-  APP_STORE_BUILD=0
-fi
-
-SWIFT_FLAGS=()
-if [ "$APP_STORE_BUILD" = 1 ]; then
-  echo "▸ App Store variant — skipping Sparkle"
-  SWIFT_FLAGS+=(-D APP_STORE)
-else
-  echo "▸ Ensuring Sparkle is vendored"
-  "$ROOT/Tools/fetch-sparkle.sh"
-  # -F/-framework let swiftc find the Sparkle module + link it; the rpath tells the
-  # built binary to load Sparkle.framework from Contents/Frameworks at runtime.
-  SWIFT_FLAGS+=(-F "$ROOT/vendor/Sparkle" -framework Sparkle
-                -Xlinker -rpath -Xlinker "@executable_path/../Frameworks")
 fi
 
 echo "▸ Compiling ($ARCH)"
 swiftc -O -parse-as-library \
   -sdk "$SDK" \
   -target "${ARCH}-apple-macos26.0" \
-  "${SWIFT_FLAGS[@]}" \
   -o "$BIN" \
   "$ROOT"/Sources/*.swift \
   "$GEN"
 
 echo "▸ Assembling bundle"
 cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
-if [ "$APP_STORE_BUILD" = 1 ]; then
-  # Sparkle's feed keys would advertise a self-update mechanism that isn't there.
-  for k in SUFeedURL SUPublicEDKey SUEnableAutomaticChecks; do
-    plutil -remove "$k" "$APP/Contents/Info.plist" >/dev/null 2>&1 || true
-  done
-  echo "  (removed the Sparkle keys)"
-fi
 
 echo "▸ Copying localizations"
 # Each Localizations/<lang>.lproj/Localizable.strings ships as a bundle
@@ -81,15 +56,6 @@ if compgen -G "$ROOT/Localizations/*.lproj" >/dev/null; then
   echo "  ($(ls -d "$ROOT/Localizations/"*.lproj | wc -l | tr -d ' ') localizations)"
 fi
 
-SPARKLE_FW=""
-if [ "$APP_STORE_BUILD" = 0 ]; then
-  echo "▸ Embedding Sparkle.framework"
-  FRAMEWORKS="$APP/Contents/Frameworks"
-  SPARKLE_FW="$FRAMEWORKS/Sparkle.framework"
-  mkdir -p "$FRAMEWORKS"
-  # ditto preserves the framework's Versions/Current symlink layout.
-  ditto "$ROOT/vendor/Sparkle/Sparkle.framework" "$SPARKLE_FW"
-fi
 
 echo "▸ Compiling app icon"
 ACTOOL="$(xcrun -f actool 2>/dev/null || true)"
@@ -119,24 +85,12 @@ echo "▸ Code signing"
 # The iCloud entitlements are *restricted*: macOS refuses to launch a binary that
 # carries them unless the bundle embeds a provisioning profile authorising them —
 # a Developer ID build signed with them dies at spawn.
-SPARKLE_NESTED=()
-if [ "$APP_STORE_BUILD" = 1 ]; then
+if [ -n "$PROVISION_PROFILE" ]; then
   ENTITLEMENTS="$ROOT/Lurent-appstore.entitlements"
   cp "$PROVISION_PROFILE" "$APP/Contents/embedded.provisionprofile"
-  echo "  embedded $(basename "$PROVISION_PROFILE") → sandboxed, iCloud container, no Sparkle"
+  echo "  embedded $(basename "$PROVISION_PROFILE") → sandboxed, iCloud container"
 else
   ENTITLEMENTS="$ROOT/Lurent.entitlements"
-  SPARKLE_V="$SPARKLE_FW/Versions/Current"
-  # Nested Sparkle executables/bundles, signed inside-out (deepest first) *before*
-  # the framework and the app. Re-signing with *your* Developer ID is mandatory:
-  # the app's hardened runtime enforces library validation, which only loads a
-  # framework signed by the same team. They get no app entitlements (not sandboxed).
-  SPARKLE_NESTED=(
-    "$SPARKLE_V/XPCServices/Downloader.xpc"
-    "$SPARKLE_V/XPCServices/Installer.xpc"
-    "$SPARKLE_V/Autoupdate"
-    "$SPARKLE_V/Updater.app"
-  )
 fi
 
 # codesign with the hardened runtime; retry without a secure timestamp when the
@@ -169,26 +123,19 @@ if [ "$SIGN_IDENTITY" = "auto" ]; then
   # A provisioned build has to be signed by the identity the profile was issued
   # for; Developer ID and a Development profile don't match.
   if [ -n "$PROVISION_PROFILE" ]; then
-    SIGN_IDENTITY="$(awk -F'"' '/Apple Development/ {print $2; exit}' <<<"$IDENTITIES")"
+    SIGN_IDENTITY="$(awk -F'"' '/Apple Development|Apple Distribution|3rd Party Mac Developer Application/ {print $2; exit}' <<<"$IDENTITIES")"
     [ -n "$SIGN_IDENTITY" ] || { echo "  ✗ no \"Apple Development\" identity in the keychain"; exit 1; }
   else
     SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
   fi
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
-  if [ -n "$SPARKLE_FW" ]; then
-    echo "  signing Sparkle.framework inside-out with $SIGN_IDENTITY"
-    for c in "${SPARKLE_NESTED[@]}"; do sign_hardened "$SIGN_IDENTITY" "" "$c"; done
-    sign_hardened "$SIGN_IDENTITY" "" "$SPARKLE_FW"
-  fi
   echo "  signing Lurent.app"
   sign_hardened "$SIGN_IDENTITY" "$ENTITLEMENTS" "$APP"
   echo "  ✓ signed: $SIGN_IDENTITY (hardened runtime + entitlements)"
   echo "    → run ./notarize.sh to distribute (re-run online first if a timestamp was skipped)"
 else
   echo "  ad-hoc signing (local use only)"
-  for c in "${SPARKLE_NESTED[@]}"; do codesign --force --sign - "$c" >/dev/null 2>&1 || true; done
-  [ -n "$SPARKLE_FW" ] && codesign --force --sign - "$SPARKLE_FW" >/dev/null 2>&1 || true
   codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
   echo "  ad-hoc signed — local use only (set SIGN_IDENTITY to a Developer ID to distribute)"
 fi
