@@ -63,47 +63,28 @@ wird:
 ## Website (lurent.app)
 
 Die Seite liegt in `site/` und läuft auf **Cloudflare Pages**, Projekt `lurent`.
-Das Projekt ist **Direct Upload** — es hängt *nicht* am Git-Repo, ein Push oder
-Merge deployt also nichts:
+Das Projekt hängt am GitHub-Repo: **ein Merge nach `main` deployt sie**, es gibt
+kein Skript und keinen manuellen Upload.
 
-```bash
-./deploy-site.sh              # veröffentlicht site/
-./deploy-site.sh --dry-run    # zeigt nur, was hochginge
-```
+| Einstellung | Wert |
+|---|---|
+| Build command | *(leer — reines HTML, kein Build)* |
+| Build output directory | `site` |
+| Production branch | `main` |
 
-Credentials kommen aus `.env` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`),
+Zwei Eigenheiten von Pages, die beim Prüfen täuschen:
 
-**Achtung beim Prüfen:** Pages hat keine 404-Seite und liefert für *jeden* Pfad
-die Startseite mit HTTP 200. Ein `curl -I` auf `/privacy.html` sieht also auch
-dann gut aus, wenn die Seite fehlt — `deploy-site.sh` prüft deshalb den `<title>`
-statt den Statuscode. `privacy.html` und `support.html` sind Pflichtfelder im
-App Store und müssen echten Inhalt liefern.
+- **Keine 404-Seite.** Jeder Pfad antwortet mit HTTP 200 und der Startseite. Ein
+  `curl -I` auf `/privacy` sieht also auch dann gut aus, wenn die Seite fehlt —
+  immer den Inhalt prüfen, nicht den Statuscode.
+- **Clean URLs.** `/privacy.html` wird per **308** auf `/privacy` umgeleitet;
+  Prüfungen müssen der Weiterleitung folgen.
 
-### Einmalig: R2 einrichten
+Dazu hinkt der Edge-Cache nach einem Deploy rund eine Minute nach. Wenn die alte
+Fassung erscheint: kurz warten, bevor du suchst.
 
-Trage die Cloudflare-R2-Zugangsdaten in `.env` ein (siehe `.env.example`), dann:
-
-```bash
-./Tools/provision-r2.sh    # legt den Bucket an + bindet updates.lurent.app
-```
-
-Die Custom Domain lässt sich per API-Token binden oder mit 4 Klicks im
-Dashboard (R2 → Bucket → Settings → Custom Domains → Connect Domain).
-
-### Ein Update veröffentlichen
-
-```bash
-# 1) Version in Info.plist hochzählen (CFBundleShortVersionString + CFBundleVersion)
-./build.sh          # baut + signiert (Developer ID)
-```
-
-  Bestehende Nutzer bekommen das automatisch (inkl. Delta-Updates).
-- **`Lurent.pkg`** (signierter, notarisierter Installer) — der **Erst-Download**
-  für neue Nutzer (Doppelklick → `/Applications`). Immer erreichbar unter dem
-  stabilen Link `https://updates.lurent.app/Lurent.pkg`, plus eine versionierte
-  Kopie `Lurent-<version>-<build>.pkg`.
-
-Kurz: **Zip = Auto-Update, Pkg = Erstinstallation.**
+`privacy.html` und `support.html` sind Pflichtfelder im App Store und müssen
+echten Inhalt liefern.
 
 ## Unsplash Access-Key
 
