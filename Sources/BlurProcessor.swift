@@ -36,7 +36,15 @@ enum BlurProcessor {
         CIContext(options: [.cacheIntermediates: false, .workingFormat: CIFormat.RGBAh])
     }()
 
-    static let outputColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    /// Display P3 for everything that leaves the pipeline. Measured against sRGB:
+    /// colours that already fit in sRGB come out bit-identical, so no existing
+    /// project shifts — but the two cases sRGB used to flatten survive. A photo
+    /// from the Photos library is itself P3, and the saturation control walks
+    /// colours out of sRGB at the 1.15 default already (a vivid red lands at
+    /// −0.09/−0.15 on green and blue, i.e. clipped to zero; in P3 it still fits).
+    /// ImageIO encodes the 16-bit render as a 10-bit HEIC either way, so the
+    /// wider gamut costs no precision.
+    static let outputColorSpace = CGColorSpace(name: CGColorSpace.displayP3)!
 
     /// Renders `source` into an image of exactly `targetSize` pixels.
     /// - Parameter deepColor: render a 16-bit-per-channel image (for export) so
@@ -132,6 +140,10 @@ enum BlurProcessor {
             return context.createCGImage(image, from: outRect,
                                          format: .RGBA16, colorSpace: outputColorSpace)
         }
-        return context.createCGImage(image, from: outRect)
+        // The preview renders into the same space as the export. Left to its
+        // default the context would hand back sRGB, so the screen would show a
+        // clipped version of a wallpaper that ships wider than that.
+        return context.createCGImage(image, from: outRect,
+                                     format: .RGBA8, colorSpace: outputColorSpace)
     }
 }

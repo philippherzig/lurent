@@ -42,9 +42,11 @@ extension Color {
 /// display with aspect-fill center-cropping (see `setAsDesktop`). macOS scales that
 /// single file down per screen, so it yields native resolution in *any* orientation —
 /// landscape and portrait alike — on every display whose longest edge is ≤ this value.
-/// 6016 is Apple's largest current panel dimension (Pro Display XDR), so this covers
-/// the whole lineup. Going bigger only wastes pixels macOS discards; smaller would
-/// upscale on the largest displays. This is why there is no resolution picker: one
+/// 6016 is the longest edge Apple ever shipped: the Pro Display XDR (6016 × 3384),
+/// retired in March 2026 and replaced by the 5120 × 2880 Studio Display XDR. Sizing
+/// to the retired panel still costs nothing and keeps the Pro Display XDRs already on
+/// desks at native resolution. Going bigger only wastes pixels macOS discards;
+/// smaller would upscale on those displays. This is why there is no resolution picker: one
 /// universal size is correct for all screens.
 let wallpaperMasterSide = 6016
 
@@ -623,6 +625,12 @@ final class AppModel: ObservableObject {
 
     func applySource(_ cg: CGImage, photoID: String?, baseName: String?,
                              attribution: String?, attributionURL: String?, to appearance: Appearance) {
+        // Normalise once, here at the door. Everything downstream — this session's
+        // renders, the palette sampled below, the copy written to the project — then
+        // works from the same bitmap, so reopening a project cannot render it
+        // differently than the session that made it.
+        let cg = WallpaperLibrary.normalizedSource(cg)
+
         // Every palette colour is sampled straight from the photo at the look's
         // sample points (the "Farbtupfer" the user then drags in the inspector).
         let apply: (inout Look) -> Void = {
@@ -977,8 +985,13 @@ final class AppModel: ObservableObject {
             return
         }
 
+        // Normalised on the way in as well: projects written before this existed
+        // still hold a PQ source, and reading one back untouched would render it
+        // differently than a freshly picked copy of the same photo.
         let lightSource = WallpaperLibrary.readImage(at: project.lightSourceURL)
-        let darkSource = WallpaperLibrary.readImage(at: project.darkSourceURL) ?? lightSource
+            .map { WallpaperLibrary.normalizedSource($0) }
+        let darkSource = WallpaperLibrary.readImage(at: project.darkSourceURL)
+            .map { WallpaperLibrary.normalizedSource($0) } ?? lightSource
 
         withAutosaveSuspended {
             lightLook = Look(recipe: recipe.light, source: lightSource)

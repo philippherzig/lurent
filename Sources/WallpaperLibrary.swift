@@ -393,7 +393,7 @@ enum WallpaperLibrary {
 
     private static func writeHEIC(_ image: CGImage, to url: URL,
                                   maxPixels: Int, quality: Double) throws {
-        let scaled = downscale(image, maxPixels: maxPixels) ?? image
+        let scaled = normalizedSource(image, maxPixels: maxPixels)
         let type = UTType.heic.identifier as CFString
         guard let dest = CGImageDestinationCreateWithURL(url as CFURL, type, 1, nil) else {
             throw LibraryError.storeFailed
@@ -402,20 +402,56 @@ enum WallpaperLibrary {
         guard CGImageDestinationFinalize(dest) else { throw LibraryError.storeFailed }
     }
 
-    private static func downscale(_ image: CGImage, maxPixels: Int) -> CGImage? {
+    /// The colour space a source photo is kept in — its own, as long as 8 bits can
+    /// hold it, so a Display P3 photo stays wide. Device RGB here would clip it back
+    /// to sRGB before the render ever saw the wide colours, which is the whole point
+    /// of the P3 output space (see `BlurProcessor.outputColorSpace`).
+    ///
+    /// Two kinds of source don't survive 8 bits in their own space, and both are
+    /// redrawn as plain Display P3 instead — same wide gamut, usable steps:
+    ///
+    ///   * HDR. An iPhone photo is PQ, whose code values are spread over a
+    ///     10,000-nit range; at 8 bits that leaves 131 distinct steps across the
+    ///     SDR range where Display P3 leaves 141 (measured). The wallpaper is SDR
+    ///     either way, so the PQ curve buys nothing downstream.
+    ///   * Extended-range spaces, which 8 bits cannot represent at all.
+    ///
+    /// Anything that isn't RGB (grey, CMYK) lands there too; P3 holds it all.
+    private static func storageSpace(for image: CGImage) -> CGColorSpace {
+        guard let s = image.colorSpace, s.model == .rgb,
+              !CGColorSpaceUsesITUR_2100TF(s),
+              !CGColorSpaceUsesExtendedRange(s)
+        else { return BlurProcessor.outputColorSpace }
+        return s
+    }
+
+    /// Brings a source photo into the shape the rest of the app expects: no longer
+    /// than `maxPixels` on its longest edge, in a colour space that survives 8-bit
+    /// storage. Idempotent — an image that already qualifies is returned untouched.
+    ///
+    /// This has to run where a photo *enters* the app, not only where it is stored.
+    /// The renderer works from `Look.source` during the session and from the stored
+    /// copy after a reopen; if the two differ, the same project renders differently
+    /// once it has been closed. Tying the conversion to the resize is what used to
+    /// cause exactly that — a 12 MP iPhone photo (4032 px) is already under the cap,
+    /// so it skipped the resize and kept its PQ profile, while a 48 MP one did not.
+    static func normalizedSource(_ image: CGImage, maxPixels: Int = sourceMaxPixels) -> CGImage {
         let longest = max(image.width, image.height)
-        guard longest > maxPixels else { return image }
-        let f = Double(maxPixels) / Double(longest)
+        let f = longest > maxPixels ? Double(maxPixels) / Double(longest) : 1
+        let space = storageSpace(for: image)
+
+        // Right size and a space we can keep: nothing to redraw.
+        if f == 1, let current = image.colorSpace, current.name == space.name { return image }
+
         let w = max(1, Int((Double(image.width) * f).rounded()))
         let h = max(1, Int((Double(image.height) * f).rounded()))
         guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
-                                  bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            return nil
-        }
+                                  bytesPerRow: 0, space: space,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return image }
         ctx.interpolationQuality = .high
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        return ctx.makeImage()
+        return ctx.makeImage() ?? image
     }
 
     static func readImage(at url: URL) -> CGImage? {

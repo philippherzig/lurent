@@ -3,8 +3,8 @@
 Native macOS-App (SwiftUI). Lurent macht aus einem Foto ein weiches, abstraktes
 Wallpaper: Bild wählen, mit den Effektreglern formen — Blur, Spiegel, Lamellen,
 Liquid —, als Schreibtischhintergrund setzen. Gerendert wird ein quadratisches
-6016²-Master, das auf jedem Mac-Display bis zum Pro Display XDR in nativer Auflösung
-landet. Jedes Wallpaper bleibt als `.lurent`-Projekt erhalten.
+6016²-Master, das auf jedem Apple-Display bis zum Studio Display XDR in maximaler
+Auflösung landet. Jedes Wallpaper bleibt als `.lurent`-Projekt erhalten.
 
 ## Bauen & starten
 
