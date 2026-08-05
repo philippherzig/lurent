@@ -128,6 +128,6 @@ enum LiquidProcessor {
         if deepColor {
             return ctx.createCGImage(img, from: rect, format: .RGBA16, colorSpace: cs)
         }
-        return ctx.createCGImage(img, from: rect)
+        return ctx.createCGImage(img, from: rect, format: .RGBA8, colorSpace: cs)
     }
 }

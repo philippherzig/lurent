@@ -408,11 +408,21 @@ enum WallpaperLibrary {
         let f = Double(maxPixels) / Double(longest)
         let w = max(1, Int((Double(image.width) * f).rounded()))
         let h = max(1, Int((Double(image.height) * f).rounded()))
-        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
-                                  bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            return nil
-        }
+        // Redraw in the source's own colour space. A photo from the Photos library
+        // is Display P3, and device RGB here would clip it back to sRGB before the
+        // render ever sees the wide colours — which is the whole point of the P3
+        // output space (see `BlurProcessor.outputColorSpace`). Anything that isn't
+        // plain RGB (grey, CMYK, an extended-range space 8 bits can't hold) falls
+        // back to sRGB.
+        let sourceSpace = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil }
+        let bitmap = CGImageAlphaInfo.premultipliedLast.rawValue
+        let ctx = sourceSpace.flatMap {
+            CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
+                      bytesPerRow: 0, space: $0, bitmapInfo: bitmap)
+        } ?? CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
+                       bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                       bitmapInfo: bitmap)
+        guard let ctx else { return nil }
         ctx.interpolationQuality = .high
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
         return ctx.makeImage()
