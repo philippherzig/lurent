@@ -42,9 +42,11 @@ extension Color {
 /// display with aspect-fill center-cropping (see `setAsDesktop`). macOS scales that
 /// single file down per screen, so it yields native resolution in *any* orientation —
 /// landscape and portrait alike — on every display whose longest edge is ≤ this value.
-/// 6016 is Apple's largest current panel dimension (Pro Display XDR), so this covers
-/// the whole lineup. Going bigger only wastes pixels macOS discards; smaller would
-/// upscale on the largest displays. This is why there is no resolution picker: one
+/// 6016 is the longest edge Apple ever shipped: the Pro Display XDR (6016 × 3384),
+/// retired in March 2026 and replaced by the 5120 × 2880 Studio Display XDR. Sizing
+/// to the retired panel still costs nothing and keeps the Pro Display XDRs already on
+/// desks at native resolution. Going bigger only wastes pixels macOS discards;
+/// smaller would upscale on those displays. This is why there is no resolution picker: one
 /// universal size is correct for all screens.
 let wallpaperMasterSide = 6016
 
