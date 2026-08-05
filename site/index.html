@@ -56,6 +56,17 @@
     width: 116px; height: 116px;
     margin: 0 auto 1.3rem;
     display: block;
+    /* The gloss and the edge lighting are baked into the file — only macOS can
+       render those. The shadow stays in CSS so it holds up on any display and can
+       differ between light and dark. */
+    filter: drop-shadow(0 12px 24px rgba(60, 50, 70, .22))
+            drop-shadow(0 3px 6px rgba(60, 50, 70, .14));
+  }
+  @media (prefers-color-scheme: dark) {
+    .icon {
+      filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .55))
+              drop-shadow(0 3px 8px rgba(0, 0, 0, .40));
+    }
   }
 
   h1 {
