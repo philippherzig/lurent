@@ -9,7 +9,6 @@ Auflösung landet. Jedes Wallpaper bleibt als `.lurent`-Projekt erhalten.
 ## Bauen & starten
 
 ```bash
-cp .env.example .env          # einmalig: Unsplash-Key eintragen
 ./build.sh
 open "build/Lurent.app"
 ```
@@ -88,22 +87,6 @@ Fassung erscheint: kurz warten, bevor du suchst.
 `privacy.html` und `support.html` sind Pflichtfelder im App Store und müssen
 echten Inhalt liefern.
 
-## Unsplash Access-Key
-
-Der Key liegt in einer **gitignorten `.env`** und wird beim Bauen in
-`build/Secrets.generated.swift` injiziert (nichts davon landet im Repo):
-
-```
-UNSPLASH_ACCESS_KEY=dein_key
-```
-
-Kostenlos erstellbar unter https://unsplash.com/developers → **New Application**
-(der **Access Key**, nicht der Secret Key). Dieser gebackene Key ist der einzige,
-den die App verwendet — Endnutzer müssen (und können) keinen eigenen eintragen.
-
-Ohne Key funktioniert **„Eigenes Bild öffnen…"** weiterhin mit jeder lokalen
-Bilddatei.
-
 ## Bedienung
 
 - Links: Foto suchen & anklicken, oder eigenes Bild öffnen.
@@ -144,8 +127,8 @@ Oben im Editor umschaltbar:
 
 - **Drag & Drop:** die Vorschau in den Finder / auf den Schreibtisch ziehen
   (rendert on-the-fly in voller Auflösung; im Dynamik-Modus das HEIC).
-- **Exportieren… (⌘S):** Speichern-Dialog. Dateiname kommt vom Unsplash-Slug
-  bzw. vom Original-Dateinamen.
+- **Exportieren… (⌘S):** Speichern-Dialog. Dateiname kommt vom Commons-
+  Dateititel bzw. vom Original-Dateinamen.
 - **Als Schreibtisch setzen:** setzt das Ergebnis direkt als Hintergrund auf
   allen Bildschirmen. Schaltet der Button das Dynamik-Wallpaper nicht um, das
   HEIC exportieren und einmal in *Systemeinstellungen › Hintergrundbild*
@@ -189,9 +172,11 @@ Sources/
   ContentView.swift    UI (Sidebar, Vorschau, Regler, Settings)
   Model.swift          Zustand, Looks (Hell/Dunkel), Export/Drag/Desktop
   Updater.swift        Leerer Platzhalter — Updates kommen aus dem App Store
-  Unsplash.swift       Unsplash-API-Client
+  Commons.swift        Wikimedia-Commons-API-Client (ohne Auth)
+  Pexels.swift         Pexels-Client — spricht nur mit dem Worker, nie direkt mit Pexels
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
   DynamicWallpaper.swift  HEIC-Writer mit Light/Dark-Metadaten
+workers/pexels-cache/  Cloudflare Worker (pexels.lurent.app): hält den Pexels-Key, cacht Suchen
 Info.plist             Bundle-Metadaten (+ .lurent-Dokumenttyp)
 Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
 build.sh               swiftc → .app-Bundle (signiert; PROVISION_PROFILE=… → App-Store-Variante)
@@ -200,8 +185,16 @@ package.sh             Signiertes + notarisiertes .pkg für /Applications
 Tools/provision-r2.sh   Einmaliges R2-Setup (Bucket + Custom Domain)
 ```
 
-## Hinweis Unsplash
+## Fotoquellen
 
-Fotos stammen von Unsplash. Die App zeigt den Fotografen an und meldet Downloads
-gemäß der Unsplash-API-Richtlinien. Für eine öffentliche Verteilung braucht Unsplash
-eine Freigabe („production"-Status) der API-Anwendung.
+**Wikimedia Commons:** Fotos meist unter CC BY-SA. Die App zeigt den Fotografen
+an, verlinkt auf die Commons-Dateiseite (die die genaue Lizenz nennt). Commons
+verlangt keinen API-Key und kein Freigabeverfahren.
+
+**Pexels:** Die App spricht nie direkt mit Pexels, sondern mit dem Worker unter
+`pexels.lurent.app` (`workers/pexels-cache`). Er hält den API-Key als Secret, sodass
+weder App noch `.env` ihn brauchen, und cacht identische Suchen sechs Stunden, damit
+sich alle Installationen das kleine Kontingent des Standard-Keys teilen. Die App
+zeigt den Fotografen und einen Link auf Pexels an. Neu deployen:
+`cd workers/pexels-cache && wrangler deploy` — die Stolpersteine (Token-Rechte,
+Cookies, Domain) stehen in `CLAUDE.md`.

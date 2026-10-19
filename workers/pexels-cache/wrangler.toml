@@ -1,0 +1,12 @@
+name = "lurent-pexels-cache"
+main = "worker.js"
+compatibility_date = "2026-08-20"
+
+# Served from pexels.lurent.app: the free <name>.workers.dev URL proxies Pexels but
+# does NOT cache (measured — Pexels' request counter dropped on every identical
+# request), a hostname inside the lurent.app zone does. `custom_domain` makes
+# Cloudflare create the DNS record and certificate itself.
+routes = [{ pattern = "pexels.lurent.app", custom_domain = true }]
+
+# No [vars] here on purpose — PEXELS_ACCESS_KEY is a secret, set once with:
+#   wrangler secret put PEXELS_ACCESS_KEY

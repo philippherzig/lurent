@@ -1,6 +1,5 @@
 # Secrets
 .env
-Secrets.generated.swift
 
 # Build output
 build/

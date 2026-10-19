@@ -29,11 +29,34 @@
 
 ## Non-Discoverable Rules
 
-- **A worktree checkout ships without a working Unsplash key.** `.env` is
-  gitignored and per-worktree; only `main`'s `.env` carries the real
-  `UNSPLASH_ACCESS_KEY`. `build.sh` builds silently anyway — no error, search
-  just returns nothing. Copy `main`'s `.env` before building/releasing from a
-  worktree, or build from `main`.
+- **Two photo sources: Wikimedia Commons and Pexels, not Unsplash.** Unsplash's
+  production-key review rejected the app outright (their API explicitly bans
+  wallpaper/gallery apps). Pixabay rejected it too, citing an app "offering a
+  search experience that resembles Pixabay or Canva" — worth knowing before
+  reapplying there with different wording, since the reviewer already saw and
+  rejected that exact argument. Pexels' *default* key tier needs no review at
+  all, only their unlimited tier does — that default tier is what's wired in.
+  Its response headers report a 25,000-request window (reset ~30 days out), and
+  the documented hourly cap is 200.
+  Commons (`Sources/Commons.swift`) needs no API key and no approval. Identify
+  with a descriptive User-Agent per Wikimedia's policy, never a bare default one.
+  Pexels (`Sources/Pexels.swift`) goes through our own caching Worker at
+  `pexels.lurent.app` (`workers/pexels-cache`), never to api.pexels.com directly:
+  the real key exists only as a Worker secret, so the app, `build.sh` and every
+  worktree need no key and no `.env` at all.
+- **Redeploying the Pexels Worker has traps that each cost hours.**
+  `cd workers/pexels-cache && wrangler deploy`. The `CLOUDFLARE_API_TOKEN` in
+  `.env` can list Workers but not write them, so deploy through an OAuth login
+  (`wrangler login`) — and wrangler reads `.env` from the current directory
+  itself, ignoring `env -u`, so run the login from `~`. Caching works only on
+  the `pexels.lurent.app` custom domain: `*.workers.dev` stores nothing. Pexels
+  answers with `Set-Cookie` headers and Cloudflare never stores a response that
+  has one, so the Worker strips them (it also drops `Vary`); remove that and
+  caching stops silently, with no error. Never cache a failed response — a
+  stored 429 would block search for the whole TTL. To verify: send the same
+  search twice and watch `x-ratelimit-remaining`; a hit leaves it unchanged
+  and adds an `age` header. Rotating the key: `wrangler secret put
+  PEXELS_ACCESS_KEY`.
 - **Distribution has moved off Sparkle.** Auto-updates were removed
   (`Sources/Updater.swift` is an intentional empty seam) because the app is
   moving to the Mac App Store, which forbids self-updating apps. That move

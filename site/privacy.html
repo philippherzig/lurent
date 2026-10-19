@@ -43,11 +43,12 @@
 <body>
 <main>
   <h1>Privacy Policy</h1>
-  <p class="updated">Lurent for macOS · last updated 4 August 2026</p>
+  <p class="updated">Lurent for macOS · last updated 18 October 2026</p>
 
   <p class="lede">Lurent collects nothing. There is no account, no analytics, no
-  tracking, no crash reporting, and no server that belongs to us receiving anything
-  you do in the app.</p>
+  tracking and no crash reporting. The one thing of ours that your searches pass
+  through is a small relay for Pexels photo search, which keeps no record of them —
+  see <em>Photo search</em> below.</p>
 
   <h2>What stays on your Mac</h2>
   <p>Your projects — the source photo, the settings you chose, and the rendered
@@ -62,13 +63,23 @@
   Saving a finished wallpaper back into a Photos album is something you trigger
   explicitly.</p>
 
-  <h2>Unsplash</h2>
-  <p>Lurent can search <a href="https://unsplash.com/?utm_source=Lurent&amp;utm_medium=referral">Unsplash</a>
-  for a photo to start from. When you search or select a picture, your Mac talks to
-  Unsplash's API directly — that request reaches Unsplash, not us, and is covered by
-  <a href="https://unsplash.com/privacy">Unsplash's privacy policy</a>. Lurent sends
-  no identifier of you along with it. Using Unsplash is optional: the app works the
-  same with your own photos or with no photo at all.</p>
+  <h2>Photo search</h2>
+  <p>Lurent can search two free photo libraries for a picture to start from. Using
+  either is optional: the app works the same with your own photos or with no photo
+  at all.</p>
+  <p><a href="https://commons.wikimedia.org">Wikimedia Commons</a>: when you search
+  or select a picture, your Mac talks to Commons's API directly — that request
+  reaches the Wikimedia Foundation, not us, and is covered by
+  <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Wikimedia's
+  privacy policy</a>. Lurent sends no identifier of you along with it.</p>
+  <p><a href="https://www.pexels.com">Pexels</a>: your search term goes to a small
+  relay we run at pexels.lurent.app, which passes it on to Pexels and keeps the
+  answer for a few hours so the same search does not reach Pexels again. The relay
+  keeps no log of searches and stores nothing about who made them, and Lurent sends
+  no identifier of you with them. Like any web service it runs on Cloudflare's
+  network, which sees the connection while it is being served. The photo itself
+  then downloads directly from Pexels, which is covered by
+  <a href="https://www.pexels.com/privacy-policy/">Pexels' privacy policy</a>.</p>
 
   <h2>Children</h2>
   <p>Lurent is not directed at children and collects no data from anyone,

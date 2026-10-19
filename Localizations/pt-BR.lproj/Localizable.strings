@@ -1,5 +1,5 @@
 /* Lurent — Português (Brasil). As chaves são as strings de origem em alemão.
-   "Blur", "Flow", "Liquid", "Unsplash" são omitidos de propósito → usam a chave. */
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" são omitidos de propósito → usam a chave. */
 
 "Bild" = "Imagem";
 "Quelle" = "Fonte";
@@ -49,7 +49,8 @@
 "Zurücksetzen" = "Redefinir";
 "Datei öffnen…" = "Abrir arquivo…";
 "Fotos-Mediathek verbinden…" = "Conectar à Fototeca…";
-"Unsplash durchsuchen" = "Buscar no Unsplash";
+"Wikimedia Commons durchsuchen" = "Buscar no Wikimedia Commons";
+"Pexels durchsuchen" = "Buscar no Pexels";
 "In Fotos sichern" = "Salvar em Fotos";
 "Als HEIC exportieren…" = "Exportar como HEIC…";
 "Exportieren" = "Exportar";
@@ -63,7 +64,7 @@
 
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Arraste para o Finder / a Área de Trabalho para exportar";
 "Kein Bild für „%@“" = "Nenhuma imagem para “%@”";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Escolha à direita uma foto do Unsplash, uma imagem do Fotos ou um arquivo.";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Escolha à direita uma foto do Wikimedia Commons, uma imagem do Fotos ou um arquivo.";
 "Auf „%@“ übernehmen" = "Aplicar a “%@”";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Sem acesso ao Fotos — permita nos Ajustes do Sistema.";
 
@@ -79,11 +80,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Sem acesso ao Fotos. Permita o acesso para o Lurent em Ajustes do Sistema → Privacidade e Segurança → Fotos.";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "Não foi possível criar o álbum “Lurent”.";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "Não foi possível salvar o papel de parede em Fotos.";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "A busca do Unsplash não está disponível nesta versão (nenhuma chave incorporada). “Abrir sua própria imagem…” continua funcionando.";
-"Unsplash lehnt den Access-Key ab (401)." = "O Unsplash rejeitou a chave de acesso (401).";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Limite de requisições do Unsplash atingido (403). Aguarde um momento.";
-"Unsplash-Fehler (HTTP %ld)." = "Erro do Unsplash (HTTP %ld).";
-"Unerwartete Antwort von Unsplash." = "Resposta inesperada do Unsplash.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Erro do Wikimedia Commons (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Resposta inesperada do Wikimedia Commons.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Limite de requisições do Pexels atingido (429). Aguarde um momento.";
+"Pexels-Fehler (HTTP %ld)." = "Erro do Pexels (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Resposta inesperada do Pexels.";
 "Das Bild konnte nicht geladen werden." = "Não foi possível carregar a imagem.";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Não foi possível gerar os metadados do papel de parede.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Não foi possível criar o HEIC (codificador HEVC indisponível?).";
@@ -130,6 +131,7 @@
 "Projekt importiert: %@" = "Projeto importado: %@";
 "Das ist kein Lurent-Projekt." = "Isto não é um projeto do Lurent.";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "Foto de [%@](%@) no [Unsplash](%@)";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Foto de [%@](%@) no [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Foto de [%@](%@) no [Pexels](%@)";

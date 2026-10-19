@@ -1,5 +1,5 @@
 /* Lurent — 简体中文. 键为德语源字符串.
-   "Blur"、"Flow"、"Liquid"、"Unsplash" 有意省略 → 回退到键本身. */
+   "Blur"、"Flow"、"Liquid"、"Wikimedia Commons"、"Pexels" 有意省略 → 回退到键本身. */
 
 "Bild" = "图片";
 "Quelle" = "来源";
@@ -49,7 +49,8 @@
 "Zurücksetzen" = "重置";
 "Datei öffnen…" = "打开文件…";
 "Fotos-Mediathek verbinden…" = "连接照片图库…";
-"Unsplash durchsuchen" = "搜索 Unsplash";
+"Wikimedia Commons durchsuchen" = "搜索 Wikimedia Commons";
+"Pexels durchsuchen" = "搜索 Pexels";
 "In Fotos sichern" = "存储到照片";
 "Als HEIC exportieren…" = "导出为 HEIC…";
 "Exportieren" = "导出";
@@ -63,7 +64,7 @@
 
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "拖到访达／桌面以导出";
 "Kein Bild für „%@“" = "没有“%@”的图片";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "在右侧选择 Unsplash 照片、照片图库中的图片或文件。";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "在右侧选择 Wikimedia Commons 照片、照片图库中的图片或文件。";
 "Auf „%@“ übernehmen" = "应用到“%@”";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "无照片访问权限 — 请在系统设置中允许。";
 
@@ -79,11 +80,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "无法访问照片。请在系统设置 → 隐私与安全性 → 照片中允许 Lurent 访问。";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "无法创建相簿“Lurent”。";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "无法将壁纸存储到照片。";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "此版本不支持 Unsplash 搜索（未内置密钥）。“打开自己的图片…”仍可使用。";
-"Unsplash lehnt den Access-Key ab (401)." = "Unsplash 拒绝了访问密钥（401）。";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "已达到 Unsplash 速率限制（403）。请稍候。";
-"Unsplash-Fehler (HTTP %ld)." = "Unsplash 错误（HTTP %ld）。";
-"Unerwartete Antwort von Unsplash." = "Unsplash 返回了意外的响应。";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons 错误（HTTP %ld）。";
+"Unerwartete Antwort von Wikimedia Commons." = "Wikimedia Commons 返回了意外的响应。";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "已达到 Pexels 的请求频率限制（429）。请稍候。";
+"Pexels-Fehler (HTTP %ld)." = "Pexels 错误（HTTP %ld）。";
+"Unerwartete Antwort von Pexels." = "Pexels 返回了意外的响应。";
 "Das Bild konnte nicht geladen werden." = "无法加载图片。";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "无法生成壁纸元数据。";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "无法创建 HEIC（HEVC 编码器不可用？）。";
@@ -130,6 +131,7 @@
 "Projekt importiert: %@" = "已导入项目：%@";
 "Das ist kein Lurent-Projekt." = "这不是 Lurent 项目。";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "照片由 [%@](%@) 提供，来自 [Unsplash](%@)";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "照片由 [%@](%@) 提供，来自 [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "照片由 [%@](%@) 提供，来自 [Pexels](%@)";

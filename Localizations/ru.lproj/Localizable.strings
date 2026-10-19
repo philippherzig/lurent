@@ -1,5 +1,5 @@
 /* Lurent — Русский. Ключи — исходные строки на немецком.
-   "Blur", "Flow", "Liquid", "Unsplash" намеренно опущены → используется ключ. */
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" намеренно опущены → используется ключ. */
 
 "Bild" = "Изображение";
 "Quelle" = "Источник";
@@ -49,7 +49,8 @@
 "Zurücksetzen" = "Сбросить";
 "Datei öffnen…" = "Открыть файл…";
 "Fotos-Mediathek verbinden…" = "Подключить медиатеку Фото…";
-"Unsplash durchsuchen" = "Поиск в Unsplash";
+"Wikimedia Commons durchsuchen" = "Поиск в Wikimedia Commons";
+"Pexels durchsuchen" = "Поиск в Pexels";
 "In Fotos sichern" = "Сохранить в Фото";
 "Als HEIC exportieren…" = "Экспортировать в HEIC…";
 "Exportieren" = "Экспорт";
@@ -63,7 +64,7 @@
 
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Перетащите в Finder / на рабочий стол для экспорта";
 "Kein Bild für „%@“" = "Нет изображения для «%@»";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Выберите справа фото из Unsplash, изображение из Фото или файл.";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Выберите справа фото из Wikimedia Commons, изображение из Фото или файл.";
 "Auf „%@“ übernehmen" = "Применить к «%@»";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Нет доступа к Фото — разрешите в Системных настройках.";
 
@@ -79,11 +80,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Нет доступа к Фото. Разрешите доступ для Lurent в Системных настройках → Конфиденциальность и безопасность → Фото.";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "Не удалось создать альбом «Lurent».";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "Не удалось сохранить обои в Фото.";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "Поиск Unsplash недоступен в этой сборке (ключ не встроен). «Открыть своё изображение…» по-прежнему работает.";
-"Unsplash lehnt den Access-Key ab (401)." = "Unsplash отклонил ключ доступа (401).";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Достигнут лимит запросов Unsplash (403). Пожалуйста, подождите.";
-"Unsplash-Fehler (HTTP %ld)." = "Ошибка Unsplash (HTTP %ld).";
-"Unerwartete Antwort von Unsplash." = "Неожиданный ответ от Unsplash.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Ошибка Wikimedia Commons (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Неожиданный ответ от Wikimedia Commons.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Достигнут лимит запросов Pexels (429). Подождите немного.";
+"Pexels-Fehler (HTTP %ld)." = "Ошибка Pexels (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Неожиданный ответ от Pexels.";
 "Das Bild konnte nicht geladen werden." = "Не удалось загрузить изображение.";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Не удалось создать метаданные обоев.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "Не удалось создать HEIC (кодировщик HEVC недоступен?).";
@@ -130,6 +131,7 @@
 "Projekt importiert: %@" = "Проект импортирован: %@";
 "Das ist kein Lurent-Projekt." = "Это не проект Lurent.";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "Фото [%@](%@) на [Unsplash](%@)";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Фото [%@](%@) на [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Фото [%@](%@) на [Pexels](%@)";

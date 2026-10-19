@@ -1,5 +1,5 @@
 /* Lurent — English. Keys are the German source strings.
-   "Blur", "Flow", "Liquid", "Unsplash" are intentionally omitted → fall back to the key. */
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" are intentionally omitted → fall back to the key. */
 
 // Sections & pickers
 "Bild" = "Image";
@@ -56,7 +56,8 @@
 "Zurücksetzen" = "Reset";
 "Datei öffnen…" = "Open File…";
 "Fotos-Mediathek verbinden…" = "Connect Photos Library…";
-"Unsplash durchsuchen" = "Search Unsplash";
+"Wikimedia Commons durchsuchen" = "Search Wikimedia Commons";
+"Pexels durchsuchen" = "Search Pexels";
 "In Fotos sichern" = "Save to Photos";
 "Als HEIC exportieren…" = "Export as HEIC…";
 "Exportieren" = "Export";
@@ -72,7 +73,7 @@
 // Preview / help
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Drag to the Finder / desktop to export";
 "Kein Bild für „%@“" = "No image for “%@”";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "Pick an Unsplash photo, a Photos image, or a file on the right.";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Pick a Wikimedia Commons photo, a Photos image, or a file on the right.";
 "Auf „%@“ übernehmen" = "Apply to “%@”";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "No Photos access — allow it in System Settings.";
 
@@ -89,11 +90,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "No access to Photos. Please allow access for Lurent in System Settings → Privacy & Security → Photos.";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "The “Lurent” album could not be created.";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "The wallpaper could not be saved to Photos.";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "Unsplash search isn’t available in this build (no key embedded). “Open your own image…” still works.";
-"Unsplash lehnt den Access-Key ab (401)." = "Unsplash rejected the access key (401).";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash rate limit reached (403). Please wait a moment.";
-"Unsplash-Fehler (HTTP %ld)." = "Unsplash error (HTTP %ld).";
-"Unerwartete Antwort von Unsplash." = "Unexpected response from Unsplash.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons error (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Unexpected response from Wikimedia Commons.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Pexels rate limit reached (429). Please wait a moment.";
+"Pexels-Fehler (HTTP %ld)." = "Pexels error (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Unexpected response from Pexels.";
 "Das Bild konnte nicht geladen werden." = "The image could not be loaded.";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "Wallpaper metadata could not be created.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC could not be created (HEVC encoder unavailable?).";
@@ -140,6 +141,7 @@
 "Projekt importiert: %@" = "Project imported: %@";
 "Das ist kein Lurent-Projekt." = "That isn’t a Lurent project.";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "Photo by [%@](%@) on [Unsplash](%@)";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Photo by [%@](%@) on [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Photo by [%@](%@) on [Pexels](%@)";
