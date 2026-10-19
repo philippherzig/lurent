@@ -1,5 +1,5 @@
 /* Lurent — 日本語. キーはドイツ語のソース文字列.
-   "Blur", "Flow", "Liquid", "Unsplash" は意図的に省略 → キーにフォールバック. */
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" は意図的に省略 → キーにフォールバック. */
 
 "Bild" = "画像";
 "Quelle" = "ソース";
@@ -49,7 +49,8 @@
 "Zurücksetzen" = "リセット";
 "Datei öffnen…" = "ファイルを開く…";
 "Fotos-Mediathek verbinden…" = "写真ライブラリを接続…";
-"Unsplash durchsuchen" = "Unsplash を検索";
+"Wikimedia Commons durchsuchen" = "Wikimedia Commons を検索";
+"Pexels durchsuchen" = "Pexels を検索";
 "In Fotos sichern" = "写真に保存";
 "Als HEIC exportieren…" = "HEIC として書き出す…";
 "Exportieren" = "書き出す";
@@ -63,7 +64,7 @@
 
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Finder／デスクトップにドラッグして書き出し";
 "Kein Bild für „%@“" = "「%@」の画像がありません";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "右側で Unsplash の写真、写真アプリの画像、またはファイルを選んでください。";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "右側で Wikimedia Commons の写真、写真アプリの画像、またはファイルを選んでください。";
 "Auf „%@“ übernehmen" = "「%@」に適用";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "写真へのアクセスがありません — システム設定で許可してください。";
 
@@ -79,11 +80,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "写真にアクセスできません。システム設定 →「プライバシーとセキュリティ」→「写真」で Lurent のアクセスを許可してください。";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "アルバム「Lurent」を作成できませんでした。";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "壁紙を写真に保存できませんでした。";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "このビルドでは Unsplash 検索は利用できません（キーが埋め込まれていません）。「自分の画像を開く…」は引き続き使用できます。";
-"Unsplash lehnt den Access-Key ab (401)." = "Unsplash がアクセスキーを拒否しました（401）。";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash のレート制限に達しました（403）。しばらくお待ちください。";
-"Unsplash-Fehler (HTTP %ld)." = "Unsplash エラー（HTTP %ld）。";
-"Unerwartete Antwort von Unsplash." = "Unsplash から予期しない応答がありました。";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons エラー（HTTP %ld）。";
+"Unerwartete Antwort von Wikimedia Commons." = "Wikimedia Commons から予期しない応答がありました。";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Pexels のレート制限に達しました（429）。しばらくお待ちください。";
+"Pexels-Fehler (HTTP %ld)." = "Pexels エラー（HTTP %ld）。";
+"Unerwartete Antwort von Pexels." = "Pexels から予期しない応答がありました。";
 "Das Bild konnte nicht geladen werden." = "画像を読み込めませんでした。";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "壁紙のメタデータを作成できませんでした。";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC を作成できませんでした（HEVC エンコーダーが利用できない可能性があります）。";
@@ -130,6 +131,7 @@
 "Projekt importiert: %@" = "プロジェクトを読み込みました: %@";
 "Das ist kein Lurent-Projekt." = "これは Lurent プロジェクトではありません。";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "[%@](%@) による [Unsplash](%@) の写真";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "[%@](%@) による [Wikimedia Commons](%@) の写真";
+"Foto von [%@](%@) auf [Pexels](%@)" = "[%@](%@) による [Pexels](%@) の写真";

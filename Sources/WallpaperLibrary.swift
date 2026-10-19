@@ -98,9 +98,10 @@ private struct Manifest: Codable {
 
 enum WallpaperLibrary {
 
-    /// Longest edge kept for the stored copy of a source photo. Unsplash's `regular`
-    /// size is ~1080 px wide, so this only ever bites on large local files — where
-    /// the square 6016 master can't use the extra detail anyway.
+    /// Longest edge kept for the stored copy of a source photo — caps what a large
+    /// photo (from Commons or a local file) costs in project storage. Softened by
+    /// the blur styles regardless, so the square 6016 master rarely misses the
+    /// extra detail above this.
     static let sourceMaxPixels = 4096
 
     /// Rail thumbnails are 76 pt; 512 covers Retina with room to spare.
@@ -692,8 +693,8 @@ enum WallpaperLibrary {
     static func readableTitle(from raw: String?, maxLength: Int = 40) -> String? {
         guard let raw, !raw.isEmpty else { return nil }
         var words = raw.split(whereSeparator: { $0 == "-" || $0 == "_" || $0 == " " }).map(String.init)
-        // Unsplash slugs end in the photo id — a long token carrying digits, which
-        // reads as noise rather than a word.
+        // Derived base names end in the photo id — a long token carrying digits,
+        // which reads as noise rather than a word.
         if let last = words.last, last.count > 8, last.rangeOfCharacter(from: .decimalDigits) != nil {
             words.removeLast()
         }

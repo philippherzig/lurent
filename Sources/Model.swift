@@ -7,7 +7,8 @@ import Photos
 // MARK: - Image source (sidebar selection)
 
 enum ImageSource: Hashable {
-    case unsplash
+    case commons
+    case pexels
     case files
     case album(id: String, title: String)
 }
@@ -15,11 +16,12 @@ enum ImageSource: Hashable {
 /// Top-level source choice for the consolidated inspector picker. The Photos
 /// case fans out into a per-album sub-picker (see `selectedAlbumID`).
 enum SourceKind: String, CaseIterable, Identifiable {
-    case unsplash, files, photos
+    case commons, pexels, files, photos
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .unsplash: return L("Unsplash")
+        case .commons: return L("Wikimedia Commons")
+        case .pexels:  return L("Pexels")
         case .files:    return L("Dateien")
         case .photos:   return L("Fotos")
         }
@@ -197,19 +199,15 @@ enum ExportError: LocalizedError {
 
 @MainActor
 final class AppModel: ObservableObject {
-    /// Bundled Unsplash key (injected at build time from .env via
-    /// Secrets.generated.swift) so search works out of the box; empty if no .env
-    /// was present. This is the only key the app uses — there is no user override.
-    static let bundledKey = Secrets.unsplashKey
-
     // Search
     @Published var query: String = ""
-    @Published var results: [UnsplashPhoto] = []
+    @Published var results: [CommonsPhoto] = []
+    @Published var pexelsResults: [PexelsPhoto] = []
     @Published var isSearching = false
     /// Why the picker is empty, when there is a reason worth showing. The launch
     /// fetch stays silent about failures — an alert on startup would be rude — but
     /// an empty grid with no explanation reads as a broken app, which matters most
-    /// when the shared demo key is exhausted.
+    /// when Pexels has no key embedded or Commons search is offline.
     @Published var browserNote: String?
     @Published var isLoadingSource = false
     @Published var errorMessage: String?
@@ -219,7 +217,7 @@ final class AppModel: ObservableObject {
 
     // Source picking. `lastAlbumID` remembers the chosen album so switching the
     // source away from Photos and back restores it instead of jumping to the first.
-    @Published var selectedSource: ImageSource? = .unsplash {
+    @Published var selectedSource: ImageSource? = .commons {
         didSet {
             if case let .album(id, _) = selectedSource, !id.isEmpty { lastAlbumID = id }
         }
@@ -304,9 +302,10 @@ final class AppModel: ObservableObject {
         }
     }
 
-    // MARK: Key
+    // MARK: Photo services
 
-    private var service: UnsplashService { UnsplashService(accessKey: Self.bundledKey) }
+    private let service = CommonsService()
+    private let pexelsService = PexelsService()
 
     // MARK: Current look editing
 
@@ -347,12 +346,14 @@ final class AppModel: ObservableObject {
             switch selectedSource {
             case .files:            return .files
             case .album:            return .photos
-            case .unsplash, .none:  return .unsplash
+            case .pexels:           return .pexels
+            case .commons, .none:   return .commons
             }
         }
         set {
             switch newValue {
-            case .unsplash: selectedSource = .unsplash
+            case .commons:  selectedSource = .commons
+            case .pexels:   selectedSource = .pexels
             case .files:    selectedSource = .files
             case .photos:
                 if case .album = selectedSource { return }   // already on an album
@@ -457,9 +458,9 @@ final class AppModel: ObservableObject {
 
     private var didLoadInitial = false
 
-    /// Fills the Unsplash picker with a few popular wallpaper photos so the app opens
-    /// on something to click rather than an empty grid. No-ops if the user already
-    /// searched, switched away from Unsplash, or if there's no bundled key / network.
+    /// Fills the Commons picker with a few curated photos so the app opens on
+    /// something to click rather than an empty grid. No-ops if the user already
+    /// searched, switched away from Commons, or if there's no network.
     ///
     /// Deliberately does **not** select a photo: with autosave, writing a random photo
     /// into the reopened project on every launch would quietly rewrite the user's
@@ -468,7 +469,7 @@ final class AppModel: ObservableObject {
     func loadInitialPhotosIfNeeded() {
         guard !didLoadInitial else { return }
         didLoadInitial = true
-        guard selectedSource == .unsplash, results.isEmpty else { return }
+        guard selectedSource == .commons, results.isEmpty else { return }
         loadStarterPhotos(select: lightLook.source == nil && selectedProject?.recipe != nil)
     }
 
@@ -484,11 +485,8 @@ final class AppModel: ObservableObject {
         Task {
             defer { isSearching = false }
             do {
-                // Pull a RANDOM shallow page of the curated "wallpapers" topic so the
-                // picker isn't the identical top-12 on every launch. Staying within the
-                // first few popular pages keeps quality high while rotating the set.
-                let photos = try await service.topicPhotos(page: Int.random(in: 1...10))
-                if results.isEmpty, selectedSource == .unsplash { results = photos }
+                let photos = try await service.curatedPhotos()
+                if results.isEmpty, selectedSource == .commons { results = photos }
                 // Bail if the user started interacting, or switched project, while the
                 // request was in flight — otherwise this lands in the wrong project.
                 guard shouldSelect, selectedProjectID == projectID,
@@ -508,47 +506,76 @@ final class AppModel: ObservableObject {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         // Clearing the field (e.g. the search field's native clear button) runs
         // this with an empty query — drop stale results instead of leaving them.
-        guard !q.isEmpty else { results = []; errorMessage = nil; return }
+        guard !q.isEmpty else { results = []; pexelsResults = []; errorMessage = nil; return }
         isSearching = true
         errorMessage = nil
-        Task {
-            defer { isSearching = false }
-            do {
-                results = try await service.search(query: q)
-                if results.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
-            } catch {
-                errorMessage = error.localizedDescription
+        switch sourceKind {
+        case .pexels:
+            Task {
+                defer { isSearching = false }
+                do {
+                    pexelsResults = try await pexelsService.search(query: q)
+                    if pexelsResults.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        default:
+            Task {
+                defer { isSearching = false }
+                do {
+                    results = try await service.search(query: q)
+                    if results.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
 
     // MARK: Source selection
 
-    private func baseName(for photo: UnsplashPhoto) -> String {
-        if let slug = photo.slug, !slug.isEmpty { return slug }
-        if let alt = photo.alt_description, !alt.isEmpty {
-            return WallpaperLibrary.slugify(alt) + "-" + photo.id
-        }
-        return "unsplash-" + photo.id
+    private func baseName(for photo: CommonsPhoto) -> String {
+        let slug = WallpaperLibrary.slugify(photo.baseTitle)
+        return slug.isEmpty ? "commons-\(photo.pageid)" : "\(slug)-\(photo.pageid)"
     }
 
-    func select(_ photo: UnsplashPhoto) {
+    func select(_ photo: CommonsPhoto) {
         let target = effectiveAppearance
         isLoadingSource = true
         errorMessage = nil
         Task {
             defer { isLoadingSource = false }
             do {
-                let cg = try await service.loadImage(from: photo.urls.regular)
+                let cg = try await service.loadImage(title: photo.title)
                 // The bare photographer name, not a pre-baked sentence: the credit is
                 // assembled in the view so the name can be a link and the wording can
                 // be localized.
-                applySource(cg, photoID: photo.id, baseName: baseName(for: photo),
-                            attribution: photo.user.name,
-                            attributionURL: photo.user.links?.html, to: target)
-                if let dl = photo.links?.download_location {
-                    Task { await service.trackDownload(dl) }
-                }
+                applySource(cg, photoID: String(photo.pageid), baseName: baseName(for: photo),
+                            attribution: photo.artist ?? photo.displayTitle,
+                            attributionURL: CommonsAttribution.pageURL(title: photo.title)?.absoluteString,
+                            to: target)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func baseName(for photo: PexelsPhoto) -> String {
+        "pexels-\(photo.id)"
+    }
+
+    func selectPexels(_ photo: PexelsPhoto) {
+        let target = effectiveAppearance
+        isLoadingSource = true
+        errorMessage = nil
+        Task {
+            defer { isLoadingSource = false }
+            do {
+                let cg = try await pexelsService.loadImage(from: photo.fullURL)
+                applySource(cg, photoID: String(photo.id), baseName: baseName(for: photo),
+                            attribution: photo.photographer,
+                            attributionURL: photo.url, to: target)
             } catch {
                 errorMessage = error.localizedDescription
             }

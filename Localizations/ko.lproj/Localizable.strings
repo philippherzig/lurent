@@ -1,5 +1,5 @@
 /* Lurent — 한국어. 키는 독일어 원본 문자열입니다.
-   "Blur", "Flow", "Liquid", "Unsplash"는 의도적으로 생략 → 키로 대체됨. */
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels"는 의도적으로 생략 → 키로 대체됨. */
 
 "Bild" = "이미지";
 "Quelle" = "소스";
@@ -49,7 +49,8 @@
 "Zurücksetzen" = "재설정";
 "Datei öffnen…" = "파일 열기…";
 "Fotos-Mediathek verbinden…" = "사진 보관함 연결…";
-"Unsplash durchsuchen" = "Unsplash 검색";
+"Wikimedia Commons durchsuchen" = "Wikimedia Commons 검색";
+"Pexels durchsuchen" = "Pexels 검색";
 "In Fotos sichern" = "사진에 저장";
 "Als HEIC exportieren…" = "HEIC로 내보내기…";
 "Exportieren" = "내보내기";
@@ -63,7 +64,7 @@
 
 "Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "내보내려면 Finder／바탕화면으로 드래그하세요";
 "Kein Bild für „%@“" = "“%@”에 대한 이미지가 없습니다";
-"Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei." = "오른쪽에서 Unsplash 사진, 사진 앱 이미지 또는 파일을 선택하세요.";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "오른쪽에서 Wikimedia Commons 사진, 사진 앱 이미지 또는 파일을 선택하세요.";
 "Auf „%@“ übernehmen" = "“%@”에 적용";
 "Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "사진 접근 권한 없음 — 시스템 설정에서 허용하세요.";
 
@@ -79,11 +80,11 @@
 "Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "사진에 접근할 수 없습니다. 시스템 설정 → 개인정보 보호 및 보안 → 사진에서 Lurent의 접근을 허용하세요.";
 "Das Album „Lurent“ konnte nicht angelegt werden." = "“Lurent” 앨범을 만들 수 없습니다.";
 "Das Wallpaper konnte nicht in Fotos gesichert werden." = "배경화면을 사진에 저장할 수 없습니다.";
-"Unsplash-Suche ist in diesem Build nicht verfügbar (kein Key eingebettet). „Eigenes Bild öffnen…“ funktioniert weiterhin." = "이 빌드에서는 Unsplash 검색을 사용할 수 없습니다(키가 포함되지 않음). “내 이미지 열기…”는 계속 사용할 수 있습니다.";
-"Unsplash lehnt den Access-Key ab (401)." = "Unsplash가 액세스 키를 거부했습니다(401).";
-"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash 요청 한도에 도달했습니다(403). 잠시 기다려 주세요.";
-"Unsplash-Fehler (HTTP %ld)." = "Unsplash 오류(HTTP %ld).";
-"Unerwartete Antwort von Unsplash." = "Unsplash에서 예기치 않은 응답이 왔습니다.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons 오류(HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Wikimedia Commons에서 예기치 않은 응답이 왔습니다.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Pexels 요청 한도에 도달했습니다(429). 잠시 기다려 주세요.";
+"Pexels-Fehler (HTTP %ld)." = "Pexels 오류(HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Pexels에서 예기치 않은 응답이 왔습니다.";
 "Das Bild konnte nicht geladen werden." = "이미지를 불러올 수 없습니다.";
 "Wallpaper-Metadaten konnten nicht erzeugt werden." = "배경화면 메타데이터를 생성할 수 없습니다.";
 "HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC를 생성할 수 없습니다(HEVC 인코더를 사용할 수 없나요?).";
@@ -130,6 +131,7 @@
 "Projekt importiert: %@" = "프로젝트를 가져왔습니다: %@";
 "Das ist kein Lurent-Projekt." = "Lurent 프로젝트가 아닙니다.";
 
-// Unsplash-Attribution (Pflicht laut API-Richtlinien): Fotograf und
-// Unsplash, beide mit Rücklink und utm-Parametern.
-"Foto von [%@](%@) auf [Unsplash](%@)" = "[%@](%@)의 사진, 출처 [Unsplash](%@)";
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "[%@](%@)의 사진, 출처 [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "[%@](%@)의 사진, 출처 [Pexels](%@)";

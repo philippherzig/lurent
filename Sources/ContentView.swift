@@ -203,7 +203,7 @@ private struct PreviewPane: View {
                 ContentUnavailableView {
                     Label(L("Kein Bild für „%@“", model.editing.label), systemImage: "photo.badge.plus")
                 } description: {
-                    Text("Wähle rechts ein Unsplash-Foto, ein Bild aus Fotos oder eine Datei.")
+                    Text("Wähle rechts ein Foto, ein Bild aus Fotos oder eine Datei.")
                 }
             }
 
@@ -381,7 +381,7 @@ private struct BaseImageSection: View {
             }
 
             sourceBrowser
-            UnsplashCredit(look: model.currentLook)
+            SourceCredit(look: model.currentLook)
         }
         .task(id: model.selectedAlbumID) {
             let id = model.selectedAlbumID
@@ -397,9 +397,9 @@ private struct BaseImageSection: View {
 
     @ViewBuilder private var sourceBrowser: some View {
         switch model.sourceKind {
-        case .unsplash:
+        case .commons:
             HStack(spacing: 8) {
-                NativeSearchField(text: $model.query, placeholder: L("Unsplash durchsuchen")) {
+                NativeSearchField(text: $model.query, placeholder: L("Wikimedia Commons durchsuchen")) {
                     model.runSearch()
                 }
                 .frame(height: 24)
@@ -415,7 +415,32 @@ private struct BaseImageSection: View {
                 ThumbGrid {
                     ForEach(model.results) { photo in
                         Button { model.select(photo) } label: {
-                            Thumbnail(photo: photo, isSelected: model.currentLook.photoID == photo.id)
+                            CommonsThumbnail(photo: photo, isSelected: model.currentLook.photoID == String(photo.id))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+        case .pexels:
+            HStack(spacing: 8) {
+                NativeSearchField(text: $model.query, placeholder: L("Pexels durchsuchen")) {
+                    model.runSearch()
+                }
+                .frame(height: 24)
+                if model.isSearching { ProgressView().controlSize(.small) }
+            }
+            if let note = model.browserNote, model.pexelsResults.isEmpty, !model.isSearching {
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !model.pexelsResults.isEmpty {
+                ThumbGrid {
+                    ForEach(model.pexelsResults) { photo in
+                        Button { model.selectPexels(photo) } label: {
+                            PexelsThumbnail(photo: photo, isSelected: model.currentLook.photoID == String(photo.id))
                         }
                         .buttonStyle(.plain)
                     }
@@ -476,11 +501,11 @@ private struct BaseImageSection: View {
     }
 }
 
-/// The credit Unsplash's API guidelines require: the photographer and Unsplash
-/// itself, both linking back with referral parameters. Shown for whichever
-/// appearance is being edited — sources from Files or Photos carry no URL and get
-/// no row.
-private struct UnsplashCredit: View {
+/// The credit each photo source requires: the photographer, linking to where the
+/// photo lives (Commons' file page states the exact CC licence; Pexels requires a
+/// prominent link back to Pexels). Shown for whichever appearance is being edited —
+/// sources from Files or Photos carry no URL and get no row.
+private struct SourceCredit: View {
     let look: Look
 
     var body: some View {
@@ -493,26 +518,24 @@ private struct UnsplashCredit: View {
     }
 
     private var credit: AttributedString? {
-        guard UnsplashAttribution.isUnsplash(look.attributionURL),
-              let profile = UnsplashAttribution.profileURL(look.attributionURL),
-              let name = photographer, !name.isEmpty
+        guard let raw = look.attributionURL,
+              let page = URL(string: raw),
+              let name = look.attribution, !name.isEmpty
         else { return nil }
 
-        let markdown = L("Foto von [%@](%@) auf [Unsplash](%@)",
-                         name, profile.absoluteString,
-                         UnsplashAttribution.homeURL.absoluteString)
-        return try? AttributedString(markdown: markdown)
-    }
-
-    /// Builds before the credit existed stored a whole sentence ("Foto: Jane · Unsplash")
-    /// where only the name belongs. Strip that shape so old projects read right.
-    private var photographer: String? {
-        guard var name = look.attribution else { return nil }
-        if name.hasPrefix("Foto: ") { name.removeFirst("Foto: ".count) }
-        if let range = name.range(of: " · Unsplash", options: .backwards) {
-            name.removeSubrange(range)
+        if CommonsAttribution.isCommons(raw) {
+            let markdown = L("Foto von [%@](%@) auf [Wikimedia Commons](%@)",
+                             name, page.absoluteString,
+                             CommonsAttribution.homeURL.absoluteString)
+            return try? AttributedString(markdown: markdown)
         }
-        return name.trimmingCharacters(in: .whitespaces)
+        if PexelsAttribution.isPexels(raw) {
+            let markdown = L("Foto von [%@](%@) auf [Pexels](%@)",
+                             name, page.absoluteString,
+                             PexelsAttribution.homeURL.absoluteString)
+            return try? AttributedString(markdown: markdown)
+        }
+        return nil
     }
 }
 
@@ -968,19 +991,19 @@ private struct PhotoAssetThumbnail: View {
     }
 }
 
-private struct Thumbnail: View {
-    let photo: UnsplashPhoto
+private struct CommonsThumbnail: View {
+    let photo: CommonsPhoto
     let isSelected: Bool
 
     var body: some View {
-        AsyncImage(url: URL(string: photo.urls.small)) { phase in
+        AsyncImage(url: photo.thumbURL.flatMap(URL.init(string:))) { phase in
             switch phase {
             case .success(let image):
                 image.resizable().aspectRatio(contentMode: .fill)
             case .failure:
                 Color.gray.opacity(0.2).overlay(Image(systemName: "photo").foregroundStyle(.secondary))
             default:
-                Rectangle().fill(Color(hex: photo.color) ?? .gray.opacity(0.2))
+                Color.gray.opacity(0.2)
             }
         }
         .thumbnailChrome(isSelected: isSelected)
@@ -988,9 +1011,30 @@ private struct Thumbnail: View {
         .accessibilityLabel(label)
     }
 
-    private var label: String {
-        photo.description ?? photo.alt_description ?? "Foto von \(photo.user.name)"
+    private var label: String { photo.displayTitle }
+}
+
+private struct PexelsThumbnail: View {
+    let photo: PexelsPhoto
+    let isSelected: Bool
+
+    var body: some View {
+        AsyncImage(url: URL(string: photo.thumbURL)) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable().aspectRatio(contentMode: .fill)
+            case .failure:
+                Color.gray.opacity(0.2).overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+            default:
+                Color.gray.opacity(0.2)
+            }
+        }
+        .thumbnailChrome(isSelected: isSelected)
+        .help(label)
+        .accessibilityLabel(label)
     }
+
+    private var label: String { photo.displayTitle }
 }
 
 // MARK: - Window chrome (whole-window behind-window material)
@@ -1042,6 +1086,3 @@ private struct WindowAccessor: NSViewRepresentable {
         }
     }
 }
-
-// `Color(hex:)` — used above for Unsplash placeholder tints — lives in
-// LookRecipe.swift next to its `hexRGB` counterpart.
