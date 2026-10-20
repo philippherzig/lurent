@@ -1,0 +1,147 @@
+/* Lurent — Turkish. Keys are the German source strings.
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" are intentionally omitted → fall back to the key. */
+
+// Sections & pickers
+"Bild" = "Görsel";
+"Quelle" = "Kaynak";
+"Effekt" = "Efekt";
+"Stil" = "Stil";
+"Ausgabe" = "Çıktı";
+"Auflösung" = "Çözünürlük";
+"Album" = "Albüm";
+"Farben" = "Renkler";
+
+// Sources
+"Dateien" = "Dosyalar";
+"Fotos" = "Fotoğraflar";
+"Alle Fotos" = "Tüm Fotoğraflar";
+
+// Appearance
+"Hell" = "Açık";
+"Dunkel" = "Koyu";
+
+// Style names
+"Spiegel" = "Ayna";
+
+// Sliders
+"Spiegel-Linie" = "Ayna Çizgisi";
+"Amplitude" = "Genlik";
+"Frequenz" = "Frekans";
+"Kantenschärfe" = "Kenar Keskinliği";
+"Tiefe" = "Derinlik";
+"Seiten-Fade" = "Yan Solma";
+"Rand-Weichheit" = "Kenar Yumuşaklığı";
+"Variante" = "Varyant";
+"Frame" = "Kare";
+"Skalierung" = "Ölçek";
+"Turbulenz" = "Türbülans";
+"Wellen" = "Dalgalar";
+"Tonwert" = "Ton";
+"Helligkeit" = "Parlaklık";
+"Sättigung" = "Doygunluk";
+"Kontrast" = "Kontrast";
+"Körnung" = "Gren";
+
+// Colors
+"2 Farben" = "2 Renk";
+"3 Farben" = "3 Renk";
+"Farbe 1" = "Renk 1";
+"Farbe 2" = "Renk 2";
+"Farbe 3" = "Renk 3";
+"Farbe 4" = "Renk 4";
+"Farbe 5" = "Renk 5";
+"Aus Foto" = "Fotoğraftan";
+
+// Buttons & actions
+"Zurücksetzen" = "Sıfırla";
+"Datei öffnen…" = "Dosya Aç…";
+"Fotos-Mediathek verbinden…" = "Fotoğraflar Kitaplığını Bağla…";
+"Wikimedia Commons durchsuchen" = "Wikimedia Commons’ta Ara";
+"Pexels durchsuchen" = "Pexels’te Ara";
+"In Fotos sichern" = "Fotoğraflar’a Kaydet";
+"Als HEIC exportieren…" = "HEIC Olarak Dışa Aktar…";
+"Exportieren" = "Dışa Aktar";
+"Als Schreibtisch setzen" = "Masaüstü Olarak Ayarla";
+"Nach Updates suchen…" = "Güncellemeleri Denetle…";
+"Breite" = "Genişlik";
+"Höhe" = "Yükseklik";
+"Eigene Größe…" = "Özel Boyut…";
+
+// Output fields, resolution
+"Fehler" = "Hata";
+
+// Preview / help
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Dışa aktarmak için Finder’a / masaüstüne sürükleyin";
+"Kein Bild für „%@“" = "“%@” için görsel yok";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Sağdan Wikimedia Commons’tan bir fotoğraf, Fotoğraflar’dan bir görsel veya bir dosya seçin.";
+"Auf „%@“ übernehmen" = "“%@” görünümüne uygula";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Fotoğraflar erişimi yok — Sistem Ayarları’nda izin verin.";
+
+// Status & error messages
+"Keine Treffer für „%@“." = "“%@” için sonuç yok.";
+"Kein Quellbild ausgewählt." = "Kaynak görsel seçilmedi.";
+"Das Wallpaper konnte nicht gerendert werden." = "Duvar kâğıdı işlenemedi.";
+"Das Bild konnte nicht kodiert werden." = "Görsel kodlanamadı.";
+"Bild konnte nicht geladen werden: %@" = "Görsel yüklenemedi: %@";
+"Exportiert: %@" = "Dışa aktarıldı: %@";
+"Als dynamisches Wallpaper gesetzt." = "Dinamik duvar kâğıdı olarak ayarlandı.";
+"Bild konnte nicht aus Fotos geladen werden." = "Görsel Fotoğraflar’dan yüklenemedi.";
+"In Fotos gesichert (Album „Lurent“)." = "Fotoğraflar’a kaydedildi (“Lurent” albümü).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Fotoğraflar’a erişim yok. Lütfen Sistem Ayarları → Gizlilik ve Güvenlik → Fotoğraflar bölümünden Lurent için erişime izin verin.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "“Lurent” albümü oluşturulamadı.";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "Duvar kâğıdı Fotoğraflar’a kaydedilemedi.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons hatası (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Wikimedia Commons’tan beklenmeyen bir yanıt geldi.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Pexels istek sınırına ulaşıldı (429). Lütfen biraz bekleyin.";
+"Pexels-Fehler (HTTP %ld)." = "Pexels hatası (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Pexels’ten beklenmeyen bir yanıt geldi.";
+"Das Bild konnte nicht geladen werden." = "Görsel yüklenemedi.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Duvar kâğıdı meta verileri oluşturulamadı.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC oluşturulamadı (HEVC kodlayıcı kullanılamıyor mu?).";
+"HEIC konnte nicht geschrieben werden." = "HEIC yazılamadı.";
+
+// Dune style
+"Neigung" = "Eğim";
+"Faltenlicht" = "Kıvrım Işığı";
+"Weichheit" = "Yumuşaklık";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Lameller";
+"Winkel" = "Açı";
+"Versatz" = "Kayma";
+"Fächer" = "Yelpaze";
+"Kurve" = "Eğri";
+"Ausschnitt" = "Kırpma";
+"Wellenlänge" = "Dalga Boyu";
+"Unregelmässigkeit" = "Düzensizlik";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Kayıtlı Duvar Kâğıdı";
+"Erstellt" = "Oluşturuldu";
+"Im Finder zeigen" = "Finder’da Göster";
+"Löschen" = "Sil";
+"Weitere Aktionen" = "Diğer Eylemler";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "Duvar kâğıdı klasörü oluşturulamadı.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Duvar kâğıdı dosyası artık kullanılamıyor (henüz iCloud’dan indirilmedi mi?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Projeyi Çoğalt";
+"Neues Projekt" = "Yeni Proje";
+"Aktives Wallpaper" = "Etkin duvar kâğıdı";
+"Das Projekt konnte nicht gesichert werden." = "Proje kaydedilemedi.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Bu duvar kâğıdı önceki bir sürümden geliyor ve artık düzenlenemiyor.";
+
+// Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
+// Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
+"Ohne Titel" = "Adsız";
+"Projekt exportieren…" = "Projeyi Dışa Aktar…";
+"Projekt importieren…" = "Projeyi İçe Aktar…";
+"Projekt importiert: %@" = "Proje içe aktarıldı: %@";
+"Das ist kein Lurent-Projekt." = "Bu bir Lurent projesi değil.";
+
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Fotoğraf: [%@](%@), [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Fotoğraf: [%@](%@), [Pexels](%@)";
