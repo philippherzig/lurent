@@ -1,0 +1,147 @@
+/* Lurent — Traditional Chinese. Keys are the German source strings.
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" are intentionally omitted → fall back to the key. */
+
+// Sections & pickers
+"Bild" = "圖片";
+"Quelle" = "來源";
+"Effekt" = "效果";
+"Stil" = "樣式";
+"Ausgabe" = "輸出";
+"Auflösung" = "解析度";
+"Album" = "相簿";
+"Farben" = "顏色";
+
+// Sources
+"Dateien" = "檔案";
+"Fotos" = "照片";
+"Alle Fotos" = "所有照片";
+
+// Appearance
+"Hell" = "淺色";
+"Dunkel" = "深色";
+
+// Style names
+"Spiegel" = "鏡像";
+
+// Sliders
+"Spiegel-Linie" = "鏡像線";
+"Amplitude" = "振幅";
+"Frequenz" = "頻率";
+"Kantenschärfe" = "邊緣銳利度";
+"Tiefe" = "深度";
+"Seiten-Fade" = "側邊淡化";
+"Rand-Weichheit" = "邊緣柔和度";
+"Variante" = "變體";
+"Frame" = "影格";
+"Skalierung" = "縮放";
+"Turbulenz" = "紊流";
+"Wellen" = "波浪";
+"Tonwert" = "色調";
+"Helligkeit" = "亮度";
+"Sättigung" = "飽和度";
+"Kontrast" = "對比";
+"Körnung" = "顆粒";
+
+// Colors
+"2 Farben" = "2 種顏色";
+"3 Farben" = "3 種顏色";
+"Farbe 1" = "顏色 1";
+"Farbe 2" = "顏色 2";
+"Farbe 3" = "顏色 3";
+"Farbe 4" = "顏色 4";
+"Farbe 5" = "顏色 5";
+"Aus Foto" = "取自照片";
+
+// Buttons & actions
+"Zurücksetzen" = "重置";
+"Datei öffnen…" = "打開檔案…";
+"Fotos-Mediathek verbinden…" = "連接照片圖庫…";
+"Wikimedia Commons durchsuchen" = "搜尋 Wikimedia Commons";
+"Pexels durchsuchen" = "搜尋 Pexels";
+"In Fotos sichern" = "儲存到照片";
+"Als HEIC exportieren…" = "輸出為 HEIC…";
+"Exportieren" = "輸出";
+"Als Schreibtisch setzen" = "設為桌面背景圖片";
+"Nach Updates suchen…" = "檢查更新…";
+"Breite" = "寬度";
+"Höhe" = "高度";
+"Eigene Größe…" = "自訂大小…";
+
+// Output fields, resolution
+"Fehler" = "錯誤";
+
+// Preview / help
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "拖移到 Finder／桌面以輸出";
+"Kein Bild für „%@“" = "沒有「%@」的圖片";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "在右側選擇 Wikimedia Commons 的照片、「照片」App 中的圖片或檔案。";
+"Auf „%@“ übernehmen" = "套用到「%@」";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "沒有「照片」取用權限 — 請在「系統設定」中允許。";
+
+// Status & error messages
+"Keine Treffer für „%@“." = "找不到「%@」的結果。";
+"Kein Quellbild ausgewählt." = "未選擇來源圖片。";
+"Das Wallpaper konnte nicht gerendert werden." = "無法算繪背景圖片。";
+"Das Bild konnte nicht kodiert werden." = "無法編碼圖片。";
+"Bild konnte nicht geladen werden: %@" = "無法載入圖片：%@";
+"Exportiert: %@" = "已輸出：%@";
+"Als dynamisches Wallpaper gesetzt." = "已設為動態背景圖片。";
+"Bild konnte nicht aus Fotos geladen werden." = "無法從「照片」載入圖片。";
+"In Fotos gesichert (Album „Lurent“)." = "已儲存到「照片」（相簿「Lurent」）。";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "無法取用「照片」。請前往「系統設定」→「隱私權與安全性」→「照片」，允許 Lurent 取用。";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "無法建立相簿「Lurent」。";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "無法將背景圖片儲存到「照片」。";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons 錯誤（HTTP %ld）。";
+"Unerwartete Antwort von Wikimedia Commons." = "Wikimedia Commons 傳回非預期的回應。";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "已達到 Pexels 的速率限制（429），請稍候再試。";
+"Pexels-Fehler (HTTP %ld)." = "Pexels 錯誤（HTTP %ld）。";
+"Unerwartete Antwort von Pexels." = "Pexels 傳回非預期的回應。";
+"Das Bild konnte nicht geladen werden." = "無法載入圖片。";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "無法產生背景圖片的詮釋資料。";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "無法建立 HEIC（HEVC 編碼器無法使用？）。";
+"HEIC konnte nicht geschrieben werden." = "無法寫入 HEIC。";
+
+// Dune style
+"Neigung" = "傾斜";
+"Faltenlicht" = "皺褶光澤";
+"Weichheit" = "柔和度";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "百葉";
+"Winkel" = "角度";
+"Versatz" = "偏移";
+"Fächer" = "扇形";
+"Kurve" = "曲線";
+"Ausschnitt" = "裁切";
+"Wellenlänge" = "波長";
+"Unregelmässigkeit" = "不規則度";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "已儲存的背景圖片";
+"Erstellt" = "建立日期";
+"Im Finder zeigen" = "在 Finder 中顯示";
+"Löschen" = "刪除";
+"Weitere Aktionen" = "更多動作";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "無法建立背景圖片檔案夾。";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "背景圖片檔案已無法使用（尚未從 iCloud 下載？）。";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "複製專案";
+"Neues Projekt" = "新增專案";
+"Aktives Wallpaper" = "使用中的背景圖片";
+"Das Projekt konnte nicht gesichert werden." = "無法儲存專案。";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "此背景圖片建立於專案功能推出之前，無法再編輯。";
+
+// Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
+// Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
+"Ohne Titel" = "未命名";
+"Projekt exportieren…" = "輸出專案…";
+"Projekt importieren…" = "輸入專案…";
+"Projekt importiert: %@" = "已輸入專案：%@";
+"Das ist kein Lurent-Projekt." = "這不是 Lurent 專案。";
+
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "照片由 [%@](%@) 提供，來自 [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "照片由 [%@](%@) 提供，來自 [Pexels](%@)";

@@ -1,0 +1,147 @@
+/* Lurent — Dutch. Keys are the German source strings.
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" are intentionally omitted → fall back to the key. */
+
+// Sections & pickers
+"Bild" = "Afbeelding";
+"Quelle" = "Bron";
+"Effekt" = "Effect";
+"Stil" = "Stijl";
+"Ausgabe" = "Uitvoer";
+"Auflösung" = "Resolutie";
+"Album" = "Album";
+"Farben" = "Kleuren";
+
+// Sources
+"Dateien" = "Bestanden";
+"Fotos" = "Foto's";
+"Alle Fotos" = "Alle foto's";
+
+// Appearance
+"Hell" = "Licht";
+"Dunkel" = "Donker";
+
+// Style names
+"Spiegel" = "Spiegel";
+
+// Sliders
+"Spiegel-Linie" = "Spiegellijn";
+"Amplitude" = "Amplitude";
+"Frequenz" = "Frequentie";
+"Kantenschärfe" = "Randscherpte";
+"Tiefe" = "Diepte";
+"Seiten-Fade" = "Zijfade";
+"Rand-Weichheit" = "Randzachtheid";
+"Variante" = "Variant";
+"Frame" = "Frame";
+"Skalierung" = "Schaal";
+"Turbulenz" = "Turbulentie";
+"Wellen" = "Golven";
+"Tonwert" = "Toonwaarde";
+"Helligkeit" = "Helderheid";
+"Sättigung" = "Verzadiging";
+"Kontrast" = "Contrast";
+"Körnung" = "Korrel";
+
+// Colors
+"2 Farben" = "2 kleuren";
+"3 Farben" = "3 kleuren";
+"Farbe 1" = "Kleur 1";
+"Farbe 2" = "Kleur 2";
+"Farbe 3" = "Kleur 3";
+"Farbe 4" = "Kleur 4";
+"Farbe 5" = "Kleur 5";
+"Aus Foto" = "Uit foto";
+
+// Buttons & actions
+"Zurücksetzen" = "Stel opnieuw in";
+"Datei öffnen…" = "Open bestand…";
+"Fotos-Mediathek verbinden…" = "Verbind fotobibliotheek…";
+"Wikimedia Commons durchsuchen" = "Zoek in Wikimedia Commons";
+"Pexels durchsuchen" = "Zoek in Pexels";
+"In Fotos sichern" = "Bewaar in Foto's";
+"Als HEIC exportieren…" = "Exporteer als HEIC…";
+"Exportieren" = "Exporteer";
+"Als Schreibtisch setzen" = "Stel in als bureaublad";
+"Nach Updates suchen…" = "Zoek naar updates…";
+"Breite" = "Breedte";
+"Höhe" = "Hoogte";
+"Eigene Größe…" = "Aangepaste grootte…";
+
+// Output fields, resolution
+"Fehler" = "Fout";
+
+// Preview / help
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Sleep naar de Finder / het bureaublad om te exporteren";
+"Kein Bild für „%@“" = "Geen afbeelding voor “%@”";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Kies rechts een foto van Wikimedia Commons, een afbeelding uit Foto's of een bestand.";
+"Auf „%@“ übernehmen" = "Pas toe op “%@”";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Geen toegang tot Foto's — sta dit toe in Systeeminstellingen.";
+
+// Status & error messages
+"Keine Treffer für „%@“." = "Geen resultaten voor “%@”.";
+"Kein Quellbild ausgewählt." = "Geen bronafbeelding geselecteerd.";
+"Das Wallpaper konnte nicht gerendert werden." = "De achtergrond kon niet worden gerenderd.";
+"Das Bild konnte nicht kodiert werden." = "De afbeelding kon niet worden gecodeerd.";
+"Bild konnte nicht geladen werden: %@" = "De afbeelding kon niet worden geladen: %@";
+"Exportiert: %@" = "Geëxporteerd: %@";
+"Als dynamisches Wallpaper gesetzt." = "Ingesteld als dynamische achtergrond.";
+"Bild konnte nicht aus Fotos geladen werden." = "De afbeelding kon niet uit Foto's worden geladen.";
+"In Fotos gesichert (Album „Lurent“)." = "Bewaard in Foto's (album “Lurent”).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Geen toegang tot Foto's. Sta toegang voor Lurent toe in Systeeminstellingen → Privacy en beveiliging → Foto's.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "Het album “Lurent” kon niet worden aangemaakt.";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "De achtergrond kon niet in Foto's worden bewaard.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Wikimedia Commons-fout (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Onverwacht antwoord van Wikimedia Commons.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Pexels-aanvraaglimiet bereikt (429). Wacht even.";
+"Pexels-Fehler (HTTP %ld)." = "Pexels-fout (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Onverwacht antwoord van Pexels.";
+"Das Bild konnte nicht geladen werden." = "De afbeelding kon niet worden geladen.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "De metadata van de achtergrond kon niet worden aangemaakt.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC kon niet worden aangemaakt (HEVC-encoder niet beschikbaar?).";
+"HEIC konnte nicht geschrieben werden." = "HEIC kon niet worden geschreven.";
+
+// Dune style
+"Neigung" = "Helling";
+"Faltenlicht" = "Plooilicht";
+"Weichheit" = "Zachtheid";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Lamellen";
+"Winkel" = "Hoek";
+"Versatz" = "Verschuiving";
+"Fächer" = "Waaier";
+"Kurve" = "Curve";
+"Ausschnitt" = "Uitsnede";
+"Wellenlänge" = "Golflengte";
+"Unregelmässigkeit" = "Onregelmatigheid";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Bewaarde achtergrond";
+"Erstellt" = "Aangemaakt";
+"Im Finder zeigen" = "Toon in Finder";
+"Löschen" = "Verwijder";
+"Weitere Aktionen" = "Meer acties";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "De achtergrondmap kon niet worden aangemaakt.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Het achtergrondbestand is niet meer beschikbaar (nog niet van iCloud gedownload?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Dupliceer project";
+"Neues Projekt" = "Nieuw project";
+"Aktives Wallpaper" = "Actieve achtergrond";
+"Das Projekt konnte nicht gesichert werden." = "Het project kon niet worden bewaard.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Deze achtergrond komt uit een eerdere versie en kan niet meer worden bewerkt.";
+
+// Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
+// Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
+"Ohne Titel" = "Naamloos";
+"Projekt exportieren…" = "Exporteer project…";
+"Projekt importieren…" = "Importeer project…";
+"Projekt importiert: %@" = "Project geïmporteerd: %@";
+"Das ist kein Lurent-Projekt." = "Dit is geen Lurent-project.";
+
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Foto van [%@](%@) op [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Foto van [%@](%@) op [Pexels](%@)";

@@ -1,0 +1,147 @@
+/* Lurent — Danish. Keys are the German source strings.
+   "Blur", "Flow", "Liquid", "Wikimedia Commons", "Pexels" are intentionally omitted → fall back to the key. */
+
+// Sections & pickers
+"Bild" = "Billede";
+"Quelle" = "Kilde";
+"Effekt" = "Effekt";
+"Stil" = "Stil";
+"Ausgabe" = "Output";
+"Auflösung" = "Opløsning";
+"Album" = "Album";
+"Farben" = "Farver";
+
+// Sources
+"Dateien" = "Filer";
+"Fotos" = "Fotos";
+"Alle Fotos" = "Alle fotos";
+
+// Appearance
+"Hell" = "Lys";
+"Dunkel" = "Mørk";
+
+// Style names
+"Spiegel" = "Spejl";
+
+// Sliders
+"Spiegel-Linie" = "Spejllinje";
+"Amplitude" = "Amplitude";
+"Frequenz" = "Frekvens";
+"Kantenschärfe" = "Kantskarphed";
+"Tiefe" = "Dybde";
+"Seiten-Fade" = "Sidetoning";
+"Rand-Weichheit" = "Kantblødhed";
+"Variante" = "Variant";
+"Frame" = "Frame";
+"Skalierung" = "Skalering";
+"Turbulenz" = "Turbulens";
+"Wellen" = "Bølger";
+"Tonwert" = "Tonværdi";
+"Helligkeit" = "Lysstyrke";
+"Sättigung" = "Farvemætning";
+"Kontrast" = "Kontrast";
+"Körnung" = "Korn";
+
+// Colors
+"2 Farben" = "2 farver";
+"3 Farben" = "3 farver";
+"Farbe 1" = "Farve 1";
+"Farbe 2" = "Farve 2";
+"Farbe 3" = "Farve 3";
+"Farbe 4" = "Farve 4";
+"Farbe 5" = "Farve 5";
+"Aus Foto" = "Fra foto";
+
+// Buttons & actions
+"Zurücksetzen" = "Nulstil";
+"Datei öffnen…" = "Åbn fil…";
+"Fotos-Mediathek verbinden…" = "Tilslut Fotos-bibliotek…";
+"Wikimedia Commons durchsuchen" = "Søg på Wikimedia Commons";
+"Pexels durchsuchen" = "Søg på Pexels";
+"In Fotos sichern" = "Gem i Fotos";
+"Als HEIC exportieren…" = "Eksportér som HEIC…";
+"Exportieren" = "Eksportér";
+"Als Schreibtisch setzen" = "Indstil som skrivebordsbaggrund";
+"Nach Updates suchen…" = "Søg efter opdateringer…";
+"Breite" = "Bredde";
+"Höhe" = "Højde";
+"Eigene Größe…" = "Tilpasset størrelse…";
+
+// Output fields, resolution
+"Fehler" = "Fejl";
+
+// Preview / help
+"Zum Exportieren in den Finder / auf den Schreibtisch ziehen" = "Træk til Finder / skrivebordet for at eksportere";
+"Kein Bild für „%@“" = "Intet billede til “%@”";
+"Wähle rechts ein Foto von Wikimedia Commons, ein Bild aus Fotos oder eine Datei." = "Vælg et foto fra Wikimedia Commons, et billede fra Fotos eller en fil til højre.";
+"Auf „%@“ übernehmen" = "Anvend på “%@”";
+"Kein Fotos-Zugriff — in den Systemeinstellungen erlauben." = "Ingen adgang til Fotos — tillad det i Systemindstillinger.";
+
+// Status & error messages
+"Keine Treffer für „%@“." = "Ingen resultater for “%@”.";
+"Kein Quellbild ausgewählt." = "Intet kildebillede valgt.";
+"Das Wallpaper konnte nicht gerendert werden." = "Baggrunden kunne ikke gengives.";
+"Das Bild konnte nicht kodiert werden." = "Billedet kunne ikke kodes.";
+"Bild konnte nicht geladen werden: %@" = "Billedet kunne ikke indlæses: %@";
+"Exportiert: %@" = "Eksporteret: %@";
+"Als dynamisches Wallpaper gesetzt." = "Indstillet som dynamisk baggrund.";
+"Bild konnte nicht aus Fotos geladen werden." = "Billedet kunne ikke indlæses fra Fotos.";
+"In Fotos gesichert (Album „Lurent“)." = "Gemt i Fotos (album “Lurent”).";
+"Kein Zugriff auf Fotos. Bitte in den Systemeinstellungen → Datenschutz & Sicherheit → Fotos den Zugriff für Lurent erlauben." = "Ingen adgang til Fotos. Tillad adgang for Lurent i Systemindstillinger → Anonymitet og sikkerhed → Fotos.";
+"Das Album „Lurent“ konnte nicht angelegt werden." = "Albummet “Lurent” kunne ikke oprettes.";
+"Das Wallpaper konnte nicht in Fotos gesichert werden." = "Baggrunden kunne ikke gemmes i Fotos.";
+"Wikimedia-Commons-Fehler (HTTP %ld)." = "Fejl fra Wikimedia Commons (HTTP %ld).";
+"Unerwartete Antwort von Wikimedia Commons." = "Uventet svar fra Wikimedia Commons.";
+"Pexels-Ratenlimit erreicht (429). Bitte etwas warten." = "Grænsen for antal anmodninger hos Pexels er nået (429). Vent et øjeblik.";
+"Pexels-Fehler (HTTP %ld)." = "Fejl fra Pexels (HTTP %ld).";
+"Unerwartete Antwort von Pexels." = "Uventet svar fra Pexels.";
+"Das Bild konnte nicht geladen werden." = "Billedet kunne ikke indlæses.";
+"Wallpaper-Metadaten konnten nicht erzeugt werden." = "Metadata til baggrunden kunne ikke oprettes.";
+"HEIC konnte nicht erstellt werden (HEVC-Encoder nicht verfügbar?)." = "HEIC kunne ikke oprettes (HEVC-encoder ikke tilgængelig?).";
+"HEIC konnte nicht geschrieben werden." = "HEIC kunne ikke skrives.";
+
+// Dune style
+"Neigung" = "Hældning";
+"Faltenlicht" = "Foldelys";
+"Weichheit" = "Blødhed";
+
+// Lamellen style (0.9) — "Lamellen" is both the style name and its
+// band-count slider, so the translation has to read well in both slots.
+"Lamellen" = "Lameller";
+"Winkel" = "Vinkel";
+"Versatz" = "Forskydning";
+"Fächer" = "Vifte";
+"Kurve" = "Kurve";
+"Ausschnitt" = "Udsnit";
+"Wellenlänge" = "Bølgelængde";
+"Unregelmässigkeit" = "Uregelmæssighed";
+
+// Wallpaper-Sammlung (0.10) — jede angewandte Kreation bleibt als eigene
+// Datei erhalten und ist in der Leiste links wieder abrufbar.
+"Gesichertes Wallpaper" = "Gemt baggrund";
+"Erstellt" = "Oprettet";
+"Im Finder zeigen" = "Vis i Finder";
+"Löschen" = "Slet";
+"Weitere Aktionen" = "Flere handlinger";
+"Der Wallpaper-Ordner konnte nicht angelegt werden." = "Mappen med baggrunde kunne ikke oprettes.";
+"Die Wallpaper-Datei ist nicht mehr verfügbar (noch nicht aus iCloud geladen?)." = "Baggrundsfilen er ikke længere tilgængelig (endnu ikke hentet fra iCloud?).";
+
+// Projekte (0.10) — jede Kreation behält ihr Rezept und bleibt editierbar.
+"Projekt duplizieren" = "Duplikér projekt";
+"Neues Projekt" = "Nyt projekt";
+"Aktives Wallpaper" = "Aktiv baggrund";
+"Das Projekt konnte nicht gesichert werden." = "Projektet kunne ikke gemmes.";
+"Dieses Wallpaper stammt aus einer früheren Version und lässt sich nicht mehr bearbeiten." = "Denne baggrund stammer fra en tidligere version og kan ikke længere redigeres.";
+
+// Dokumentformat (0.11) — jedes Projekt ist ein `.lurent`-Package, das der
+// Finder als ein Dokument zeigt und das man umbenennen und verschicken kann.
+"Ohne Titel" = "Uden titel";
+"Projekt exportieren…" = "Eksportér projekt…";
+"Projekt importieren…" = "Importér projekt…";
+"Projekt importiert: %@" = "Projekt importeret: %@";
+"Das ist kein Lurent-Projekt." = "Det er ikke et Lurent-projekt.";
+
+// Commons-Attribution (Pflicht laut CC-Lizenz): Fotograf mit Rücklink auf die
+// Dateiseite, die die genaue Lizenz nennt.
+"Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Foto af [%@](%@) på [Wikimedia Commons](%@)";
+"Foto von [%@](%@) auf [Pexels](%@)" = "Foto af [%@](%@) på [Pexels](%@)";
