@@ -458,7 +458,12 @@ enum WallpaperLibrary {
     static func readImage(at url: URL) -> CGImage? {
         guard FileManager.default.fileExists(atPath: url.path),
               let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        return CGImageSourceCreateImageAtIndex(src, 0, nil)
+        // Decode now, not on first draw. A lazily decoded image keeps reading from
+        // the file, and both looks share one `CGImage` when they share a photo:
+        // picking a new light photo rewrites `source.heic` underneath the dark look,
+        // which then decodes to black and is stored that way as `source-dark.heic`.
+        return CGImageSourceCreateImageAtIndex(src, 0,
+            [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
     }
 
     // MARK: iCloud
