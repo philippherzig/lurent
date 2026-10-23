@@ -20,6 +20,15 @@ mkdir -p "$BIN_DIR" "$APP/Contents/Resources"
 PROVISION_PROFILE="${PROVISION_PROFILE-}"
 if [ -n "$PROVISION_PROFILE" ]; then
   [ -f "$PROVISION_PROFILE" ] || { echo "  ✗ profile not found: $PROVISION_PROFILE"; exit 1; }
+  # A Mac App Store profile lists no devices, and macOS refuses to launch a build
+  # carrying one outside the Store ("Launchd job spawn failed") — measured.
+  # Capture first, then grep: `security … | grep -q` can SIGPIPE-fail under pipefail.
+  PROFILE_PLIST="$(security cms -D -i "$PROVISION_PROFILE" 2>/dev/null || true)"
+  if ! grep -q "ProvisionedDevices" <<<"$PROFILE_PLIST"; then
+    echo "  ⚠ $(basename "$PROVISION_PROFILE") is a distribution profile: fine for upload,"
+    echo "    but this build will not launch locally. Use a Development profile to run it"
+    echo "    (Xcode creates one: ~/Library/Developer/Xcode/UserData/Provisioning Profiles)."
+  fi
 fi
 
 echo "▸ Compiling ($ARCH)"
