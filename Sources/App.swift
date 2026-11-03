@@ -14,7 +14,8 @@ struct LurentApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // Not a single `Window` scene: that quits the whole app when its window closes.
+        WindowGroup(id: ShowMainWindowCommand.windowID) {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 1090, minHeight: 660)
@@ -22,7 +23,7 @@ struct LurentApp: App {
                 // the Dock icon, "Open With".
                 //
                 // Deliberately not an NSApplicationDelegateAdaptor: attaching a
-                // delegate to a WindowGroup app makes it open a second, empty window
+                // delegate to a SwiftUI window scene makes it open a second, empty window
                 // at launch, and `applicationShouldOpenUntitledFile` does not suppress
                 // it. `onOpenURL` receives the same file URLs and costs no delegate.
                 .onOpenURL { url in
@@ -46,6 +47,29 @@ struct LurentApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesCommand(updater: updater)
             }
+            // App Review (guideline 4) rejected a build where closing the window left
+            // no menu item to bring it back; SwiftUI does not list it by itself.
+            CommandGroup(after: .windowArrangement) {
+                ShowMainWindowCommand()
+            }
         }
+    }
+}
+
+private struct ShowMainWindowCommand: View {
+    static let windowID = "main"
+
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Lurent") {
+            // A WindowGroup would happily open a second window; Lurent has one.
+            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                openWindow(id: Self.windowID)
+            }
+        }
+            .keyboardShortcut("0")
     }
 }
