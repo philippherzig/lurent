@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct LurentApp: App {
+    static let mainWindowID = "main"
+
     @StateObject private var model = AppModel()
     @StateObject private var updater = UpdaterViewModel()
 
@@ -15,7 +17,7 @@ struct LurentApp: App {
 
     var body: some Scene {
         // Not a single `Window` scene: that quits the whole app when its window closes.
-        WindowGroup(id: ShowMainWindowCommand.windowID) {
+        WindowGroup(id: Self.mainWindowID) {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 1090, minHeight: 660)
@@ -23,7 +25,7 @@ struct LurentApp: App {
                 // the Dock icon, "Open With".
                 //
                 // Deliberately not an NSApplicationDelegateAdaptor: attaching a
-                // delegate to a SwiftUI window scene makes it open a second, empty window
+                // delegate to a WindowGroup app makes it open a second, empty window
                 // at launch, and `applicationShouldOpenUntitledFile` does not suppress
                 // it. `onOpenURL` receives the same file URLs and costs no delegate.
                 .onOpenURL { url in
@@ -49,6 +51,7 @@ struct LurentApp: App {
             }
             // App Review (guideline 4) rejected a build where closing the window left
             // no menu item to bring it back; SwiftUI does not list it by itself.
+            // After `.windowArrangement`, because `.windowList` renders nothing.
             CommandGroup(after: .windowArrangement) {
                 ShowMainWindowCommand()
             }
@@ -57,17 +60,19 @@ struct LurentApp: App {
 }
 
 private struct ShowMainWindowCommand: View {
-    static let windowID = "main"
-
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Button("Lurent") {
             // A WindowGroup would happily open a second window; Lurent has one.
-            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+            // A closed SwiftUI window can linger in `NSApp.windows`; only a shown or
+            // minimized one counts.
+            if let window = NSApp.windows.first(where: {
+                $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized)
+            }) {
                 window.makeKeyAndOrderFront(nil)
             } else {
-                openWindow(id: Self.windowID)
+                openWindow(id: LurentApp.mainWindowID)
             }
         }
             .keyboardShortcut("0")
