@@ -17,7 +17,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>13</string>
+	<string>14</string>
 	<!-- German is the development/base language (the string literals in code are
 	     the localization keys); the other languages ship as <lang>.lproj bundles. -->
 	<key>CFBundleDevelopmentRegion</key>
