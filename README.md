@@ -18,6 +18,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/philippherzig/lurent/releases/latest/download/Lurent.zip"><img src="https://img.shields.io/badge/Download_for_Mac-0071E3?style=for-the-badge&logo=apple&logoColor=white" alt="Download for Mac"></a>
+</p>
+
+<p align="center">
   <img src="docs/screenshot.png" alt="Lurent: a project rail on the left, the wallpaper preview in the middle, source and effect controls on the right">
 </p>
 
@@ -38,11 +42,13 @@
 - **One click to the desktop.** Set the result as your wallpaper on all screens, export
   it with ⌘S, or drag the preview straight into the Finder.
 
-## Requirements
+## Install
 
-macOS 26 or later on Apple Silicon.
+[Download the latest release](https://github.com/philippherzig/lurent/releases/latest/download/Lurent.zip),
+unzip it and move Lurent to your Applications folder. Builds are signed and
+notarized by Apple. Requires macOS 26 or later on Apple Silicon.
 
-## Build
+## Build from source
 
 ```bash
 ./build.sh
