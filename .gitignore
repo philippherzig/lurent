@@ -5,9 +5,6 @@
 build/
 *.app
 
-# Vendored Sparkle (fetched via Tools/fetch-sparkle.sh)
-vendor/
-
 # macOS
 .DS_Store
 

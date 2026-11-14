@@ -29,9 +29,11 @@
 
 ## Non-Discoverable Rules
 
-- **Two photo sources: Wikimedia Commons and Pexels, not Unsplash.** Unsplash's
-  production-key review rejected the app outright (their API explicitly bans
-  wallpaper/gallery apps). Pixabay rejected it too, citing an app "offering a
+- **Photo sources: Commons and Pexels built in, Unsplash only with the user's
+  own key.** Never ship or share an Unsplash key: their production-key review
+  rejected the app outright (their API explicitly bans wallpaper/gallery apps),
+  so Unsplash works only with a personal key entered under Settings
+  (`Sources/APIKeys.swift`, Keychain). Pixabay rejected it too, citing an app "offering a
   search experience that resembles Pixabay or Canva" — worth knowing before
   reapplying there with different wording, since the reviewer already saw and
   rejected that exact argument. Pexels' *default* key tier needs no review at
@@ -41,9 +43,10 @@
   Commons (`Sources/Commons.swift`) needs no API key and no approval. Identify
   with a descriptive User-Agent per Wikimedia's policy, never a bare default one.
   Pexels (`Sources/Pexels.swift`) goes through our own caching Worker at
-  `pexels.lurent.app` (`workers/pexels-cache`), never to api.pexels.com directly:
-  the real key exists only as a Worker secret, so the app, `build.sh` and every
-  worktree need no key and no `.env` at all.
+  `pexels.lurent.app` (`workers/pexels-cache`) unless the user entered a key of
+  their own, which goes to api.pexels.com directly. The Worker's key exists only
+  as a Worker secret, so the app, `build.sh` and every worktree need no key and
+  no `.env` at all.
 - **Redeploying the Pexels Worker has traps that each cost hours.**
   `cd workers/pexels-cache && wrangler deploy`. The `CLOUDFLARE_API_TOKEN` in
   `.env` can list Workers but not write them, so deploy through an OAuth login
