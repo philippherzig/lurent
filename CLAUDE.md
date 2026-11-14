@@ -62,10 +62,13 @@
   PEXELS_ACCESS_KEY`.
 - **Open source, no App Store.** The Mac App Store move was abandoned in
   November 2026 after repeated App Review rejections; the repo is public under
-  MIT. Builds ship through the notarized Developer ID path (`build.sh` →
-  `notarize.sh` → `package.sh`). Sparkle auto-updates were removed for the
-  Store and not brought back (`Sources/Updater.swift` is an empty seam), so
-  there is no in-app update mechanism.
+  MIT. Releases: bump both versions in `Info.plist`, `./build.sh`, `./release.sh`.
+  That notarizes, EdDSA-signs the zip with the Sparkle key from the login
+  Keychain (back it up: losing it means no build can ever update again), and
+  creates a GitHub release carrying `Lurent.zip` + its own `appcast.xml`.
+  SUFeedURL is `releases/latest/download/appcast.xml`, so the newest release is
+  always the feed. 0.x builds still poll the old R2 feed at
+  updates.lurent.app/appcast.xml, which no longer gets updates.
 - **CIKernel/CIColorKernel shader gotchas** (`*Processor.swift`, all the
   synthetic styles): `active` is a reserved word and fails compilation with a
   cryptic `expected identifier`; loop increments must be `k += 1`, never

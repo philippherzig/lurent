@@ -73,15 +73,19 @@ Commons needs no key. For the others, open **Lurent › Settings…**:
 Keys are stored in your login keychain and never leave your Mac except to their
 own service.
 
-## Distributing a build
+## Releasing
 
-For others to run your build, sign it with a Developer ID and notarize it:
+Lurent updates itself with [Sparkle](https://sparkle-project.org). Bump
+`CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist`, then:
 
 ```bash
 ./build.sh                    # picks up a "Developer ID Application" identity
-./notarize.sh                 # needs a notarytool keychain profile "lurent-notary"
-./package.sh                  # optional: a notarized .pkg installer
+./release.sh                  # notarizes, signs the update, publishes a GitHub release
 ```
+
+`release.sh` needs the Sparkle EdDSA key in your login keychain and the `gh` CLI.
+Each release carries `Lurent.zip` and its own `appcast.xml`; the app's update feed
+is `releases/latest/download/appcast.xml`.
 
 Create the notary profile once with
 `xcrun notarytool store-credentials lurent-notary --apple-id … --team-id … --password …`

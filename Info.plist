@@ -15,9 +15,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>1.1</string>
 	<key>CFBundleVersion</key>
-	<string>14</string>
+	<string>15</string>
 	<!-- German is the development/base language (the string literals in code are
 	     the localization keys); the other languages ship as <lang>.lproj bundles. -->
 	<key>CFBundleDevelopmentRegion</key>
@@ -107,5 +107,15 @@
 	<string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Fotos via Wikimedia Commons und Pexels. Erstellt mit Lurent.</string>
+	<!-- Sparkle auto-update. Every GitHub release carries the Lurent.zip archive
+	     and an appcast.xml pointing at it; `latest/download/appcast.xml` therefore
+	     always serves the newest one. Updates are EdDSA-signed with SUPublicEDKey's
+	     private half (login Keychain, see release.sh). -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/philippherzig/lurent/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>hF36Nb4XK0w+6GAEGIkhTRf6FspFy4GZHv+omimHRu0=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

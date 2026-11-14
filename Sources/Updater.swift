@@ -1,16 +1,39 @@
 import SwiftUI
+import Sparkle
 
-// There is no in-app updater: Sparkle was removed for an App Store move that was
-// later dropped. Lurent is open source; new versions come from GitHub releases.
-//
-// These two types stay as empty seams so App.swift keeps its shape — dropping them
-// would mean touching the scene for no gain, and a future updater (if the app ever
-// leaves the Store) would slot straight back in here.
-
+/// Thin SwiftUI-facing wrapper around Sparkle's standard updater. The updater
+/// starts itself on launch and reads `SUFeedURL` + `SUPublicEDKey` from the
+/// Info.plist; automatic background checks are governed by `SUEnableAutomaticChecks`.
 @MainActor
-final class UpdaterViewModel: ObservableObject {}
+final class UpdaterViewModel: ObservableObject {
+    private let controller: SPUStandardUpdaterController
 
+    /// Mirrors `SPUUpdater.canCheckForUpdates` to drive the menu item's enabled
+    /// state — Sparkle sets it false when it currently can't begin a check.
+    @Published var canCheckForUpdates = false
+
+    init() {
+        controller = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        controller.updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
+    }
+
+    /// Manual "check now" — shows Sparkle's UI (progress, release notes, install).
+    func checkForUpdates() {
+        controller.updater.checkForUpdates()
+    }
+}
+
+/// The "Nach Updates suchen…" item for the app menu.
 struct CheckForUpdatesCommand: View {
     @ObservedObject var updater: UpdaterViewModel
-    var body: some View { EmptyView() }
+
+    var body: some View {
+        Button("Nach Updates suchen…", action: updater.checkForUpdates)
+            .disabled(!updater.canCheckForUpdates)
+    }
 }
