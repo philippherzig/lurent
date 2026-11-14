@@ -14,10 +14,17 @@ echo "▸ Cleaning previous build"
 rm -rf "$APP"
 mkdir -p "$BIN_DIR" "$APP/Contents/Resources"
 
+echo "▸ Ensuring Sparkle is vendored"
+"$ROOT/Tools/fetch-sparkle.sh"
+
 echo "▸ Compiling ($ARCH)"
+# -F/-framework let swiftc find the Sparkle module + link it; the rpath tells the
+# built binary to load Sparkle.framework from Contents/Frameworks at runtime.
 swiftc -O -parse-as-library \
   -sdk "$SDK" \
   -target "${ARCH}-apple-macos26.0" \
+  -F "$ROOT/vendor/Sparkle" -framework Sparkle \
+  -Xlinker -rpath -Xlinker "@executable_path/../Frameworks" \
   -o "$BIN" \
   "$ROOT"/Sources/*.swift
 
@@ -32,6 +39,13 @@ if compgen -G "$ROOT/Localizations/*.lproj" >/dev/null; then
   echo "  ($(ls -d "$ROOT/Localizations/"*.lproj | wc -l | tr -d ' ') localizations)"
 fi
 
+
+echo "▸ Embedding Sparkle.framework"
+FRAMEWORKS="$APP/Contents/Frameworks"
+SPARKLE_FW="$FRAMEWORKS/Sparkle.framework"
+mkdir -p "$FRAMEWORKS"
+# ditto preserves the framework's Versions/Current symlink layout.
+ditto "$ROOT/vendor/Sparkle/Sparkle.framework" "$SPARKLE_FW"
 
 echo "▸ Compiling app icon"
 ACTOOL="$(xcrun -f actool 2>/dev/null || true)"
@@ -59,6 +73,17 @@ fi
 echo "▸ Code signing"
 
 ENTITLEMENTS="$ROOT/Lurent.entitlements"
+SPARKLE_V="$SPARKLE_FW/Versions/Current"
+# Nested Sparkle executables/bundles, signed inside-out (deepest first) *before*
+# the framework and the app. Re-signing with *your* Developer ID is mandatory:
+# the app's hardened runtime enforces library validation, which only loads a
+# framework signed by the same team. They get no app entitlements.
+SPARKLE_NESTED=(
+  "$SPARKLE_V/XPCServices/Downloader.xpc"
+  "$SPARKLE_V/XPCServices/Installer.xpc"
+  "$SPARKLE_V/Autoupdate"
+  "$SPARKLE_V/Updater.app"
+)
 
 # codesign with the hardened runtime; retry without a secure timestamp when the
 # Apple timestamp server is unreachable (offline). Only a timestamped build can
@@ -90,12 +115,17 @@ if [ "$SIGN_IDENTITY" = "auto" ]; then
   SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
+  echo "  signing Sparkle.framework inside-out with $SIGN_IDENTITY"
+  for c in "${SPARKLE_NESTED[@]}"; do sign_hardened "$SIGN_IDENTITY" "" "$c"; done
+  sign_hardened "$SIGN_IDENTITY" "" "$SPARKLE_FW"
   echo "  signing Lurent.app"
   sign_hardened "$SIGN_IDENTITY" "$ENTITLEMENTS" "$APP"
   echo "  ✓ signed: $SIGN_IDENTITY (hardened runtime + entitlements)"
   echo "    → run ./notarize.sh to distribute (re-run online first if a timestamp was skipped)"
 else
   echo "  ad-hoc signing (local use only)"
+  for c in "${SPARKLE_NESTED[@]}"; do codesign --force --sign - "$c" >/dev/null 2>&1 || true; done
+  codesign --force --sign - "$SPARKLE_FW" >/dev/null 2>&1 || true
   codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "  (codesign skipped)"
   echo "  ad-hoc signed — local use only (set SIGN_IDENTITY to a Developer ID to distribute)"
 fi
