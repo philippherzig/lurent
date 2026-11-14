@@ -1,32 +1,5 @@
 # CLAUDE.md
 
-## Working Approach
-
-- **Answer short, lead with the recommendation**: open with the recommendation
-  and next steps, not the reasoning that produced them. Don't restate the
-  request, don't narrate what you're about to do, don't summarize what the
-  diff already shows, don't list options you're not recommending. One
-  recommendation — alternatives only when the user has to choose.
-- **One question, one answer.** Answer what was asked and stop. Not the
-  neighbouring question, not the follow-up you expect. If a second thing
-  genuinely matters, it's one sentence at the end, never its own section.
-- **Never hand a lookup back to the user.** If it's knowable from the repo,
-  the diff, or the tools available, go and know it. A question to the user is
-  for a decision that's theirs, never for information you could retrieve.
-- **A reply is prose, not a document.** Tables, bold run-in headers, and
-  nested bullets belong in files and specs — not in a chat answer. If it seems
-  to need a table to stay readable, it needs to be shorter instead.
-- **Stop closing with an offer.** Ending with "soll ich auch…?" turns every
-  answer into a decision the user has to make. Do the obvious work and say so
-  in a clause; silence at the end of an answer is fine.
-- **Don't offer what you could just do.** A proposal that makes sense is
-  work, not a question: do it, in the same change, and say what you did.
-  Next-steps are for decisions only the user can make — everything else is
-  yours.
-- **Default to the clean solution, not the quick fix**, but follow YAGNI: no
-  speculative abstractions, config knobs, or "might need this later" code for
-  needs the current change doesn't have.
-
 ## Non-Discoverable Rules
 
 - **Photo sources: Commons and Pexels built in, Unsplash only with the user's
