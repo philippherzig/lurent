@@ -1,19 +1,46 @@
-# Lurent
+<p align="center">
+  <img src="docs/icon.png" width="128" height="128" alt="Lurent app icon">
+</p>
 
-Lurent is a native macOS app that turns a photo into a soft, abstract wallpaper.
-Pick a picture, shape it with the effect controls, and set it as your desktop.
+<h1 align="center">Lurent</h1>
 
-- **Styles:** Blur, Mirror, Slats and Liquid. Liquid needs no photo at all.
-- **Light and dark:** each wallpaper can have its own look per appearance and
-  exports as a dynamic HEIC that macOS switches automatically.
-- **Any display:** renders a square 6016 × 6016 master that fills every Mac
-  display at full resolution, landscape or portrait.
-- **Projects:** every wallpaper is kept as a `.lurent` document in
-  `iCloud Drive/Lurent/`, so it can be reopened and changed later.
-- **Photo sources:** Wikimedia Commons, Pexels, Unsplash, your Photos library,
-  or any image file.
+<p align="center">
+  Turn any photo into a soft, abstract wallpaper for your Mac.
+</p>
 
-Requires macOS 26 or later on Apple Silicon.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/philippherzig/lurent?color=blue" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/macOS-26%2B-black?logo=apple" alt="macOS 26+">
+  <img src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white" alt="Swift 6">
+  <img src="https://img.shields.io/badge/Apple%20Silicon-native-555" alt="Apple Silicon">
+  <a href="https://github.com/philippherzig/lurent/commits/main"><img src="https://img.shields.io/github/last-commit/philippherzig/lurent" alt="Last commit"></a>
+  <a href="https://lurent.app"><img src="https://img.shields.io/badge/website-lurent.app-8A7CF0" alt="Website"></a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Lurent: a project rail on the left, the wallpaper preview in the middle, source and effect controls on the right">
+</p>
+
+## Features
+
+- **Four styles.** Blur, Mirror, Slats and Liquid, each with its own controls. Liquid
+  generates its image from colours alone, no photo needed.
+- **Light and dark.** Give each appearance its own photo and settings. Lurent exports
+  a dynamic HEIC that macOS switches with the system appearance.
+- **Every display, full resolution.** Lurent renders a square 6016 × 6016 master that
+  fills any Mac display, landscape or portrait, up to the Pro Display XDR.
+- **No banding.** 16-bit rendering with optional film grain keeps smooth gradients
+  smooth, even on 10-bit displays.
+- **Projects, not exports.** Every wallpaper stays editable as a `.lurent` document in
+  `iCloud Drive/Lurent/`, synced across your Macs. No save button.
+- **Photos from anywhere.** Search Wikimedia Commons, Pexels or Unsplash, pick from your
+  Photos library, or drop in any image file. Every online photo is credited.
+- **One click to the desktop.** Set the result as your wallpaper on all screens, export
+  it with ⌘S, or drag the preview straight into the Finder.
+
+## Requirements
+
+macOS 26 or later on Apple Silicon.
 
 ## Build
 
@@ -69,6 +96,11 @@ Tools/              Icon and contact-sheet helpers
 Every photo from an online source shows its photographer and a link to where it
 lives. Commons photos are mostly CC BY-SA; the linked file page states the exact
 licence. Unsplash and Pexels photos follow their own licences.
+
+## Contributing
+
+Issues and pull requests are welcome. For anything larger than a fix, open an issue
+first so we can agree on the direction. `./build.sh` must pass before a pull request.
 
 ## License
 

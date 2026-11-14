@@ -558,7 +558,7 @@ private struct SourceCredit: View {
         }
         if UnsplashAttribution.isUnsplash(raw) {
             let markdown = L("Foto von [%@](%@) auf [Unsplash](%@)",
-                             name, (UnsplashAttribution.profileURL(raw) ?? page).absoluteString,
+                             Self.legacyUnsplashName(name), (UnsplashAttribution.profileURL(raw) ?? page).absoluteString,
                              UnsplashAttribution.homeURL.absoluteString)
             return try? AttributedString(markdown: markdown)
         }
@@ -569,6 +569,15 @@ private struct SourceCredit: View {
             return try? AttributedString(markdown: markdown)
         }
         return nil
+    }
+
+    /// Builds before the credit existed stored a whole sentence ("Foto: Jane · Unsplash")
+    /// where only the name belongs. Strip that shape so old projects read right.
+    private static func legacyUnsplashName(_ stored: String) -> String {
+        var name = stored
+        if name.hasPrefix("Foto: ") { name.removeFirst("Foto: ".count) }
+        if let range = name.range(of: " · Unsplash", options: .backwards) { name.removeSubrange(range) }
+        return name
     }
 }
 
