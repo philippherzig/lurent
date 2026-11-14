@@ -1,8 +1,7 @@
 import SwiftUI
 
-// Lurent ships through the App Store, which updates it. There is no in-app updater:
-// the Store forbids apps that update themselves, and Sparkle was removed with the
-// Developer ID channel.
+// There is no in-app updater: Sparkle was removed for an App Store move that was
+// later dropped. Lurent is open source; new versions come from GitHub releases.
 //
 // These two types stay as empty seams so App.swift keeps its shape — dropping them
 // would mean touching the scene for no gain, and a future updater (if the app ever

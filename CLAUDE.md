@@ -57,13 +57,12 @@
   search twice and watch `x-ratelimit-remaining`; a hit leaves it unchanged
   and adds an `age` header. Rotating the key: `wrangler secret put
   PEXELS_ACCESS_KEY`.
-- **Distribution has moved off Sparkle.** Auto-updates were removed
-  (`Sources/Updater.swift` is an intentional empty seam) because the app is
-  moving to the Mac App Store, which forbids self-updating apps. That move
-  isn't live yet — certificates/provisioning are still unchecked in
-  `docs/app-store-submission.md` — so shipped builds today are still the
-  notarized Developer ID path (`build.sh` → `notarize.sh` → `package.sh`,
-  downloaded from lurent.app) with no in-app update mechanism at all.
+- **Open source, no App Store.** The Mac App Store move was abandoned in
+  November 2026 after repeated App Review rejections; the repo is public under
+  MIT. Builds ship through the notarized Developer ID path (`build.sh` →
+  `notarize.sh` → `package.sh`). Sparkle auto-updates were removed for the
+  Store and not brought back (`Sources/Updater.swift` is an empty seam), so
+  there is no in-app update mechanism.
 - **CIKernel/CIColorKernel shader gotchas** (`*Processor.swift`, all the
   synthetic styles): `active` is a reserved word and fails compilation with a
   cryptic `expected identifier`; loop increments must be `k += 1`, never

@@ -84,8 +84,7 @@ Zwei Eigenheiten von Pages, die beim Prüfen täuschen:
 Dazu hinkt der Edge-Cache nach einem Deploy rund eine Minute nach. Wenn die alte
 Fassung erscheint: kurz warten, bevor du suchst.
 
-`privacy.html` und `support.html` sind Pflichtfelder im App Store und müssen
-echten Inhalt liefern.
+`privacy.html` und `support.html` müssen echten Inhalt liefern.
 
 ## Bedienung
 
@@ -171,7 +170,7 @@ Sources/
   App.swift            App-Einstieg + Settings-Szene + Update-Menüpunkt
   ContentView.swift    UI (Sidebar, Vorschau, Regler, Settings)
   Model.swift          Zustand, Looks (Hell/Dunkel), Export/Drag/Desktop
-  Updater.swift        Leerer Platzhalter — Updates kommen aus dem App Store
+  Updater.swift        Leerer Platzhalter — kein In-App-Updater
   Commons.swift        Wikimedia-Commons-API-Client (ohne Auth)
   Pexels.swift         Pexels-Client — spricht nur mit dem Worker, nie direkt mit Pexels
   BlurProcessor.swift  Core-Image-Blur/Gradient-Pipeline
@@ -179,7 +178,7 @@ Sources/
 workers/pexels-cache/  Cloudflare Worker (pexels.lurent.app): hält den Pexels-Key, cacht Suchen
 Info.plist             Bundle-Metadaten (+ .lurent-Dokumenttyp)
 Lurent.entitlements    Hardened-Runtime-Entitlements (Photos-Zugriff)
-build.sh               swiftc → .app-Bundle (signiert; PROVISION_PROFILE=… → App-Store-Variante)
+build.sh               swiftc → .app-Bundle (Developer-ID-signiert)
 notarize.sh            Notarisieren & Ticket stapeln für die Verteilung
 package.sh             Signiertes + notarisiertes .pkg für /Applications
 Tools/provision-r2.sh   Einmaliges R2-Setup (Bucket + Custom Domain)
@@ -198,3 +197,7 @@ sich alle Installationen das kleine Kontingent des Standard-Keys teilen. Die App
 zeigt den Fotografen und einen Link auf Pexels an. Neu deployen:
 `cd workers/pexels-cache && wrangler deploy` — die Stolpersteine (Token-Rechte,
 Cookies, Domain) stehen in `CLAUDE.md`.
+
+## Lizenz
+
+MIT — siehe [LICENSE](LICENSE).

@@ -14,23 +14,6 @@ echo "▸ Cleaning previous build"
 rm -rf "$APP"
 mkdir -p "$BIN_DIR" "$APP/Contents/Resources"
 
-# PROVISION_PROFILE builds the sandboxed, provisioned App Store variant. Unset, the
-# result is an unsandboxed Developer ID build — same code either way, since there is
-# no longer anything to compile conditionally.
-PROVISION_PROFILE="${PROVISION_PROFILE-}"
-if [ -n "$PROVISION_PROFILE" ]; then
-  [ -f "$PROVISION_PROFILE" ] || { echo "  ✗ profile not found: $PROVISION_PROFILE"; exit 1; }
-  # A Mac App Store profile lists no devices, and macOS refuses to launch a build
-  # carrying one outside the Store ("Launchd job spawn failed") — measured.
-  # Capture first, then grep: `security … | grep -q` can SIGPIPE-fail under pipefail.
-  PROFILE_PLIST="$(security cms -D -i "$PROVISION_PROFILE" 2>/dev/null || true)"
-  if ! grep -q "ProvisionedDevices" <<<"$PROFILE_PLIST"; then
-    echo "  ⚠ $(basename "$PROVISION_PROFILE") is a distribution profile: fine for upload,"
-    echo "    but this build will not launch locally. Use a Development profile to run it"
-    echo "    (Xcode creates one: ~/Library/Developer/Xcode/UserData/Provisioning Profiles)."
-  fi
-fi
-
 echo "▸ Compiling ($ARCH)"
 swiftc -O -parse-as-library \
   -sdk "$SDK" \
@@ -75,16 +58,7 @@ fi
 
 echo "▸ Code signing"
 
-# The iCloud entitlements are *restricted*: macOS refuses to launch a binary that
-# carries them unless the bundle embeds a provisioning profile authorising them —
-# a Developer ID build signed with them dies at spawn.
-if [ -n "$PROVISION_PROFILE" ]; then
-  ENTITLEMENTS="$ROOT/Lurent-appstore.entitlements"
-  cp "$PROVISION_PROFILE" "$APP/Contents/embedded.provisionprofile"
-  echo "  embedded $(basename "$PROVISION_PROFILE") → sandboxed, iCloud container"
-else
-  ENTITLEMENTS="$ROOT/Lurent.entitlements"
-fi
+ENTITLEMENTS="$ROOT/Lurent.entitlements"
 
 # codesign with the hardened runtime; retry without a secure timestamp when the
 # Apple timestamp server is unreachable (offline). Only a timestamped build can
@@ -113,14 +87,7 @@ if [ "$SIGN_IDENTITY" = "auto" ]; then
   # Capture first, then parse: `security … | awk …exit` can SIGPIPE-fail security
   # under `set -o pipefail` (the hazard notarize.sh/release.sh already avoid).
   IDENTITIES="$(security find-identity -v -p codesigning || true)"
-  # A provisioned build has to be signed by the identity the profile was issued
-  # for; Developer ID and a Development profile don't match.
-  if [ -n "$PROVISION_PROFILE" ]; then
-    SIGN_IDENTITY="$(awk -F'"' '/Apple Development|Apple Distribution|3rd Party Mac Developer Application/ {print $2; exit}' <<<"$IDENTITIES")"
-    [ -n "$SIGN_IDENTITY" ] || { echo "  ✗ no \"Apple Development\" identity in the keychain"; exit 1; }
-  else
-    SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
-  fi
+  SIGN_IDENTITY="$(awk -F'"' '/Developer ID Application/ {print $2; exit}' <<<"$IDENTITIES")"
 fi
 if [ -n "$SIGN_IDENTITY" ] && [ "$SIGN_IDENTITY" != "-" ]; then
   echo "  signing Lurent.app"
