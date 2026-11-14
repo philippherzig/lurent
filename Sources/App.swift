@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct LurentApp: App {
+    static let mainWindowID = "main"
+
     @StateObject private var model = AppModel()
     @StateObject private var updater = UpdaterViewModel()
 
@@ -14,7 +16,8 @@ struct LurentApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // Not a single `Window` scene: that quits the whole app when its window closes.
+        WindowGroup(id: Self.mainWindowID) {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 1090, minHeight: 660)
@@ -46,6 +49,36 @@ struct LurentApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesCommand(updater: updater)
             }
+            // App Review (guideline 4) rejected a build where closing the window left
+            // no menu item to bring it back; SwiftUI does not list it by itself.
+            // After `.windowArrangement`, because `.windowList` renders nothing.
+            CommandGroup(after: .windowArrangement) {
+                ShowMainWindowCommand()
+            }
         }
+
+        Settings {
+            APIKeysSettingsView()
+        }
+    }
+}
+
+private struct ShowMainWindowCommand: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Lurent") {
+            // A WindowGroup would happily open a second window; Lurent has one.
+            // A closed SwiftUI window can linger in `NSApp.windows`; only a shown or
+            // minimized one counts.
+            if let window = NSApp.windows.first(where: {
+                $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized)
+            }) {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                openWindow(id: LurentApp.mainWindowID)
+            }
+        }
+            .keyboardShortcut("0")
     }
 }

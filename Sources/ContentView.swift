@@ -447,6 +447,33 @@ private struct BaseImageSection: View {
                 }
             }
 
+        case .unsplash:
+            HStack(spacing: 8) {
+                NativeSearchField(text: $model.query, placeholder: L("Unsplash durchsuchen")) {
+                    model.runSearch()
+                }
+                .frame(height: 24)
+                if model.isSearching { ProgressView().controlSize(.small) }
+            }
+            if APIKeys.key(for: .unsplash) == nil {
+                SettingsLink {
+                    Text("Unsplash braucht einen eigenen Access-Key. Einstellungen öffnen…")
+                        .font(.caption)
+                }
+                .buttonStyle(.link)
+            }
+            if !model.unsplashResults.isEmpty {
+                ThumbGrid {
+                    ForEach(model.unsplashResults) { photo in
+                        Button { model.selectUnsplash(photo) } label: {
+                            RemoteThumbnail(url: photo.urls.small, label: photo.displayTitle,
+                                            isSelected: model.currentLook.photoID == photo.id)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
         case .files:
             Button {
                 openImagePanel(model)
@@ -527,6 +554,12 @@ private struct SourceCredit: View {
             let markdown = L("Foto von [%@](%@) auf [Wikimedia Commons](%@)",
                              name, page.absoluteString,
                              CommonsAttribution.homeURL.absoluteString)
+            return try? AttributedString(markdown: markdown)
+        }
+        if UnsplashAttribution.isUnsplash(raw) {
+            let markdown = L("Foto von [%@](%@) auf [Unsplash](%@)",
+                             name, (UnsplashAttribution.profileURL(raw) ?? page).absoluteString,
+                             UnsplashAttribution.homeURL.absoluteString)
             return try? AttributedString(markdown: markdown)
         }
         if PexelsAttribution.isPexels(raw) {
@@ -1019,7 +1052,17 @@ private struct PexelsThumbnail: View {
     let isSelected: Bool
 
     var body: some View {
-        AsyncImage(url: URL(string: photo.thumbURL)) { phase in
+        RemoteThumbnail(url: photo.thumbURL, label: photo.displayTitle, isSelected: isSelected)
+    }
+}
+
+private struct RemoteThumbnail: View {
+    let url: String
+    let label: String
+    let isSelected: Bool
+
+    var body: some View {
+        AsyncImage(url: URL(string: url)) { phase in
             switch phase {
             case .success(let image):
                 image.resizable().aspectRatio(contentMode: .fill)
@@ -1033,8 +1076,6 @@ private struct PexelsThumbnail: View {
         .help(label)
         .accessibilityLabel(label)
     }
-
-    private var label: String { photo.displayTitle }
 }
 
 // MARK: - Window chrome (whole-window behind-window material)

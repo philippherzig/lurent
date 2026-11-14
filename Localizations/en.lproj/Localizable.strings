@@ -145,3 +145,20 @@
 // Dateiseite, die die genaue Lizenz nennt.
 "Foto von [%@](%@) auf [Wikimedia Commons](%@)" = "Photo by [%@](%@) on [Wikimedia Commons](%@)";
 "Foto von [%@](%@) auf [Pexels](%@)" = "Photo by [%@](%@) on [Pexels](%@)";
+
+/* API keys (Settings) and Unsplash */
+"Unsplash durchsuchen" = "Search Unsplash";
+"Unsplash braucht einen eigenen Access-Key. Einstellungen öffnen…" = "Unsplash needs your own access key. Open Settings…";
+"Unsplash braucht einen eigenen Access-Key: Lurent › Einstellungen…" = "Unsplash needs your own access key: Lurent › Settings…";
+"Unsplash lehnt den Access-Key ab (401)." = "Unsplash rejected the access key (401).";
+"Unsplash-Ratenlimit erreicht (403). Bitte etwas warten." = "Unsplash rate limit reached (403). Please wait a moment.";
+"Unsplash-Fehler (HTTP %ld)." = "Unsplash error (HTTP %ld).";
+"Unerwartete Antwort von Unsplash." = "Unexpected response from Unsplash.";
+"Foto von [%@](%@) auf [Unsplash](%@)" = "Photo by [%@](%@) on [Unsplash](%@)";
+"Pexels lehnt den API-Key ab (401). Prüfe ihn unter Lurent › Einstellungen…" = "Pexels rejected the API key (401). Check it under Lurent › Settings…";
+"Pexels-API-Key" = "Pexels API key";
+"Unsplash-Access-Key" = "Unsplash access key";
+"Optional. Ohne Key läuft die Pexels-Suche über den gemeinsamen Lurent-Cache." = "Optional. Without a key, Pexels search goes through the shared Lurent cache.";
+"Key holen: pexels.com/api" = "Get a key: pexels.com/api";
+"Nötig für die Unsplash-Suche." = "Required for Unsplash search.";
+"Key holen: unsplash.com/developers" = "Get a key: unsplash.com/developers";

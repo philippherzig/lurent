@@ -9,6 +9,7 @@ import Photos
 enum ImageSource: Hashable {
     case commons
     case pexels
+    case unsplash
     case files
     case album(id: String, title: String)
 }
@@ -16,12 +17,13 @@ enum ImageSource: Hashable {
 /// Top-level source choice for the consolidated inspector picker. The Photos
 /// case fans out into a per-album sub-picker (see `selectedAlbumID`).
 enum SourceKind: String, CaseIterable, Identifiable {
-    case commons, pexels, files, photos
+    case commons, pexels, unsplash, files, photos
     var id: String { rawValue }
     var label: String {
         switch self {
         case .commons: return L("Wikimedia Commons")
         case .pexels:  return L("Pexels")
+        case .unsplash: return L("Unsplash")
         case .files:    return L("Dateien")
         case .photos:   return L("Fotos")
         }
@@ -203,6 +205,7 @@ final class AppModel: ObservableObject {
     @Published var query: String = ""
     @Published var results: [CommonsPhoto] = []
     @Published var pexelsResults: [PexelsPhoto] = []
+    @Published var unsplashResults: [UnsplashPhoto] = []
     @Published var isSearching = false
     /// Why the picker is empty, when there is a reason worth showing. The launch
     /// fetch stays silent about failures — an alert on startup would be rude — but
@@ -306,6 +309,7 @@ final class AppModel: ObservableObject {
 
     private let service = CommonsService()
     private let pexelsService = PexelsService()
+    private let unsplashService = UnsplashService()
 
     // MARK: Current look editing
 
@@ -347,6 +351,7 @@ final class AppModel: ObservableObject {
             case .files:            return .files
             case .album:            return .photos
             case .pexels:           return .pexels
+            case .unsplash:         return .unsplash
             case .commons, .none:   return .commons
             }
         }
@@ -354,6 +359,7 @@ final class AppModel: ObservableObject {
             switch newValue {
             case .commons:  selectedSource = .commons
             case .pexels:   selectedSource = .pexels
+            case .unsplash: selectedSource = .unsplash
             case .files:    selectedSource = .files
             case .photos:
                 if case .album = selectedSource { return }   // already on an album
@@ -506,7 +512,7 @@ final class AppModel: ObservableObject {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         // Clearing the field (e.g. the search field's native clear button) runs
         // this with an empty query — drop stale results instead of leaving them.
-        guard !q.isEmpty else { results = []; pexelsResults = []; errorMessage = nil; return }
+        guard !q.isEmpty else { results = []; pexelsResults = []; unsplashResults = []; errorMessage = nil; return }
         isSearching = true
         errorMessage = nil
         switch sourceKind {
@@ -516,6 +522,16 @@ final class AppModel: ObservableObject {
                 do {
                     pexelsResults = try await pexelsService.search(query: q)
                     if pexelsResults.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        case .unsplash:
+            Task {
+                defer { isSearching = false }
+                do {
+                    unsplashResults = try await unsplashService.search(query: q)
+                    if unsplashResults.isEmpty { errorMessage = L("Keine Treffer für „%@“.", q) }
                 } catch {
                     errorMessage = error.localizedDescription
                 }
@@ -576,6 +592,30 @@ final class AppModel: ObservableObject {
                 applySource(cg, photoID: String(photo.id), baseName: baseName(for: photo),
                             attribution: photo.photographer,
                             attributionURL: photo.url, to: target)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func selectUnsplash(_ photo: UnsplashPhoto) {
+        let target = effectiveAppearance
+        isLoadingSource = true
+        errorMessage = nil
+        Task {
+            defer { isLoadingSource = false }
+            do {
+                // `full` is the largest rendition Unsplash serves without a resize
+                // parameter; `raw` with no size can be tens of megapixels.
+                let cg = try await unsplashService.loadImage(from: photo.urls.full)
+                applySource(cg, photoID: photo.id, baseName: "unsplash-\(photo.id)",
+                            attribution: photo.user.name,
+                            attributionURL: photo.user.links?.html ?? UnsplashAttribution.homeURL.absoluteString,
+                            to: target)
+                // API guideline: report the use of a photo.
+                if let location = photo.links?.download_location {
+                    await unsplashService.trackDownload(location)
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
