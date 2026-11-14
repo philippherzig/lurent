@@ -56,6 +56,10 @@ struct LurentApp: App {
                 ShowMainWindowCommand()
             }
         }
+
+        Settings {
+            APIKeysSettingsView()
+        }
     }
 }
 

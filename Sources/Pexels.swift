@@ -48,6 +48,7 @@ enum PexelsAttribution {
 // MARK: - Errors
 
 enum PexelsError: LocalizedError {
+    case invalidKey
     case rateLimited
     case http(Int)
     case badResponse
@@ -55,6 +56,7 @@ enum PexelsError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .invalidKey:  return L("Pexels lehnt den API-Key ab (401). Prüfe ihn unter Lurent › Einstellungen…")
         case .rateLimited: return L("Pexels-Ratenlimit erreicht (429). Bitte etwas warten.")
         case .http(let c): return L("Pexels-Fehler (HTTP %ld).", c)
         case .badResponse: return L("Unerwartete Antwort von Pexels.")
@@ -65,14 +67,14 @@ enum PexelsError: LocalizedError {
 
 // MARK: - Service
 
-/// Talks to Pexels through our own caching Worker (`workers/pexels-cache`), never
-/// to api.pexels.com directly: the Worker holds the API key, so none ships inside
-/// the app, and it caches identical searches so every install shares one upstream
-/// request instead of spending Pexels' small per-key quota one search at a time.
-/// Only the JSON goes through it — the photos themselves come straight from
-/// Pexels' image CDN, which needs no key.
+/// With the user's own key (Settings), talks to api.pexels.com directly on that
+/// key's quota. Without one, goes through our caching Worker (`workers/pexels-cache`),
+/// which holds a key so none ships inside the app, and caches identical searches so
+/// every install shares one upstream request. Only the JSON goes through either —
+/// the photos themselves come straight from Pexels' image CDN, which needs no key.
 struct PexelsService {
-    private static let endpoint = "https://pexels.lurent.app"
+    private static let workerEndpoint = "https://pexels.lurent.app"
+    private static let apiEndpoint = "https://api.pexels.com/v1"
 
     func search(query: String, perPage: Int = 30) async throws -> [PexelsPhoto] {
         try await run(path: "search", params: ["query": query, "per_page": String(perPage)])
@@ -100,13 +102,17 @@ struct PexelsService {
     }
 
     private func run(path: String, params: [String: String]) async throws -> [PexelsPhoto] {
-        var comps = URLComponents(string: "\(Self.endpoint)/\(path)")!
+        let ownKey = APIKeys.key(for: .pexels)
+        var comps = URLComponents(string: "\(ownKey == nil ? Self.workerEndpoint : Self.apiEndpoint)/\(path)")!
         comps.queryItems = params.map { URLQueryItem(name: $0, value: $1) }
+        var request = URLRequest(url: comps.url!)
+        if let ownKey { request.setValue(ownKey, forHTTPHeaderField: "Authorization") }
 
-        let (data, resp) = try await URLSession.shared.data(from: comps.url!)
+        let (data, resp) = try await URLSession.shared.data(for: request)
         guard let http = resp as? HTTPURLResponse else { throw PexelsError.badResponse }
         switch http.statusCode {
         case 200: break
+        case 401: throw PexelsError.invalidKey
         case 429: throw PexelsError.rateLimited
         default:  throw PexelsError.http(http.statusCode)
         }
