@@ -52,6 +52,24 @@
     max-width: 40rem;
   }
 
+  .download {
+    display: inline-flex; align-items: center; gap: .55rem;
+    margin-top: 2rem;
+    padding: .8rem 1.6rem;
+    border-radius: 980px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.05rem; font-weight: 500;
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(0, 113, 227, .28);
+  }
+  .download:hover { background: var(--accent-hover); }
+  .download svg { width: 1.05em; height: 1.05em; }
+  .meta {
+    margin-top: .9rem;
+    font-size: .85rem;
+    color: var(--muted);
+  }
   .links {
     margin-top: 2.4rem;
     font-size: .95rem;
@@ -104,9 +122,13 @@
     <h1>Lurent</h1>
     <p class="tagline">Turns a photograph into a soft abstract wallpaper.<br>
     Endless variations, at your display's native resolution.</p>
-
+    <a class="download" href="https://github.com/philippherzig/lurent/releases/latest/download/Lurent.zip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+      Download for Mac
+    </a>
+    <p class="meta">Free and open source · macOS 26 or later · Apple silicon</p>
     <p class="links">
-      <a href="/support">Support</a><span>·</span><a href="/privacy">Privacy</a>
+      <a href="https://github.com/philippherzig/lurent">GitHub</a><span>·</span><a href="/support">Support</a><span>·</span><a href="/privacy">Privacy</a>
     </p>
   </main>
 </body>
